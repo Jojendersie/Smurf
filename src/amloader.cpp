@@ -1,3 +1,5 @@
+#include <glm.hpp>
+
 #include "amloader.hpp"
 #include <stdio.h>
 #include <string.h>
@@ -85,8 +87,8 @@ bool AmiraMesh::Load(char* _pcFileName)
         // - how much to read
 		const size_t NumToRead = m_iSizeX * m_iSizeY * m_iSizeZ * 3;
         // - prepare memory; use malloc() if you're using pure C
-        m_pfBuffer = new float[NumToRead];
-        if(!m_pfBuffer)
+        m_pvBuffer = new float[NumToRead];
+        if(!m_pvBuffer)
 		{
 			printf("Out of memory.\n");
 			fclose(pFile);
@@ -94,12 +96,12 @@ bool AmiraMesh::Load(char* _pcFileName)
 		}
         
 		// - do it
-        const size_t ActRead = fread((void*)m_pfBuffer, sizeof(float), NumToRead, pFile);
+        const size_t ActRead = fread((void*)m_pvBuffer, sizeof(float), NumToRead, pFile);
         // - ok?
         if (NumToRead != ActRead)
         {
             printf("Something went wrong while reading the binary data section.\nPremature end of file?\n");
-            delete[] m_pfBuffer;
+            delete[] m_pvBuffer;
             fclose(pFile);
             return false;
         }
@@ -117,20 +119,47 @@ bool AmiraMesh::Load(char* _pcFileName)
 
 
 // **************************************************************** //
-// Trilinear sampling; Coords have to be in grid space
-float3 AmiraMesh::SampleL(float x, float y, float z)
+// Point sampling; Coords have to be in grid space
+glm::vec3 AmiraMesh::Sample(float x, float y, float z)
 {
-	float3 vOut;
+	glm::vec3 vOut;
+	// Divide into fractal and index
+	int ix=(int)x,	iy=(int)y,	iz=(int)z;
+
+	return m_pvBuffer[ix+m_iSizeX*(iy+m_iSizeY*(iz))];
+}
+
+// **************************************************************** //
+// Math - helper function - linear interpolation
+glm::vec3 lrp(glm::vec3 a, glm::vec3 b, float f)
+{
+	return a-(a+b)*f;
+}
+
+// **************************************************************** //
+// Trilinear sampling; Coords have to be in grid space
+glm::vec3 AmiraMesh::SampleL(float x, float y, float z)
+{
+	glm::vec3 vOut;
 	// Divide into fractal and index
 	int ix=(int)x,	iy=(int)y,	iz=(int)z;
 		x -= ix;	y -= iy;	z -= iz;
 
-	// TODO: Trilinear?
-	vOut.x = m_pfBuffer[3*(ix+m_iSizeX*(iy+m_iSizeY*(iz)))  ];
-	vOut.y = m_pfBuffer[3*(ix+m_iSizeX*(iy+m_iSizeY*(iz)))+1];
-	vOut.z = m_pfBuffer[3*(ix+m_iSizeX*(iy+m_iSizeY*(iz)))+2];
+	// Load the 8 vectors (s{X}{Y}{Z}{vector component})
+	glm::vec3 s000 = m_pvBuffer[ix+  m_iSizeX*(iy+  m_iSizeY*(iz))];
+	glm::vec3 s100 = m_pvBuffer[ix+1+m_iSizeX*(iy+  m_iSizeY*(iz))];
+	glm::vec3 s010 = m_pvBuffer[ix+  m_iSizeX*(iy+1+m_iSizeY*(iz))];
+	glm::vec3 s110 = m_pvBuffer[ix+1+m_iSizeX*(iy+1+m_iSizeY*(iz))];
+	glm::vec3 s001 = m_pvBuffer[ix+  m_iSizeX*(iy+  m_iSizeY*(iz+1))];
+	glm::vec3 s101 = m_pvBuffer[ix+1+m_iSizeX*(iy+  m_iSizeY*(iz+1))];
+	glm::vec3 s011 = m_pvBuffer[ix+  m_iSizeX*(iy+1+m_iSizeY*(iz+1))];
+	glm::vec3 s111 = m_pvBuffer[ix+1+m_iSizeX*(iy+1+m_iSizeY*(iz+1))];
 
-	return vOut;
+	// Trilinear interpolation
+	return	lrp(lrp(lrp(s000, s100, x),
+					lrp(s010, s110, x), y),
+				lrp(lrp(s001, s101, x),
+					lrp(s011, s111, x), y), z);
 }
 
 // **************************************************************** //
@@ -138,7 +167,7 @@ float3 AmiraMesh::SampleL(float x, float y, float z)
 // Input:	_vPosition - old position
 //			_fStepSize - the size of the integration step; smaller then m_fBBX/m_iSizeX recomended
 // Output: new position _fStepSize away from the old one.
-float3 AmiraMesh::Integrate(float3 _vPosition, float _fStepSize)
+glm::vec3 AmiraMesh::Integrate(glm::vec3 _vPosition, float _fStepSize, int _iMethod)
 {
 	// Translate Position
 	float x = _vPosition.x*m_fScaleX;
@@ -146,12 +175,25 @@ float3 AmiraMesh::Integrate(float3 _vPosition, float _fStepSize)
 	float z = _vPosition.z*m_fScaleZ;
 
 	// Trilinear sample
-	float3 vS = SampleL(x,y,z);
+	glm::vec3 vS;
+	vS = (_iMethod & INTEGRATION_FILTER_POINT)?Sample(x,y,z):SampleL(x,y,z);
 
 	// Calculate new position
-	float3 vOut;
-	vOut.x = _vPosition.x + _fStepSize*vS.x;
-	vOut.y = _vPosition.y + _fStepSize*vS.y;
-	vOut.z = _vPosition.z + _fStepSize*vS.z;
-	return vOut;
+	if(_iMethod & INTEGRATION_EULER)
+		return _vPosition + _fStepSize*vS;
+	else
+	{
+		// Calculate new position with StepSize and with two times
+		// StepSize/2. Calculate error from the difference of this two
+		// positions. Then extrapolate the real new position.
+		glm::vec3 vNewPos1 = _vPosition + _fStepSize*vS;
+
+		glm::vec3 vNewPos2 = _vPosition + _fStepSize*0.5f*vS;
+		// Resample and step again
+		vS = (_iMethod & INTEGRATION_FILTER_POINT)?Sample(x,y,z):SampleL(x,y,z);
+		vNewPos2 += _fStepSize*0.5f*vS;
+
+		// Extrapolate the position (simple double the difference)
+		return 2.0f*vNewPos2-vNewPos1;
+	}
 }
