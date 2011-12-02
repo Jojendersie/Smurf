@@ -1,4 +1,4 @@
-#include <glm.hpp>
+#include <glm/glm.hpp>
 
 #include "amloader.hpp"
 #include <stdio.h>

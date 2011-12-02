@@ -21,6 +21,8 @@
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  */
 
+#include <glm/glm.hpp>
+
 #ifndef AMLOADER_HPP_
 #define AMLOADER_HPP_
 
