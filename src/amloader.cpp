@@ -1,9 +1,8 @@
+#include <cstdio>
+#include <cstring>
+#include <cassert>
 #include <glm/glm.hpp>
-
 #include "amloader.hpp"
-#include <stdio.h>
-#include <string.h>
-#include <assert.h>
 
 // **************************************************************** //
 // Release all buffers
