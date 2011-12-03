@@ -21,10 +21,12 @@
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  */
 
+
+
 #ifndef AMLOADER_HPP_
 #define AMLOADER_HPP_
 
-#include <glm.hpp>
+#include <glm/glm.hpp>
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
