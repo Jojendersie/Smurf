@@ -8,7 +8,7 @@
 // Release all buffers
 AmiraMesh::~AmiraMesh()
 {
-	if(m_pfBuffer) delete[] m_pfBuffer;
+	if(m_pvBuffer) delete[] m_pvBuffer;
 }
 
 // **************************************************************** //
@@ -31,7 +31,7 @@ const char* FindAndJump(const char* _pcBuffer, const char* _pcSearchString)
 bool AmiraMesh::Load(char* _pcFileName)
 {
 	FILE* pFile;
-	fopen_s(&pFile, _pcFileName, "rb");
+	pFile = fopen(_pcFileName, "rb");
 	if(!pFile) return false;	// Cannot open file
 
 	// We read the first 2k bytes into memory to parse the header.
@@ -48,7 +48,7 @@ bool AmiraMesh::Load(char* _pcFileName)
     }
 
 	// Find the Lattice definition, i.e., the dimensions of the uniform grid
-	if(3!=sscanf_s(FindAndJump(acBuffer, "define Lattice"), "%d %d %d\n", &m_iSizeX, &m_iSizeY, &m_iSizeZ))
+	if(3!=sscanf(FindAndJump(acBuffer, "define Lattice"), "%d %d %d\n", &m_iSizeX, &m_iSizeY, &m_iSizeZ))
 	{
 		printf("'define Lattice' information corrupted.\n");
         fclose(pFile);
@@ -56,7 +56,7 @@ bool AmiraMesh::Load(char* _pcFileName)
 	}
 
 	// Find the BoundingBox
-	sscanf_s(FindAndJump(acBuffer, "BoundingBox"), "%g %g %g %g %g %g", &m_vBBMin.x, &m_vBBMax.x, &m_vBBMin.y, &m_vBBMax.y, &m_vBBMin.z, &m_vBBMax.z);
+	sscanf(FindAndJump(acBuffer, "BoundingBox"), "%g %g %g %g %g %g", &m_vBBMin.x, &m_vBBMax.x, &m_vBBMin.y, &m_vBBMax.y, &m_vBBMin.z, &m_vBBMax.z);
 
 	// Is it a uniform grid? We need this only for the sanity check below.
     if(strstr(acBuffer, "CoordType \"uniform\"") == NULL)
@@ -84,9 +84,9 @@ bool AmiraMesh::Load(char* _pcFileName)
 
         // Read the data
         // - how much to read
-		const size_t NumToRead = m_iSizeX * m_iSizeY * m_iSizeZ * 3;
+		const size_t NumToRead = m_iSizeX * m_iSizeY * m_iSizeZ;
         // - prepare memory; use malloc() if you're using pure C
-        m_pvBuffer = new float[NumToRead];
+		m_pvBuffer = new glm::vec3[NumToRead];
         if(!m_pvBuffer)
 		{
 			printf("Out of memory.\n");
@@ -169,9 +169,9 @@ glm::vec3 AmiraMesh::SampleL(float x, float y, float z)
 glm::vec3 AmiraMesh::Integrate(glm::vec3 _vPosition, float _fStepSize, int _iMethod)
 {
 	// Translate Position
-	float x = _vPosition.x*m_fScaleX;
-	float y = _vPosition.y*m_fScaleY;
-	float z = _vPosition.z*m_fScaleZ;
+	float x = _vPosition.x;//*m_fScaleX;
+	float y = _vPosition.y;//*m_fScaleY;
+	float z = _vPosition.z;//*m_fScaleZ;
 
 	// Trilinear sample
 	glm::vec3 vS;
@@ -189,10 +189,16 @@ glm::vec3 AmiraMesh::Integrate(glm::vec3 _vPosition, float _fStepSize, int _iMet
 
 		glm::vec3 vNewPos2 = _vPosition + _fStepSize*0.5f*vS;
 		// Resample and step again
-		vS = (_iMethod & INTEGRATION_FILTER_POINT)?Sample(x,y,z):SampleL(x,y,z);
+		vS = (_iMethod & INTEGRATION_FILTER_POINT) ?
+				  Sample(vNewPos2.x,vNewPos2.y,vNewPos2.z)
+				: SampleL(vNewPos2.x,vNewPos2.y,vNewPos2.z);
 		vNewPos2 += _fStepSize*0.5f*vS;
 
 		// Extrapolate the position (simple double the difference)
 		return 2.0f*vNewPos2-vNewPos1;
+
+		//vNewPos1 = 2.0f*vNewPos2-vNewPos1;
+		// Rescale and return
+	//	return glm::vec3(vNewPos1.x/m_fScaleX, );
 	}
 }

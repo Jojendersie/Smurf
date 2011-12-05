@@ -53,10 +53,10 @@ public:
 	// Filter and Methods can be combined arbitary.
 	// INTEGRATION_FILTER_POINT | INTEGRATION_EULER is the fastest
 	// INTEGRATION_FILTER_LINEAR | INTEGRATION_MODEULER has the best results.
-	const int	INTEGRATION_FILTER_POINT	= 0x0001;
-	const int	INTEGRATION_FILTER_LINEAR	= 0x0010;
-	const int	INTEGRATION_EULER			= 0x00010000;
-	const int	INTEGRATION_MODEULER		= 0x00100000;
+	static const int	INTEGRATION_FILTER_POINT	= 0x0001;
+	static const int	INTEGRATION_FILTER_LINEAR	= 0x0010;
+	static const int	INTEGRATION_EULER			= 0x00010000;
+	static const int	INTEGRATION_MODEULER		= 0x00100000;
 
 	// Integrate one step over the vector field to determine new position
 	// Input:	_vPosition - old position
