@@ -1,4 +1,7 @@
-
+#include <cstdio>
+#include <cstring>
+#include <cassert>
+#include <glm/glm.hpp>
 #include "amloader.hpp"
 
 // **************************************************************** //
@@ -81,7 +84,7 @@ bool AmiraMesh::Load(char* _pcFileName)
 
         // Read the data
         // - how much to read
-		const size_t NumToRead = m_iSizeX * m_iSizeY * m_iSizeZ * 3;
+		const size_t NumToRead = m_iSizeX * m_iSizeY * m_iSizeZ;
         // - prepare memory; use malloc() if you're using pure C
         m_pvBuffer = new glm::vec3[NumToRead];
         if(!m_pvBuffer)
@@ -166,9 +169,9 @@ glm::vec3 AmiraMesh::SampleL(float x, float y, float z)
 glm::vec3 AmiraMesh::Integrate(glm::vec3 _vPosition, float _fStepSize, int _iMethod)
 {
 	// Translate Position
-	float x = _vPosition.x*m_fScaleX;
-	float y = _vPosition.y*m_fScaleY;
-	float z = _vPosition.z*m_fScaleZ;
+	float x = _vPosition.x;//*m_fScaleX;
+	float y = _vPosition.y;//*m_fScaleY;
+	float z = _vPosition.z;//*m_fScaleZ;
 
 	// Trilinear sample
 	glm::vec3 vS;
@@ -186,10 +189,17 @@ glm::vec3 AmiraMesh::Integrate(glm::vec3 _vPosition, float _fStepSize, int _iMet
 
 		glm::vec3 vNewPos2 = _vPosition + _fStepSize*0.5f*vS;
 		// Resample and step again
-		vS = (_iMethod & INTEGRATION_FILTER_POINT)?Sample(vNewPos2.x,vNewPos2.y,vNewPos2.z):SampleL(vNewPos2.x,vNewPos2.y,vNewPos2.z);
+		vS = (_iMethod & INTEGRATION_FILTER_POINT) ?
+				  Sample(vNewPos2.x,vNewPos2.y,vNewPos2.z)
+				: SampleL(vNewPos2.x,vNewPos2.y,vNewPos2.z);
+
 		vNewPos2 += _fStepSize*0.5f*vS;
 
 		// Extrapolate the position (simple double the difference)
 		return 2.0f*vNewPos2-vNewPos1;
+
+		//vNewPos1 = 2.0f*vNewPos2-vNewPos1;
+		// Rescale and return
+	//	return glm::vec3(vNewPos1.x/m_fScaleX, );
 	}
 }
