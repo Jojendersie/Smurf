@@ -21,6 +21,8 @@
 // Preprocessor Directives and Namespaces
 ////////////////////////////////////////////////////////////////////////////////
 #include <SFML/Window.hpp>
+#include "amloader.hpp"
+#include "smokesurface.hpp"
 
 #ifndef PROGRAM_HPP_
 #define PROGRAM_HPP_
@@ -60,6 +62,9 @@ private:
 	unsigned int timeCurrent;
 	unsigned int timeLast;
 	unsigned long long timeTotal;
+
+	AmiraMesh m_VectorField;			// The visualised vector field
+	SmokeSurface* m_pSmokeSurface;		// Temporary only one surface (TODO: dynamic amount)
 };
 
 #endif // PROGRAM_HPP_

@@ -106,6 +106,7 @@ void Program::Initialize() {
 	glDepthMask(GL_TRUE);
 
 	// all initial code goes here
+	m_VectorField.Load("..\\data\\Wing_128x64x32_T0.am");		// TODO load per user interface
 
 }
 
@@ -123,6 +124,8 @@ void Program::Update() {
 void Program::Draw() {
 	// clear the buffers
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
+	// set up the view environment (view and projection matrix)
 
 	// all draw code goes here
 
