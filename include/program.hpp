@@ -27,6 +27,8 @@
 
 #include <SFML/Window.hpp>
 #include "glgraphics.hpp"
+#include "amloader.hpp"
+#include "smokesurface.hpp"
 
 
 #ifndef PROGRAM_HPP_
@@ -72,6 +74,8 @@ private:
 	unsigned int timeLast;
 	unsigned long long timeTotal;
 	GLGraphics graphics;
+	AmiraMesh m_VectorField;			// The visualised vector field
+	SmokeSurface* m_pSmokeSurface;		// Temporary only one surface (TODO: dynamic amount)
 };
 
 

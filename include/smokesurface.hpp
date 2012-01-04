@@ -28,15 +28,15 @@
 
 class SmokeSurface
 {
-	GLuint		m_uiVAO;
-	GLuint		m_uiVBO;
-	GLuint		m_uiIBO;
-	int			m_iNumCols;
-	int			m_iNumRows;
-	int			m_iNumIndices;
-	int			m_iNumReleasedColumns;		// Number of flowing columns in the vectorfield (the remaining are at the seed line), the number can be larger than the number of columns -> modolu operator (rotating cylinder)
-	glm::vec3	m_vStart;
-	glm::vec3	m_vEnd;
+	unsigned int	m_uiVAO;
+	unsigned int	m_uiVBO;
+	unsigned int	m_uiIBO;
+	int				m_iNumCols;
+	int				m_iNumRows;
+	int				m_iNumIndices;
+	int				m_iNumReleasedColumns;		// Number of flowing columns in the vectorfield (the remaining are at the seed line), the number can be larger than the number of columns -> modolu operator (rotating cylinder)
+	glm::vec3		m_vStart;
+	glm::vec3		m_vEnd;
 public:
 	// Create one surface cylinder at a specified seedline.
 	// Input:	_iNumCols, _iNumRows - detail of the surface

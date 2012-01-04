@@ -135,6 +135,7 @@ void Program::Initialize() {
 	graphics.InitializeGraphics();
 
 	// all initial code goes here
+	m_VectorField.Load("..\\data\\Wing_128x64x32_T0.am");		// TODO load per user interface
 
 }
 
@@ -155,6 +156,8 @@ void Program::Update() {
 ////////////////////////////////////////////////////////////////////////////////
 void Program::Draw() {
 	graphics.ClearBuffers();
+
+	// set up the view environment (view and projection matrix)
 
 	// all draw code goes here
 
