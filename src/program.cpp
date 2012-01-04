@@ -8,7 +8,7 @@
 //
 // File:              /src/program.cpp
 // Author:            Martin Kirst
-// Creation Date:     16.11.2011
+// Creation Date:     2011.11.16
 // Description:
 //
 // Implementation and source code file of the main program instance.

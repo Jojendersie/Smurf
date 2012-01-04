@@ -8,7 +8,7 @@
 //
 // File:              /include/program.hpp
 // Author:            Martin Kirst
-// Creation Date:     16.11.2011
+// Creation Date:     2011.11.16
 // Description:
 //
 // Declaration of the main program instance.

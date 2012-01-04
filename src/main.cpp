@@ -8,7 +8,7 @@
 //
 // File:              /src/main.cpp
 // Author:            Martin Kirst
-// Creation Date:     16.11.2011
+// Creation Date:     2011.11.16
 // Description:
 //
 // Startup file of the program.

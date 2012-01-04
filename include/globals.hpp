@@ -8,7 +8,7 @@
 //
 // File:              /include/globals.hpp
 // Author:            Martin Kirst
-// Creation Date:     07.12.2011
+// Creation Date:     2011.12.07
 // Description:
 //
 // Header only collection of global settings, values and variables.
