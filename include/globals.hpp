@@ -22,15 +22,14 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 
-#include <sfml/Window.hpp>
-
+#include <SFML/Window.hpp>
 
 #ifndef GLOBALS_HPP_
 #define GLOBALS_HPP_
 
 
 ////////////////////////////////////////////////////////////////////////////////
-// Static-Class-like Namespace Declaration and Definiton
+// Namespace Declaration and Definiton
 ////////////////////////////////////////////////////////////////////////////////
 
 
@@ -55,9 +54,6 @@ namespace Globals {
 	const unsigned short RENDER_FRAMERATE_MAX = 120;
 	const bool RENDER_FULLSCREEN = false;
 	const bool RENDER_VSYNC = true;
-
-	// OpenGL Specific Constants
-	const GLuint OGL_UNIFORM_SET_BINDING = 0;
 
 	// Input Settings
 	////////////////////////////////////////////////////////////////////////////////

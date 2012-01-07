@@ -25,9 +25,15 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 
+#include <iostream>
 #include <GL/glew.h>
-#include "program.hpp"
+#include <SFML/Window.hpp>
 #include "globals.hpp"
+#include "glgraphics.hpp"
+#include "glshader.hpp"
+#include "amloader.hpp"
+#include "smokesurface.hpp"
+#include "program.hpp"
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -66,6 +72,8 @@ Program::Program() {
 
 ////////////////////////////////////////////////////////////////////////////////
 Program::~Program() {
+	delete flatShader;
+	delete graphics;
 }
 
 
@@ -132,11 +140,22 @@ void Program::Exit() {
 
 ////////////////////////////////////////////////////////////////////////////////
 void Program::Initialize() {
-	graphics.InitializeGraphics();
+	graphics->InitializeGraphics();
 
 	// all initial code goes here
-	m_VectorField.Load("..\\data\\Wing_128x64x32_T0.am");		// TODO load per user interface
 
+	// initialize graphics
+	graphics = new GLGraphics();
+
+	// load test shader
+	flatShader = new GLShader(graphics);
+	flatShader->CreateStandardUniforms(GLShader::SUSET_PROJECTION_VIEW_MODEL);
+	flatShader->CreateShaderProgram("res/vfx/flat_vert.glsl", "res/vfx/flat_frag.glsl", 1, 0, "inPosition");
+	flatShader->CreateAdvancedUniforms(1, "solidColor");
+	flatShader->Use();
+
+	// load vector field
+	m_VectorField.Load("..\\data\\Wing_128x64x32_T0.am");
 }
 
 
@@ -155,9 +174,7 @@ void Program::Update() {
 
 ////////////////////////////////////////////////////////////////////////////////
 void Program::Draw() {
-	graphics.ClearBuffers();
-
-	// set up the view environment (view and projection matrix)
+	graphics->ClearBuffers();
 
 	// all draw code goes here
 
@@ -179,6 +196,6 @@ void Program::HandleBasicEvents() {
 
 		// adjust OpenGL viewport after window resizing
 		if (event.Type == sf::Event::Resized)
-			graphics.AdjustViewport(event.Size.Width, event.Size.Height);
+			graphics->AdjustViewport(event.Size.Width, event.Size.Height);
 	}
 }
