@@ -46,7 +46,7 @@
 //
 // The method 'CreateShaderProgram()' creates a new shader program with a definable number of
 // attributes e.g. to use a position and a color attribute from a specific VAO use the method like this:
-// 'CreateShaderProgram("shader_vert.glsl", "shader_frag.glsl", 2, 0, "in_Position", 1, "in_Color")'.
+// 'CreateShaderProgram("shader_vert.glsl", "shader_frag.glsl", 0, 2, 0, "in_Position", 1, "in_Color")'.
 // The unsigned int value before an attribute name string defines the location index constant of the
 // attribute set in the bound VAO. OpenGL Core Profile 3.3 supports no more than 16 attributes per vertex.
 //
@@ -286,29 +286,46 @@ void GLShader::CreateStandardUniforms(unsigned int standardUniformSet, GLuint ex
 
 
 ////////////////////////////////////////////////////////////////////////////////
-void GLShader::CreateShaderProgram(const char* vertFile, const char* fragFile, unsigned int numAttributes, ...) {
+void GLShader::CreateShaderProgram(const char* vertFile, const char* fragFile, const char* geomFile, unsigned int numAttributes, ...) {
 	// stop if shader program was already initialized
 	if (initialized)
 		return;
 
-	GLuint vertShaderId, fragShaderId;
+	GLuint vertShaderId, fragShaderId, geomShaderId;
 
 	// create shader objects
 	vertShaderId = glCreateShader(GL_VERTEX_SHADER);
 	fragShaderId = glCreateShader(GL_FRAGMENT_SHADER);
+	if (geomFile)
+		geomShaderId = glCreateShader(GL_GEOMETRY_SHADER);
+	else
+		geomShaderId = 0;
+
 
 	// read shader source code
 	if (!LoadShaderFile(vertFile, vertShaderId)) {
-		std::cerr << "Shader file " << vertFile << " could not be read.\n";
+		std::cerr << "Shader file " << vertFile << "\ncould not be read.\n";
 		glDeleteShader(vertShaderId);
 		glDeleteShader(fragShaderId);
+		if (geomShaderId)
+			glDeleteShader(geomShaderId);
 		initialized = false;
 		return;
 	}
 	if (!LoadShaderFile(fragFile, fragShaderId)) {
-		std::cerr << "Shader file " << fragFile << " could not be read.\n";
+		std::cerr << "Shader file " << fragFile << "\ncould not be read.\n";
 		glDeleteShader(vertShaderId);
 		glDeleteShader(fragShaderId);
+		if (geomShaderId)
+			glDeleteShader(geomShaderId);
+		initialized = false;
+		return;
+	}
+	if (geomShaderId && !LoadShaderFile(geomFile, geomShaderId)) {
+		std::cerr << "Shader file " << geomFile << "\ncould not be read.\n";
+		glDeleteShader(vertShaderId);
+		glDeleteShader(fragShaderId);
+		glDeleteShader(geomShaderId);
 		initialized = false;
 		return;
 	}
@@ -316,11 +333,16 @@ void GLShader::CreateShaderProgram(const char* vertFile, const char* fragFile, u
 	// compile shader objects
 	glCompileShader(vertShaderId);
 	glCompileShader(fragShaderId);
+	if (geomShaderId)
+		glCompileShader(geomShaderId);
 
 	// check compile status of the shader objects
-	if (!CheckShaderStatus(vertShaderId, vertFile) || !CheckShaderStatus(fragShaderId, fragFile)) {
+	if ((!CheckShaderStatus(vertShaderId, vertFile) || !CheckShaderStatus(fragShaderId, fragFile)) ||
+		(geomShaderId && !CheckShaderStatus(geomShaderId, geomFile))) {
 		glDeleteShader(vertShaderId);
 		glDeleteShader(fragShaderId);
+		if (geomShaderId)
+			glDeleteShader(geomShaderId);
 		initialized = false;
 		return;
 	}
@@ -329,6 +351,8 @@ void GLShader::CreateShaderProgram(const char* vertFile, const char* fragFile, u
 	shaderProgramId = glCreateProgram();
 	glAttachShader(shaderProgramId, vertShaderId);
 	glAttachShader(shaderProgramId, fragShaderId);
+	if (geomShaderId)
+		glAttachShader(shaderProgramId, geomShaderId);
 
 	// bind the attribute names to their specific locations
 	unsigned int maxNumAttributes = graphics->GetMaxNumAttributes();
@@ -351,6 +375,8 @@ void GLShader::CreateShaderProgram(const char* vertFile, const char* fragFile, u
 	// shader objects are no longer needed
 	glDeleteShader(vertShaderId);
 	glDeleteShader(fragShaderId);
+	if (geomShaderId)
+		glDeleteShader(geomShaderId);
 
 	// check of linking the shader program worked
 	GLint testResult;
@@ -359,8 +385,10 @@ void GLShader::CreateShaderProgram(const char* vertFile, const char* fragFile, u
 		char infoLog[2048];
 		glGetProgramInfoLog(shaderProgramId, 2048, 0, infoLog);
 		std::cerr << "Shader program build up from the shader files\n"
-			<< vertFile << " and\n" << fragFile
-			<< "\nfailed to link with the following error:\n"
+			<< vertFile << " ,\n" << fragFile;
+		if (geomShaderId)
+			std::cerr << " ,\n" << geomFile;
+		std::cerr << "\nfailed to link with the following error:\n"
 			<< infoLog << '\n';
 		glDeleteProgram(shaderProgramId);
 		initialized = false;
