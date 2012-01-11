@@ -29,6 +29,7 @@
 #include "glgraphics.hpp"
 #include "glshader.hpp"
 #include "smokesurface.hpp"
+#include "solidgeometry.hpp"
 
 #ifndef PROGRAM_HPP_
 #define PROGRAM_HPP_
@@ -76,6 +77,7 @@ private:
 	GLShader* flatShader;
 	AmiraMesh m_VectorField;
 	SmokeSurface* m_pSmokeSurface;
+	SolidSurface* m_pSolidSurface;
 };
 
 

@@ -32,7 +32,6 @@
 #include "glgraphics.hpp"
 #include "glshader.hpp"
 #include "amloader.hpp"
-#include "smokesurface.hpp"
 #include "program.hpp"
 
 
@@ -130,6 +129,10 @@ void Program::Run() {
 ////////////////////////////////////////////////////////////////////////////////
 void Program::Exit() {
 	mainWindow.Close();
+
+	// Should this be here?
+	delete m_pSmokeSurface;
+	delete m_pSolidSurface;
 }
 
 
@@ -156,6 +159,8 @@ void Program::Initialize() {
 
 	// load vector field
 	m_VectorField.Load("..\\data\\Wing_128x64x32_T0.am");
+	m_pSmokeSurface = new SmokeSurface(10, 10, glm::vec3(0.0f), glm::vec3(1.0f));
+	m_pSolidSurface = new SolidSurface(&m_VectorField, 10000);
 }
 
 
@@ -168,7 +173,7 @@ void Program::Update() {
 	timeTotal += timeCurrent;
 
 	// all update code goes here
-
+	m_pSmokeSurface->IntegrateCPU(&m_VectorField, 0.01f);
 }
 
 
@@ -178,6 +183,15 @@ void Program::Draw() {
 
 	// all draw code goes here
 
+	// set Camera
+
+	// render scene
+//	m_pSolidSurface->Render();
+
+	// switch targets
+	// render smoke
+//	m_pSmokeSurface->Render();
+	// add smoke target to scene
 }
 
 

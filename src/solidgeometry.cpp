@@ -442,8 +442,8 @@ bool IsSolid(AmiraMesh* _pMesh, int _x, int _y, int _z)
 SolidSurface::SolidSurface(AmiraMesh* _pMesh, int _iTriangles)
 {
 	// Create Buffers for the estimated number of triangles
-	SolidVertex*  pVertexData = (SolidVertex*)malloc(sizeof(SolidVertex) * _iTriangles * 3);
-	unsigned int* pIndexData = (unsigned int*)malloc(sizeof(unsigned int) * _iTriangles);
+	SolidVertex*  pVertexData = (SolidVertex*)malloc(sizeof(SolidVertex) * _iTriangles /* 3*/);	// Upload only necessary vertices at the end, but worst case is every triangle has its own vertices (not possible - closed surface - worst case==valence 3?)
+	unsigned int* pIndexData = (unsigned int*)malloc(sizeof(unsigned int) * _iTriangles * 3);
 	unsigned int* pIndexOffsetsZ1 = (unsigned int*)malloc(sizeof(unsigned int) * (_pMesh->GetSizeX()-1) * (_pMesh->GetSizeY()-1));
 	unsigned int* pIndexOffsetsZ0 = (unsigned int*)malloc(sizeof(unsigned int) * (_pMesh->GetSizeX()-1) * (_pMesh->GetSizeY()-1));
 	unsigned int uiIndex = 0;
@@ -513,6 +513,7 @@ SolidSurface::SolidSurface(AmiraMesh* _pMesh, int _iTriangles)
 					// Use new vertex
 					} else
 						pIndexData[uiIndex++] = uiV + GetEdgeIndexOffset(iEdges, g_acTriangleIndices[uiCase][i]);
+					if(uiIndex >= (unsigned int)_iTriangles * 3) goto finishcreation;	// break run - to few triangles allocated
 				}
 			}
 		}
@@ -522,6 +523,7 @@ SolidSurface::SolidSurface(AmiraMesh* _pMesh, int _iTriangles)
 		pIndexOffsetsZ1 = pTemp;
 	}
 
+finishcreation:
 	// Save for statistic and rendercall
 	m_iNumIndices = uiIndex;
 	m_iNumVertices = uiVertex;

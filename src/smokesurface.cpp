@@ -31,17 +31,24 @@ SmokeSurface::SmokeSurface(int _iNumCols, int _iNumRows, glm::vec3 _vStart, glm:
 	// Create Triangulation
 	m_iNumIndices = _iNumCols*(_iNumRows-1)*6;
 	GLuint* pIndices = (GLuint*)malloc(m_iNumIndices*sizeof(GLuint));
+	GLuint* pI = pIndices;
 	for(int i=0; i<_iNumCols; ++i)
 		for(int j=0; j<_iNumRows-1; ++j)
 		{
 			int iVertex = (i*_iNumRows+j);
 			// Adding a quad (2 triangles)
-			pIndices[iVertex*6    ] = iVertex;
+			*(pI++) = iVertex;
+			*(pI++) = iVertex+1;
+			*(pI++) = (iVertex+_iNumRows)%iNumVertices;
+			*(pI++) = iVertex+1;
+			*(pI++) = (iVertex+_iNumRows)%iNumVertices;
+			*(pI++) = (iVertex+_iNumRows+1)%iNumVertices;
+		/*	pIndices[iVertex*6    ] = iVertex;
 			pIndices[iVertex*6 + 1] = iVertex+1;
 			pIndices[iVertex*6 + 2] = (iVertex+_iNumRows)%iNumVertices;
 			pIndices[iVertex*6 + 3] = iVertex+1;
 			pIndices[iVertex*6 + 4] = (iVertex+_iNumRows)%iNumVertices;
-			pIndices[iVertex*6 + 5] = (iVertex+_iNumRows+1)%iNumVertices;
+			pIndices[iVertex*6 + 5] = (iVertex+_iNumRows+1)%iNumVertices;*/
 		}
 
 	// Create OpenGL buffers
