@@ -46,7 +46,7 @@
 //
 // The method 'CreateShaderProgram()' creates a new shader program with a definable number of
 // attributes e.g. to use a position and a color attribute from a specific VAO use the method like this:
-// 'CreateShaderProgram("shader_vert.glsl", "shader_frag.glsl", 2, 0, "in_Position", 1, "in_Color")'.
+// 'CreateShaderProgram("shader_vert.glsl", "shader_frag.glsl", 0, 2, 0, "in_Position", 1, "in_Color")'.
 // The unsigned int value before an attribute name string defines the location index constant of the
 // attribute set in the bound VAO. OpenGL Core Profile 3.3 supports no more than 16 attributes per vertex.
 //
@@ -126,7 +126,7 @@ public:
 	// Public Methods
 	////////////////////////////////////////////////////////////////////////////////
 	void CreateStandardUniforms(unsigned int standardUniformSet, GLuint existingStandardUboId = 0);
-	void CreateShaderProgram(const char* vertFile, const char* fragFile, unsigned int numAttributes, ...);
+	void CreateShaderProgram(const char* vertFile, const char* fragFile, const char* geomFile, unsigned int numAttributes, ...);
 	void CreateAdvancedUniforms(unsigned int numUniforms, ...);
 	void CreateTextures(unsigned int numTextures, ...);
 	void Use();

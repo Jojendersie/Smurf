@@ -153,7 +153,7 @@ void Program::Initialize() {
 	// load test shader
 	flatShader = new GLShader(graphics);
 	flatShader->CreateStandardUniforms(GLShader::SUSET_PROJECTION_VIEW_MODEL);
-	flatShader->CreateShaderProgram("res/vfx/flat_vert.glsl", "res/vfx/flat_frag.glsl", 1, 0, "inPosition");
+	flatShader->CreateShaderProgram("res/vfx/flat_vert.glsl", "res/vfx/flat_frag.glsl", 0, 1, 0, "inPosition");
 	flatShader->CreateAdvancedUniforms(1, "solidColor");
 	flatShader->Use();
 
