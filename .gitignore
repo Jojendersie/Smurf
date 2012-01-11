@@ -1,20 +1,24 @@
-### Eclipse Files and Directories ###
-.project
-.cproject
-*.prefs
-Debug/
-Release/
-
-### Visual Studio Files and Directories ###
+### General Development Files and Directories ###
 build/
 obj/
 bin/
 
-### Compilation and Intermediate Files ###
-*.exe
-*.dll
-*.[oa]
-*~
+### Eclipse Files and Directories ###
+Debug/
+Release/
+*.project
+*.cproject
+*.prefs
 
-### Mac OS X Files ###
-.DS_Store
+### Compilation and Intermediate Files ###
+*.[oa]
+*.dylib
+*.framework
+*.so
+*.dll
+*.exe
+
+### OS Files ###
+*~
+*.DS_Store
+*.db

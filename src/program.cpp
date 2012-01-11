@@ -1,4 +1,5 @@
-﻿//
+﻿////////////////////////////////////////////////////////////////////////////////
+//
 // Smurf
 // =====
 // ##### Martin Kirst, Johannes Jendersie, Christoph Lämmerhirt, Laura Osten #####
@@ -8,7 +9,7 @@
 //
 // File:              /src/program.cpp
 // Author:            Martin Kirst
-// Creation Date:     16.11.2011
+// Creation Date:     2011.11.16
 // Description:
 //
 // Implementation and source code file of the main program instance.
@@ -18,13 +19,28 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
+
+////////////////////////////////////////////////////////////////////////////////
 // Preprocessor Directives and Namespaces
 ////////////////////////////////////////////////////////////////////////////////
-#include <GL/glew.h>
-#include "program.hpp"
-#include "globals.hpp"
 
+
+#include <iostream>
+#include <GL/glew.h>
+#include <SFML/Window.hpp>
+#include "globals.hpp"
+#include "glgraphics.hpp"
+#include "glshader.hpp"
+#include "amloader.hpp"
+#include "smokesurface.hpp"
+#include "program.hpp"
+
+
+////////////////////////////////////////////////////////////////////////////////
 // Definition: Constructors and Destructor
+////////////////////////////////////////////////////////////////////////////////
+
+
 ////////////////////////////////////////////////////////////////////////////////
 Program::Program() {
 	// set a valid video mode
@@ -53,23 +69,38 @@ Program::Program() {
 	timeTotal = 0;
 }
 
+
+////////////////////////////////////////////////////////////////////////////////
 Program::~Program() {
+	delete flatShader;
+	delete graphics;
 }
 
+
+////////////////////////////////////////////////////////////////////////////////
 // Definition: Accessors
+////////////////////////////////////////////////////////////////////////////////
+
+
 ////////////////////////////////////////////////////////////////////////////////
 bool Program::IsRunning() const {
 	return mainWindow.IsOpened();
 }
 
+
+////////////////////////////////////////////////////////////////////////////////
 unsigned int Program::GetElapsedTime() const {
 	return timeCurrent;
 }
 
+
+////////////////////////////////////////////////////////////////////////////////
 unsigned long long Program::GetTotalTime() const {
 	return timeTotal;
 }
 
+
+////////////////////////////////////////////////////////////////////////////////
 float Program::GetFramerate() const {
 	float weightRatio = .3f;
 	float time = (1.f - weightRatio) * timeCurrent + weightRatio * timeLast;
@@ -77,7 +108,12 @@ float Program::GetFramerate() const {
 	return (fps < Globals::RENDER_FRAMERATE_MAX - 1) ? fps : Globals::RENDER_FRAMERATE_MAX;
 }
 
+
+////////////////////////////////////////////////////////////////////////////////
 // Definition: Public Methods
+////////////////////////////////////////////////////////////////////////////////
+
+
 ////////////////////////////////////////////////////////////////////////////////
 void Program::Run() {
 	// application main loop
@@ -90,25 +126,40 @@ void Program::Run() {
 	}
 }
 
+
+////////////////////////////////////////////////////////////////////////////////
 void Program::Exit() {
 	mainWindow.Close();
 }
 
+
+////////////////////////////////////////////////////////////////////////////////
 // Definition: Private Methods
 ////////////////////////////////////////////////////////////////////////////////
+
+
+////////////////////////////////////////////////////////////////////////////////
 void Program::Initialize() {
-	// set color, depth and stencil buffer clear value
-	glClearColor(0.f, 0.f, 0.f, 0.f);
-	glClearDepth(1.f);
-	glClearStencil(0);
-	// enable Z-buffer read and write
-	glEnable(GL_DEPTH_TEST);
-	glDepthMask(GL_TRUE);
+	graphics->InitializeGraphics();
 
 	// all initial code goes here
 
+	// initialize graphics
+	graphics = new GLGraphics();
+
+	// load test shader
+	flatShader = new GLShader(graphics);
+	flatShader->CreateStandardUniforms(GLShader::SUSET_PROJECTION_VIEW_MODEL);
+	flatShader->CreateShaderProgram("res/vfx/flat_vert.glsl", "res/vfx/flat_frag.glsl", 0, 1, 0, "inPosition");
+	flatShader->CreateAdvancedUniforms(1, "solidColor");
+	flatShader->Use();
+
+	// load vector field
+	m_VectorField.Load("..\\data\\Wing_128x64x32_T0.am");
 }
 
+
+////////////////////////////////////////////////////////////////////////////////
 void Program::Update() {
 	// handle some basic events and save times
 	HandleBasicEvents();
@@ -120,14 +171,17 @@ void Program::Update() {
 
 }
 
+
+////////////////////////////////////////////////////////////////////////////////
 void Program::Draw() {
-	// clear the buffers
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+	graphics->ClearBuffers();
 
 	// all draw code goes here
 
 }
 
+
+////////////////////////////////////////////////////////////////////////////////
 void Program::HandleBasicEvents() {
 	// receive and handle the basic input events
 	sf::Event event;
@@ -142,6 +196,6 @@ void Program::HandleBasicEvents() {
 
 		// adjust OpenGL viewport after window resizing
 		if (event.Type == sf::Event::Resized)
-			glViewport(0, 0, event.Size.Width, event.Size.Height);
+			graphics->AdjustViewport(event.Size.Width, event.Size.Height);
 	}
 }

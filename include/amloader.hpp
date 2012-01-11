@@ -3,7 +3,7 @@
  *
  * Smurf
  * =====
- * ##### Martin Kirst, Johannes Jendersie, Christoph L�mmerhirt, Laura Osten #####
+ * ##### Martin Kirst, Johannes Jendersie, Christoph Lämmerhirt, Laura Osten #####
  *
  * Smoke Surfaces: An Interactive Flow Visualization
  * Technique Inspired by Real-World Flow Experiments
@@ -77,8 +77,11 @@ public:
 
 	// Getter
 	glm::vec3 GetBoundingBoxMin()	{return m_vBBMin;}
-	glm::vec3 GetBoundingBoxmax()	{return m_vBBMax;}
+	glm::vec3 GetBoundingBoxMax()	{return m_vBBMax;}
 	bool IsLoaded()					{return m_pvBuffer!=0;}
+	int GetSizeX()					{return m_iSizeX;}
+	int GetSizeY()					{return m_iSizeY;}
+	int GetSizeZ()					{return m_iSizeZ;}
 
 	// Allow user acces to read the data (namly to store it on GPU)
 	const float* GetData()			{return (float*)m_pvBuffer;}

@@ -1,4 +1,5 @@
-﻿//
+﻿////////////////////////////////////////////////////////////////////////////////
+//
 // Smurf
 // =====
 // ##### Martin Kirst, Johannes Jendersie, Christoph Lämmerhirt, Laura Osten #####
@@ -8,7 +9,7 @@
 //
 // File:              /include/program.hpp
 // Author:            Martin Kirst
-// Creation Date:     16.11.2011
+// Creation Date:     2011.11.16
 // Description:
 //
 // Declaration of the main program instance.
@@ -18,15 +19,26 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
+
+////////////////////////////////////////////////////////////////////////////////
 // Preprocessor Directives and Namespaces
 ////////////////////////////////////////////////////////////////////////////////
+
+
 #include <SFML/Window.hpp>
+#include "glgraphics.hpp"
+#include "glshader.hpp"
+#include "smokesurface.hpp"
 
 #ifndef PROGRAM_HPP_
 #define PROGRAM_HPP_
 
+
+////////////////////////////////////////////////////////////////////////////////
 // Class Declaration
 ////////////////////////////////////////////////////////////////////////////////
+
+
 class Program {
 public:
 	// Constructors and Destructor
@@ -60,6 +72,11 @@ private:
 	unsigned int timeCurrent;
 	unsigned int timeLast;
 	unsigned long long timeTotal;
+	GLGraphics* graphics;
+	GLShader* flatShader;
+	AmiraMesh m_VectorField;
+	SmokeSurface* m_pSmokeSurface;
 };
+
 
 #endif // PROGRAM_HPP_
