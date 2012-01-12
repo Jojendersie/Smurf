@@ -1,5 +1,5 @@
 #include <math.h>
-#include "../include/cuda_math.hpp"
+#include "cudamath.hpp"
 
 extern "C" float* integrateVectorFieldGPU(float* fVectorField, float* fVertices, float* fDeviceResultVertices, 
 										  unsigned int uiElementSize, unsigned int uiBlockSize, int iSizeFieldx, 

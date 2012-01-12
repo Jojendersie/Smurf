@@ -1,8 +1,8 @@
-//#include "cuda.h"
-//#include "device_launch_parameters.h"
+//#include <cuda.h>
+//#include <device_launch_parameters.h>
 
-#include "cuda_runtime.h"
-#include "vector_types.h"
+#include <cuda_runtime.h>
+#include <vector_types.h>
 
 //////////////////////FLOAT3////////////////////////////////
 //NEGATE

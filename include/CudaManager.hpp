@@ -1,5 +1,5 @@
 #include <glm/glm.hpp>
-#include <GL\glew.h>
+#include <GL/glew.h>
 #include <cuda_gl_interop.h>
 
 class CudaManager

@@ -1,8 +1,7 @@
-#include "CudaManager.hpp"
 #include <stdlib.h>
 #include <stdio.h>
-
-#include "cuda_runtime.h"
+#include <cuda_runtime.h>
+#include "cudamanager.hpp"
 
 //extern "C" float* integrateVectorFieldGPU(float* fVectorField, float3 *dptr, unsigned int uiElementSize, 
 //										  unsigned int uiBlockSize, int iSizeFieldx, int iSizeFieldy, 
