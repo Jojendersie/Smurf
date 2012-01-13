@@ -1,6 +1,6 @@
 #include <cassert>
 #include <GL/glew.h>
-#include <stdlib.h>
+#include <cstdlib>
 #include "smokesurface.hpp"
 
 // **************************************************************** //

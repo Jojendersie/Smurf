@@ -33,6 +33,7 @@
 #include "glshader.hpp"
 #include "amloader.hpp"
 #include "program.hpp"
+#include "cudamanager.hpp"
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -73,6 +74,8 @@ Program::Program() {
 Program::~Program() {
 	delete flatShader;
 	delete graphics;
+	delete m_pSmokeSurface;
+	delete m_pSolidSurface;
 }
 
 
@@ -116,6 +119,31 @@ float Program::GetFramerate() const {
 ////////////////////////////////////////////////////////////////////////////////
 void Program::Run() {
 	// application main loop
+
+	/*glm::vec3 fieldSize;
+	fieldSize.x=fieldSize.y=fieldSize.z=32;
+	int size=fieldSize.x*3*fieldSize.y*3*fieldSize.z*3;
+	int elementsize=16;
+	float *VectorField = new float[size];
+	float *Vertices = new float[elementsize*3];
+	float *ResultVertices;
+	
+	CudaManager manager;
+	manager.AllocateMemory(fieldSize,elementsize);
+
+	manager.RandomInit(VectorField,fieldSize.x*fieldSize.y*fieldSize.z);
+	manager.RandomInit(Vertices,elementsize);
+
+	manager.SetVertices(Vertices);
+	manager.SetVectorField(VectorField);
+
+	manager.PrintResult(Vertices,elementsize);
+
+	ResultVertices = manager.Integrate(0.5f,CudaManager::INTEGRATION_MODEULER | CudaManager::INTEGRATION_FILTER_LINEAR);
+
+	manager.PrintResult(ResultVertices,elementsize);*/
+
+
 	mainWindow.SetActive();
 	Initialize();
 	while (mainWindow.IsOpened()) {
@@ -129,10 +157,6 @@ void Program::Run() {
 ////////////////////////////////////////////////////////////////////////////////
 void Program::Exit() {
 	mainWindow.Close();
-
-	// Should this be here?
-	delete m_pSmokeSurface;
-	delete m_pSolidSurface;
 }
 
 
@@ -158,7 +182,7 @@ void Program::Initialize() {
 	flatShader->Use();
 
 	// load vector field
-	m_VectorField.Load("..\\data\\Wing_128x64x32_T0.am");
+	m_VectorField.Load("..\\res\\Wing_128x64x32_T0.am");
 	m_pSmokeSurface = new SmokeSurface(10, 10, glm::vec3(0.0f), glm::vec3(1.0f));
 	m_pSolidSurface = new SolidSurface(&m_VectorField, 10000);
 }
