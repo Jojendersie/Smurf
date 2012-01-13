@@ -1,4 +1,4 @@
-﻿#include <cstdio>
+#include <cstdio>
 #include <cstring>
 #include <cassert>
 #include "amloader.hpp"
@@ -85,7 +85,7 @@ bool AmiraMesh::Load(char* _pcFileName)
         // - how much to read
 		const size_t NumToRead = m_iSizeX * m_iSizeY * m_iSizeZ;
         // - prepare memory; use malloc() if you're using pure C
-		m_pvBuffer = new glm::vec3[NumToRead];
+        m_pvBuffer = new glm::vec3[NumToRead];
         if(!m_pvBuffer)
 		{
 			printf("Out of memory.\n");
@@ -191,6 +191,7 @@ glm::vec3 AmiraMesh::Integrate(glm::vec3 _vPosition, float _fStepSize, int _iMet
 		vS = (_iMethod & INTEGRATION_FILTER_POINT) ?
 				  Sample(vNewPos2.x,vNewPos2.y,vNewPos2.z)
 				: SampleL(vNewPos2.x,vNewPos2.y,vNewPos2.z);
+
 		vNewPos2 += _fStepSize*0.5f*vS;
 
 		// Extrapolate the position (simple double the difference)
