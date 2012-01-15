@@ -36,7 +36,7 @@ void main()
 	l[1]=sqrt(dot(gl_in[1].gl_Position,gl_in[1].gl_Position));
 	l[2]=sqrt(dot(gl_in[2].gl_Position,gl_in[2].gl_Position));
 
-	s=(l[0]+l[1]+l[2])*0.5f;
+	s=(l[0]+l[1]+l[2])*0.5;
 
 	float area=sqrt(s*(s-l[0])*(s-l[1])*(s-l[2]));
 
@@ -54,5 +54,5 @@ void main()
 
 	float dmax=sqrt(max(d[0],max(d[1],d[2])));
 
-	alphaShape=clamp(pow((4.0f*area)/(ROOT3*dmax),shapeStrength));
+	alphaShape=clamp(pow((4.0*area)/(ROOT3*dmax),shapeStrength));
 }

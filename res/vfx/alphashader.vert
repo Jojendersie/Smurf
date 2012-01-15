@@ -1,11 +1,12 @@
 #version 330
 
 uniform float b;
+uniform mat4 ProjectionView;
 
-in vec3 in_Pos;
-in vec3 in_O_normal;
-in vec3 in_adj[6];
-in float alphaTime;
+attribute vec3 in_Pos;
+attribute vec3 in_O_normal;
+attribute vec3 in_adj[6];
+attribute float alphaTime;
 /*
 in vec3 in_adj1;
 in vec3 in_adj2;
@@ -20,7 +21,7 @@ out float in_alphaTime;
 
 void main()
 {
-	gl_Position=vec4(in_Pos,1);
+	gl_Position=ProjectionView*vec4(in_Pos,1);
 	in_normal=in_O_normal;//normale durchreichen
 	in_alphaTime=alphaTime;
 
