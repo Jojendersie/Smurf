@@ -2,11 +2,13 @@
 
 uniform float b;
 uniform mat4 ProjectionView;
+uniform sampler2D timeTex;
+uniform float texWidth;
 
 attribute vec3 in_Pos;
 attribute vec3 in_O_normal;
 attribute vec3 in_adj[6];
-attribute float alphaTime;
+attribute float vertexID;
 /*
 in vec3 in_adj1;
 in vec3 in_adj2;
@@ -23,7 +25,11 @@ void main()
 {
 	gl_Position=ProjectionView*vec4(in_Pos,1);
 	in_normal=in_O_normal;//normale durchreichen
-	in_alphaTime=alphaTime;
+
+	vec2 index;
+	index.x=mod(vertexID,texWidth);
+	index.y=floor(vertexID/texWidth);
+	in_alphaTime=texture2D(timeTex,index).r;
 
 	float j=0,etmp=0,e=0;
 	for(int i=0;i<6;i++)
