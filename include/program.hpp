@@ -81,6 +81,7 @@ private:
 	GLuint timeTextureID[2];
 	GLuint samplerID;
 	GLuint timeTexFB[2];
+	GLfloat texWidth;
 	SFCamera* camera;
 	AmiraMesh m_VectorField;
 	SmokeSurface* m_pSmokeSurface;

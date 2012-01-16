@@ -144,17 +144,17 @@ void Program::Initialize() {
 	// load test shader
 	flatShader = new GLShader(graphics);
 	flatShader->CreateStandardUniforms(GLShader::SUSET_PROJECTION_VIEW_MODEL);
-	flatShader->CreateShaderProgram("res/vfx/flat_vert.glsl", "res/vfx/flat_frag.glsl", 0, 1, 0, "inPosition");
+	flatShader->CreateShaderProgram("res/vfx/flat_vert.glsl", "res/vfx/flat_frag.glsl", 0, 1, GLGraphics::ASLOT_POSITION, "inPosition");
 	flatShader->CreateAdvancedUniforms(1, "solidColor");
 	flatShader->Use();
 
 	alphaShader = new GLShader(graphics);
-	alphaShader->CreateShaderProgram("res/vfx/alphashader.vert", "res/vfx/alphashader.frag", "res/vfx/alphashader.geom",4,0,"in_Pos",1,"in_O_normal",2,"in_adj",3,"vertexID");
+	alphaShader->CreateShaderProgram("res/vfx/alphashader.vert", "res/vfx/alphashader.frag", "res/vfx/alphashader.geom",4,GLGraphics::ASLOT_POSITION,"in_Pos",GLGraphics::ASLOT_NORMAL,"in_O_normal",GLGraphics::ASLOT_ADJACENT,"in_adj",GLGraphics::ASLOT_ID,"vertexID");
 	alphaShader->CreateAdvancedUniforms(9,"b","ProjectionView","texWidth","shapeStrength","invProjectionView","eyePos","k","maxTime","color");
 	alphaShader->CreateTextures(1,"timeTex");
 
 	timeTexShader = new GLShader(graphics);
-	timeTexShader->CreateShaderProgram("res/vfx/alphaTimeTex.vert","res/vfx/alphaTimeTex.frag",NULL,0,"vertIndex");
+	timeTexShader->CreateShaderProgram("res/vfx/alphaTimeTex.vert","res/vfx/alphaTimeTex.frag",NULL,1,GLGraphics::ASLOT_POSITION,"vertIndex");
 	timeTexShader->CreateAdvancedUniforms(1,"textureInfo");
 	timeTexShader->CreateTextures(1,"timeTex");
 
@@ -180,6 +180,8 @@ void Program::Initialize() {
 
 	glBindFramebuffer(GL_FRAMEBUFFER,timeTexFB[1]);
 	glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,timeTextureID[1],0);
+
+	texWidth=0;//MUST BE AS BIG AS THE NUMBER OF VERTICES PER COLUMN!!
 
 	ping=0;
 	pong=1-ping;
@@ -212,7 +214,7 @@ void Program::Draw() {
 	flatShader->SetStandardUniform(GLShader::SUTYPE_MATRIX4_PROJECTION, &(camera->GetProjection())[0][0]);
 
 	timeTexShader->SetTexture(GL_TEXTURE_2D,0,0,timeTextureID[ping],samplerID);
-	timeTexShader->SetAdvancedUniform(GLShader::AUTYPE_VECTOR2,0,texWidth);
+	timeTexShader->SetAdvancedUniform(GLShader::AUTYPE_VECTOR2,0,&texWidth);
 	timeTexShader->Use();
 
 	glBindFramebuffer(GL_FRAMEBUFFER,timeTexFB[pong]);
@@ -234,21 +236,21 @@ void Program::Draw() {
 	glBindFramebuffer(GL_FRAMEBUFFER,0);
 
 	alphaShader->SetTexture(GL_TEXTURE_2D,0,0,timeTextureID[pong],samplerID);
-	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 0,b);
-	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_MATRIX4,1,ProjectionView);
-	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 2,texWidth);
-	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 3,shapeStrength);
-	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_MATRIX4,4,invProjectionView);
-	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_VECTOR3,5,eyePos);
-	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 6,k);
-	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 7,maxTime);
-	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_VECTOR3,8,color);
+	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 0,&Globals::SMOKE_CURVATURE_CONSTANT);
+	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_MATRIX4,1,&(camera->GetProjection()*camera->GetView())[0][0]);
+	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 2,&texWidth);
+	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 3,&Globals::SMOKE_SHAPE_CONSTANT);
+	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_MATRIX4,4,&(camera->GetProjection()*camera->GetView())._inverse()[0][0]);
+	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_VECTOR3,5,&camera->GetPosition()[0]);
+	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 6,&Globals::SMOKE_DENSITY_CONSTANT_K);
+	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 7,&Globals::SMOKE_MAX_TIME);
+	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_VECTOR3,8,Globals:: SMOKE_COLOR);
 	alphaShader->Use();
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	//Hier wird das vbo gerendert!
-	//bitte vervollständigen ;)
+	//Drawing geometry here
+	/*
 	glBindVertexArray(vao);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,ibo);
 
@@ -256,7 +258,7 @@ void Program::Draw() {
 
 	glBindVertexArray(0);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,0);
-
+	*/
 	glFlush();
 
 	ping=1-ping;
