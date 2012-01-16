@@ -36,6 +36,21 @@
 
 class GLGraphics {
 public:
+	// Enums
+	////////////////////////////////////////////////////////////////////////////////
+	enum AttributeSlots {
+		ASLOT_POSITION,
+		ASLOT_COLOR,
+		ASLOT_NORMAL,
+		ASLOT_TEXCOORD0,
+		ASLOT_TEXCOORD1,
+		ASLOT_ID,
+		ASLOT_ADJACENT,
+		ASLOT_SPECIAL0,
+		ASLOT_SPECIAL1,
+		ASLOT_SPECIAL2
+	};
+
 	// Constructors and Destructor
 	////////////////////////////////////////////////////////////////////////////////
 	GLGraphics(unsigned int maxNumAttributes = 16, unsigned int maxNumTextureUnits = 48);
