@@ -59,7 +59,7 @@ void CudaManager::Integrate(float stepsize, unsigned int bitmask)
 {
 	float3 *dptr;
 	cudaGLMapBufferObject((void**)&dptr,*vbo);
-	integrateVectorFieldGPU(m_fDeviceVectorField,dptr,m_uiElementSize,m_uiBlockSize,m_vSizeField.x,m_vSizeField.y,m_vSizeField.z,stepsize,bitmask);
+	integrateVectorFieldGPU(m_fDeviceVectorField,dptr,m_uiElementSize,m_uiBlockSize,static_cast<int>(m_vSizeField.x),static_cast<int>(m_vSizeField.y),static_cast<int>(m_vSizeField.z),stepsize,bitmask);
 	cudaGLUnmapBufferObject(*vbo);
 }
 

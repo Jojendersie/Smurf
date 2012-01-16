@@ -1,7 +1,7 @@
 #include <math.h>
 #include "cudamath.hpp"
 
-extern "C" float* integrateVectorFieldGPU(float* fVectorField, float* fVertices, float* fDeviceResultVertices, 
+float* integrateVectorFieldGPU(float* fVectorField, float* fVertices, float* fDeviceResultVertices, 
 										  unsigned int uiElementSize, unsigned int uiBlockSize, int iSizeFieldx, 
 										  int iSizeFieldy, int iSizeFieldz, float stepsize, unsigned int bitmask);
 
@@ -112,5 +112,4 @@ extern "C" void integrateVectorFieldGPU(float* fVectorField, float3 *dptr, unsig
 	float *pfTransformedVertices = new float[uiElementSize*3];
 
 	IntegrateVectorField<<<GridSize,BlockSize>>>(fVectorField, dptr,iSizeFieldx,iSizeFieldy,iSizeFieldz,stepsize,bitmask);
-	size_t size=uiElementSize*3*sizeof(float);
 }
