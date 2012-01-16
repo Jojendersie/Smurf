@@ -25,13 +25,15 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 
+#ifndef PROGRAM_HPP_
+#define PROGRAM_HPP_
+
 #include <SFML/Window.hpp>
 #include "glgraphics.hpp"
 #include "glshader.hpp"
+#include "sfcamera.hpp"
+#include "amloader.hpp"
 #include "smokesurface.hpp"
-
-#ifndef PROGRAM_HPP_
-#define PROGRAM_HPP_
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -49,9 +51,9 @@ public:
 	// Accessors
 	////////////////////////////////////////////////////////////////////////////////
 	bool IsRunning() const;
-	unsigned int GetElapsedTime() const;
-	unsigned long long GetTotalTime() const;
-	float GetFramerate() const;
+	static const unsigned int& GetElapsedTime();
+	static const unsigned long long& GetTotalTime();
+	static float GetFramerate();
 
 	// Public Methods
 	////////////////////////////////////////////////////////////////////////////////
@@ -69,11 +71,12 @@ private:
 	// Variables
 	////////////////////////////////////////////////////////////////////////////////
 	sf::Window mainWindow;
-	unsigned int timeCurrent;
-	unsigned int timeLast;
-	unsigned long long timeTotal;
+	static unsigned int timeCurrent;
+	static unsigned int timeLast;
+	static unsigned long long timeTotal;
 	GLGraphics* graphics;
 	GLShader* flatShader;
+	SFCamera* camera;
 	AmiraMesh m_VectorField;
 	SmokeSurface* m_pSmokeSurface;
 };

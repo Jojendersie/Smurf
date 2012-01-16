@@ -28,9 +28,9 @@ void CudaManager::AllocateMemory(glm::vec3 vSizeVectorField, unsigned int uiSize
 {
 	m_vSizeField=vSizeVectorField;
 	m_uiElementSize=uiSizeVertices;
-	m_uiBlockSize=m_uiElementSize*0.25f;
+	m_uiBlockSize=static_cast<unsigned int>(m_uiElementSize*0.25f);
 
-	size_t size = m_vSizeField.x*3 * m_vSizeField.y*3 * m_vSizeField.z*3 * sizeof(float);
+	size_t size = static_cast<size_t>(m_vSizeField.x*3 * m_vSizeField.y*3 * m_vSizeField.z*3 * sizeof(float));
 	cudaMalloc(&m_fDeviceVectorField,size);
 
 	size=m_uiElementSize*3 * sizeof(float);
@@ -40,7 +40,7 @@ void CudaManager::AllocateMemory(glm::vec3 vSizeVectorField, unsigned int uiSize
 
 void CudaManager::SetVectorField(float *fVectorField)
 {
-	size_t size = m_vSizeField.x*3 * m_vSizeField.y*3 * m_vSizeField.z*3 * sizeof(float);
+	size_t size = static_cast<size_t>(m_vSizeField.x*3 * m_vSizeField.y*3 * m_vSizeField.z*3 * sizeof(float));
 
 	cudaMemcpy(m_fDeviceVectorField,fVectorField,size,cudaMemcpyHostToDevice);
 }
@@ -83,7 +83,7 @@ float* CudaManager::Integrate(float stepsize, unsigned int bitmask)
 	//float3 *dptr;
 	//cudaGLMapBufferObject((void**)&dptr,*vbo);
 	//float* ptr = integrateVectorFieldGPU(m_fDeviceVectorField,dptr,m_uiElementSize,m_uiBlockSize,m_vSizeField.x,m_vSizeField.y,m_vSizeField.z,stepsize,bitmask);
-	float* ptr = integrateVectorFieldGPU(m_fDeviceVectorField,m_fDeviceVertices,m_fDeviceResultVertices,m_uiElementSize,m_uiBlockSize,m_vSizeField.x,m_vSizeField.y,m_vSizeField.z,stepsize,bitmask);
+	float* ptr = integrateVectorFieldGPU(m_fDeviceVectorField,m_fDeviceVertices,m_fDeviceResultVertices,m_uiElementSize,m_uiBlockSize,static_cast<int>(m_vSizeField.x),static_cast<int>(m_vSizeField.y),static_cast<int>(m_vSizeField.z),stepsize,bitmask);
 	//cudaGLUnmapBufferObject(*vbo);
 	return ptr;
 }

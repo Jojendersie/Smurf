@@ -73,6 +73,9 @@
 #ifndef GLSHADER_HPP_
 #define GLSHADER_HPP_
 
+#include <GL/glew.h>
+#include "glgraphics.hpp"
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // Class Declaration
@@ -119,8 +122,8 @@ public:
 	bool IsUsed() const;
 	unsigned int GetStandardUniformSet() const;
 	GLuint GetStandardUboId() const;
-	void SetStandardUniform(unsigned int standardUniformType, GLfloat* data);
-	void SetAdvancedUniform(unsigned int advancedUniformType, unsigned int advancedUniformIndex, GLfloat* data);
+	void SetStandardUniform(unsigned int standardUniformType, const GLfloat* data);
+	void SetAdvancedUniform(unsigned int advancedUniformType, unsigned int advancedUniformIndex, const GLfloat* data);
 	void SetTexture(GLenum textureType, unsigned int textureUnit, unsigned int textureIndex, GLuint textureId, GLuint samplerId);
 
 	// Public Methods

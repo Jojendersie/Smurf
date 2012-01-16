@@ -25,7 +25,6 @@
 
 #include <iostream>
 #include <cstdlib>
-#include <GL/glew.h>
 #include "glgraphics.hpp"
 
 

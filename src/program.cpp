@@ -27,12 +27,7 @@
 
 #include <iostream>
 #include <GL/glew.h>
-#include <SFML/Window.hpp>
 #include "globals.hpp"
-#include "glgraphics.hpp"
-#include "glshader.hpp"
-#include "amloader.hpp"
-#include "smokesurface.hpp"
 #include "program.hpp"
 
 
@@ -62,16 +57,12 @@ Program::Program() {
 	}
 	mainWindow.SetFramerateLimit(Globals::RENDER_FRAMERATE_MAX);
 	mainWindow.EnableVerticalSync(Globals::RENDER_VSYNC);
-
-	// initialize time variables
-	timeCurrent = 1000;
-	timeLast = 1000;
-	timeTotal = 0;
 }
 
 
 ////////////////////////////////////////////////////////////////////////////////
 Program::~Program() {
+	delete camera;
 	delete flatShader;
 	delete graphics;
 }
@@ -89,19 +80,19 @@ bool Program::IsRunning() const {
 
 
 ////////////////////////////////////////////////////////////////////////////////
-unsigned int Program::GetElapsedTime() const {
+const unsigned int& Program::GetElapsedTime() {
 	return timeCurrent;
 }
 
 
 ////////////////////////////////////////////////////////////////////////////////
-unsigned long long Program::GetTotalTime() const {
+const unsigned long long& Program::GetTotalTime() {
 	return timeTotal;
 }
 
 
 ////////////////////////////////////////////////////////////////////////////////
-float Program::GetFramerate() const {
+float Program::GetFramerate() {
 	float weightRatio = .3f;
 	float time = (1.f - weightRatio) * timeCurrent + weightRatio * timeLast;
 	float fps = 1000.f / time;
@@ -144,8 +135,9 @@ void Program::Initialize() {
 
 	// all initial code goes here
 
-	// initialize graphics
+	// initialize graphics and camera
 	graphics = new GLGraphics();
+	camera = new SFCamera();
 
 	// load test shader
 	flatShader = new GLShader(graphics);
@@ -155,7 +147,7 @@ void Program::Initialize() {
 	flatShader->Use();
 
 	// load vector field
-	m_VectorField.Load("..\\data\\Wing_128x64x32_T0.am");
+	m_VectorField.Load("res/data/Wing_128x64x32_T0.am");
 }
 
 
@@ -168,7 +160,7 @@ void Program::Update() {
 	timeTotal += timeCurrent;
 
 	// all update code goes here
-
+	camera->Update();
 }
 
 
@@ -177,7 +169,8 @@ void Program::Draw() {
 	graphics->ClearBuffers();
 
 	// all draw code goes here
-
+	flatShader->SetStandardUniform(GLShader::SUTYPE_MATRIX4_VIEW, &(camera->GetView())[0][0]);
+	flatShader->SetStandardUniform(GLShader::SUTYPE_MATRIX4_PROJECTION, &(camera->GetProjection())[0][0]);
 }
 
 
@@ -191,7 +184,7 @@ void Program::HandleBasicEvents() {
 			mainWindow.Close();
 
 		// close main window after pressing Esc
-		if ((event.Type == sf::Event::KeyPressed) && (event.Key.Code == Globals::INPUT_EXIT))
+		if ((event.Type == sf::Event::KeyPressed) && (event.Key.Code == Globals::INPUT_PROGRAM_EXIT))
 			mainWindow.Close();
 
 		// adjust OpenGL viewport after window resizing
@@ -199,3 +192,13 @@ void Program::HandleBasicEvents() {
 			graphics->AdjustViewport(event.Size.Width, event.Size.Height);
 	}
 }
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Definition: Variables
+////////////////////////////////////////////////////////////////////////////////
+
+
+unsigned int Program::timeCurrent = 1000;
+unsigned int Program::timeLast = 1000;
+unsigned long long Program::timeTotal = 0;

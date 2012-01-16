@@ -1,3 +1,7 @@
+#ifndef CUDAMANAGER_HPP_
+#define CUDAMANAGER_HPP_
+
+
 #include <glm/glm.hpp>
 #include <GL/glew.h>
 #include <cuda_gl_interop.h>
@@ -35,3 +39,6 @@ private:
 	GLuint *vbo;
 	glm::vec3 m_vSizeField;
 };
+
+
+#endif // CUDAMANAGER_HPP_

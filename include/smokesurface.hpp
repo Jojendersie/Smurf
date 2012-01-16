@@ -21,10 +21,11 @@
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  */
 
-#include "amloader.hpp"
 
 #ifndef SMOKESURFACE_HPP_
 #define SMOKESURFACE_HPP_
+
+#include "amloader.hpp"
 
 class SmokeSurface
 {
