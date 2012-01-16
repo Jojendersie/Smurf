@@ -76,9 +76,15 @@ private:
 	static unsigned long long timeTotal;
 	GLGraphics* graphics;
 	GLShader* flatShader;
+	GLShader* timeTexShader;
+	GLShader* alphaShader;
+	GLuint timeTextureID[2];
+	GLuint samplerID;
+	GLuint timeTexFB[2];
 	SFCamera* camera;
 	AmiraMesh m_VectorField;
 	SmokeSurface* m_pSmokeSurface;
+	int ping,pong;//for ping-pong rendering
 };
 
 

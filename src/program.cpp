@@ -64,6 +64,8 @@ Program::Program() {
 Program::~Program() {
 	delete camera;
 	delete flatShader;
+	delete alphaShader;
+	delete timeTexShader;
 	delete graphics;
 }
 
@@ -146,6 +148,42 @@ void Program::Initialize() {
 	flatShader->CreateAdvancedUniforms(1, "solidColor");
 	flatShader->Use();
 
+	alphaShader = new GLShader(graphics);
+	alphaShader->CreateShaderProgram("res/vfx/alphashader.vert", "res/vfx/alphashader.frag", "res/vfx/alphashader.geom",4,0,"in_Pos",1,"in_O_normal",2,"in_adj",3,"vertexID");
+	alphaShader->CreateAdvancedUniforms(9,"b","ProjectionView","texWidth","shapeStrength","invProjectionView","eyePos","k","maxTime","color");
+	alphaShader->CreateTextures(1,"timeTex");
+
+	timeTexShader = new GLShader(graphics);
+	timeTexShader->CreateShaderProgram("res/vfx/alphaTimeTex.vert","res/vfx/alphaTimeTex.frag",NULL,0,"vertIndex");
+	timeTexShader->CreateAdvancedUniforms(1,"textureInfo");
+	timeTexShader->CreateTextures(1,"timeTex");
+
+	glGenSamplers(1,&samplerID);
+	glBindSampler(GL_SAMPLER_2D,samplerID);
+	glSamplerParameteri(samplerID,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
+	glSamplerParameteri(samplerID,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
+	glSamplerParameteri(samplerID,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
+	glSamplerParameteri(samplerID,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
+	
+	glGenTextures(2,timeTextureID);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D,timeTextureID[0]);
+
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D,timeTextureID[1]);
+
+	glGenFramebuffers(1,timeTexFB);
+
+	glBindFramebuffer(GL_FRAMEBUFFER,timeTexFB[0]);
+	glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,timeTextureID[0],0);
+
+	glBindFramebuffer(GL_FRAMEBUFFER,timeTexFB[1]);
+	glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,timeTextureID[1],0);
+
+	ping=0;
+	pong=1-ping;
+
 	// load vector field
 	m_VectorField.Load("res/data/Wing_128x64x32_T0.am");
 }
@@ -166,11 +204,63 @@ void Program::Update() {
 
 ////////////////////////////////////////////////////////////////////////////////
 void Program::Draw() {
+
 	graphics->ClearBuffers();
 
 	// all draw code goes here
 	flatShader->SetStandardUniform(GLShader::SUTYPE_MATRIX4_VIEW, &(camera->GetView())[0][0]);
 	flatShader->SetStandardUniform(GLShader::SUTYPE_MATRIX4_PROJECTION, &(camera->GetProjection())[0][0]);
+
+	timeTexShader->SetTexture(GL_TEXTURE_2D,0,0,timeTextureID[ping],samplerID);
+	timeTexShader->SetAdvancedUniform(GLShader::AUTYPE_VECTOR2,0,texWidth);
+	timeTexShader->Use();
+
+	glBindFramebuffer(GL_FRAMEBUFFER,timeTexFB[pong]);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	glBegin(GL_QUADS);
+	{
+		glTexCoord2f(0.0f,0.0f);
+		glVertex2f(-1.0,-1.0);
+		glTexCoord2f(1.0f,0.0f);
+		glVertex2f(1.0,-1.0);
+		glTexCoord2f(0.0f,1.0f);
+		glVertex2f(-1.0,1.0);
+		glTexCoord2f(1.0f,1.0f);
+		glVertex2f(1.0,1.0);
+	}
+	glEnd();
+
+	glBindFramebuffer(GL_FRAMEBUFFER,0);
+
+	alphaShader->SetTexture(GL_TEXTURE_2D,0,0,timeTextureID[pong],samplerID);
+	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 0,b);
+	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_MATRIX4,1,ProjectionView);
+	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 2,texWidth);
+	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 3,shapeStrength);
+	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_MATRIX4,4,invProjectionView);
+	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_VECTOR3,5,eyePos);
+	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 6,k);
+	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 7,maxTime);
+	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_VECTOR3,8,color);
+	alphaShader->Use();
+
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	//Hier wird das vbo gerendert!
+	//bitte vervollständigen ;)
+	glBindVertexArray(vao);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,ibo);
+
+	glDrawElements(GL_TRIANGLES,count,GL_UNSIGNED_INT,indices);
+
+	glBindVertexArray(0);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,0);
+
+	glFlush();
+
+	ping=1-ping;
+	pong=1-ping;
 }
 
 

@@ -29,7 +29,7 @@ void main()
 	vec2 index;
 	index.x=mod(vertexID,texWidth);
 	index.y=floor(vertexID/texWidth);
-	in_alphaTime=texture2D(timeTex,index).r;
+	in_alphaTime=texelFetch(timeTex,index).r;
 
 	float j=0,etmp=0,e=0;
 	for(int i=0;i<6;i++)

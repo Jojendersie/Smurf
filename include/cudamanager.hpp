@@ -15,9 +15,9 @@ public:
 	void AllocateMemory(glm::vec3 vSizeVectorField, unsigned int uiSizeVertices);
 
 	void SetVectorField(float *VectorField);
-	void SetVertices(float *Vertices);
+	void SetVertices(GLuint *vbo);
 
-	float* Integrate(float stepsize, unsigned int bitmask);
+	void Integrate(float stepsize, unsigned int bitmask);
 
 	void Clear();
 
@@ -35,7 +35,6 @@ private:
 	unsigned int m_uiBlockSize;
 	
 	float *m_fDeviceVectorField;
-	float *m_fDeviceVertices,*m_fDeviceResultVertices;
 	GLuint *vbo;
 	glm::vec3 m_vSizeField;
 };

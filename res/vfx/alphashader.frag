@@ -4,7 +4,7 @@ uniform mat4 invProjectionView;
 uniform vec3 eyePos;
 uniform float k;//constant: height_of_the_prism*number_of_particles*constant
 uniform float maxTime;
-uniform vex3 color;
+uniform vec3 color;
 
 smooth in vec3 out_normal;
 smooth in float out_alphaTime;
