@@ -37,7 +37,8 @@ private:
 	int			m_iSizeX, m_iSizeY, m_iSizeZ;			// Resolution of the vector field in each direction
 //	int			m_iVectorComponents;					// Number of dimensions in one vector (have to be 3 in this application)
 	glm::vec3	m_vBBMin, m_vBBMax;						// Bounding box ("Real"-World-Size of the vector field
-	float		m_fScaleX, m_fScaleY, m_fScaleZ;		// Factor m_iSize/(m_vBBMax-m_vBBMin) to translate positions to grid positions faster
+	glm::vec3	m_vPosToGrid;							// Precalculated factor m_iSize/(m_vBBMax-m_vBBMin) to translate positions to grid positions faster
+//	float		m_fScaleX, m_fScaleY, m_fScaleZ;		// Factor m_iSize/(m_vBBMax-m_vBBMin) to translate positions to grid positions faster
 	glm::vec3*	m_pvBuffer;								// The data
 
 	glm::vec3	Sample(float x, float y, float z);		// Point sampling; Coords have to be in grid space

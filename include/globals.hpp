@@ -22,10 +22,10 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 
-#include <SFML/Window.hpp>
-
 #ifndef GLOBALS_HPP_
 #define GLOBALS_HPP_
+
+#include <SFML/Window.hpp>
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -55,9 +55,27 @@ namespace Globals {
 	const bool RENDER_FULLSCREEN = false;
 	const bool RENDER_VSYNC = true;
 
+	// Camera Defaults
+	////////////////////////////////////////////////////////////////////////////////
+	const float CAM_POSX = 0.f;
+	const float CAM_POSY = 0.f;
+	const float CAM_POSZ = 0.f;
+	const float CAM_HEADING = 0.f;
+	const float CAM_PITCH = 0.f;
+	const float CAM_FOV = 45.f;
+	const float CAM_ZNEAR = 0.1f;
+	const float CAM_ZFAR = 1000.f;
+	const float CAM_SENSITIVITY = 0.3f;
+	const float CAM_VELOCITY = 0.3f;
+
 	// Input Settings
 	////////////////////////////////////////////////////////////////////////////////
-	const sf::Keyboard::Key INPUT_EXIT = sf::Keyboard::Escape;
+	const sf::Keyboard::Key INPUT_PROGRAM_EXIT = sf::Keyboard::Escape;
+	const sf::Keyboard::Key INPUT_CAM_FORE = sf::Keyboard::W;
+	const sf::Keyboard::Key INPUT_CAM_LEFT = sf::Keyboard::A;
+	const sf::Keyboard::Key INPUT_CAM_BACK = sf::Keyboard::S;
+	const sf::Keyboard::Key INPUT_CAM_RIGHT = sf::Keyboard::D;
+	const sf::Mouse::Button INPUT_CAM_ROTATION = sf::Mouse::Left;
 }
 
 

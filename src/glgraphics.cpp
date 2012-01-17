@@ -25,7 +25,6 @@
 
 #include <iostream>
 #include <cstdlib>
-#include <GL/glew.h>
 #include "glgraphics.hpp"
 
 
@@ -195,7 +194,7 @@ void GLGraphics::InitializeGraphics() {
 		std::exit(EXIT_FAILURE);
 	}
 	// set color, depth and stencil buffer clear value
-	glClearColor(0.f, 0.f, 0.f, 0.f);
+	glClearColor(1.f, 1.f, 0.f, 0.f);
 	glClearDepth(1.f);
 	glClearStencil(0);
 	// enable Z-buffer read and write

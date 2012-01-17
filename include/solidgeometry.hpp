@@ -19,10 +19,10 @@
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  */
 
-#include "amloader.hpp"
-
 #ifndef SOLIDGEOMETRY_HPP_
 #define SOLIDGEOMETRY_HPP_
+
+#include "amloader.hpp"
 
 class SolidSurface
 {

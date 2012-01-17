@@ -27,10 +27,7 @@
 
 #include <iostream>
 #include <GL/glew.h>
-#include <SFML/Window.hpp>
 #include "globals.hpp"
-#include "glgraphics.hpp"
-#include "glshader.hpp"
 #include "amloader.hpp"
 #include "program.hpp"
 #include "cudamanager.hpp"
@@ -62,16 +59,12 @@ Program::Program() {
 	}
 	mainWindow.SetFramerateLimit(Globals::RENDER_FRAMERATE_MAX);
 	mainWindow.EnableVerticalSync(Globals::RENDER_VSYNC);
-
-	// initialize time variables
-	timeCurrent = 1000;
-	timeLast = 1000;
-	timeTotal = 0;
 }
 
 
 ////////////////////////////////////////////////////////////////////////////////
 Program::~Program() {
+	delete camera;
 	delete flatShader;
 	delete graphics;
 	delete m_pSmokeSurface;
@@ -91,19 +84,19 @@ bool Program::IsRunning() const {
 
 
 ////////////////////////////////////////////////////////////////////////////////
-unsigned int Program::GetElapsedTime() const {
+const unsigned int& Program::GetElapsedTime() {
 	return timeCurrent;
 }
 
 
 ////////////////////////////////////////////////////////////////////////////////
-unsigned long long Program::GetTotalTime() const {
+const unsigned long long& Program::GetTotalTime() {
 	return timeTotal;
 }
 
 
 ////////////////////////////////////////////////////////////////////////////////
-float Program::GetFramerate() const {
+float Program::GetFramerate() {
 	float weightRatio = .3f;
 	float time = (1.f - weightRatio) * timeCurrent + weightRatio * timeLast;
 	float fps = 1000.f / time;
@@ -171,8 +164,9 @@ void Program::Initialize() {
 
 	// all initial code goes here
 
-	// initialize graphics
+	// initialize graphics and camera
 	graphics = new GLGraphics();
+	camera = new SFCamera();
 
 	// load test shader
 	flatShader = new GLShader(graphics);
@@ -182,9 +176,9 @@ void Program::Initialize() {
 	flatShader->Use();
 
 	// load vector field
-	m_VectorField.Load("..\\res\\Wing_128x64x32_T0.am");
-	m_pSmokeSurface = new SmokeSurface(10, 10, glm::vec3(0.0f), glm::vec3(1.0f));
-	m_pSolidSurface = new SolidSurface(&m_VectorField, 10000);
+	m_VectorField.Load("res\\data\\BubbleChamber_11x11x10_T0.am");
+	m_pSmokeSurface = new SmokeSurface(1000, 20, m_VectorField.GetBoundingBoxMax(), m_VectorField.GetBoundingBoxMin());
+	m_pSolidSurface = new SolidSurface(&m_VectorField, 1000);
 }
 
 
@@ -197,7 +191,10 @@ void Program::Update() {
 	timeTotal += timeCurrent;
 
 	// all update code goes here
-	m_pSmokeSurface->IntegrateCPU(&m_VectorField, 0.01f);
+	camera->Update();
+
+	m_pSmokeSurface->ReleaseNextColumn();
+	m_pSmokeSurface->IntegrateCPU(&m_VectorField, 10.01f);
 }
 
 
@@ -206,15 +203,16 @@ void Program::Draw() {
 	graphics->ClearBuffers();
 
 	// all draw code goes here
-
 	// set Camera
+	flatShader->SetStandardUniform(GLShader::SUTYPE_MATRIX4_VIEW, &(camera->GetView())[0][0]);
+	flatShader->SetStandardUniform(GLShader::SUTYPE_MATRIX4_PROJECTION, &(camera->GetProjection())[0][0]);
 
 	// render scene
-//	m_pSolidSurface->Render();
+	m_pSolidSurface->Render();
 
 	// switch targets
 	// render smoke
-//	m_pSmokeSurface->Render();
+	m_pSmokeSurface->Render();
 	// add smoke target to scene
 }
 
@@ -229,7 +227,7 @@ void Program::HandleBasicEvents() {
 			mainWindow.Close();
 
 		// close main window after pressing Esc
-		if ((event.Type == sf::Event::KeyPressed) && (event.Key.Code == Globals::INPUT_EXIT))
+		if ((event.Type == sf::Event::KeyPressed) && (event.Key.Code == Globals::INPUT_PROGRAM_EXIT))
 			mainWindow.Close();
 
 		// adjust OpenGL viewport after window resizing
@@ -237,3 +235,13 @@ void Program::HandleBasicEvents() {
 			graphics->AdjustViewport(event.Size.Width, event.Size.Height);
 	}
 }
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Definition: Variables
+////////////////////////////////////////////////////////////////////////////////
+
+
+unsigned int Program::timeCurrent = 1000;
+unsigned int Program::timeLast = 1000;
+unsigned long long Program::timeTotal = 0;

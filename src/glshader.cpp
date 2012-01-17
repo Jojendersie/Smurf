@@ -74,8 +74,6 @@
 #include <fstream>
 #include <string>
 #include <cstdarg>
-#include <GL/glew.h>
-#include "glgraphics.hpp"
 #include "glshader.hpp"
 
 
@@ -150,7 +148,7 @@ GLuint GLShader::GetStandardUboId() const {
 
 
 ////////////////////////////////////////////////////////////////////////////////
-void GLShader::SetStandardUniform(unsigned int standardUniformType, GLfloat* data) {
+void GLShader::SetStandardUniform(unsigned int standardUniformType, const GLfloat* data) {
 	// stop if no standard uniform set was created or if 'SUSET_PROJECTION_VIEW_MODEL'
 	// is set and the given data belongs to 'SUTYPE_MATRIX3_NORMAL'
 	if (standardUniformSet == SUSET_NONE ||
@@ -183,7 +181,7 @@ void GLShader::SetStandardUniform(unsigned int standardUniformType, GLfloat* dat
 
 
 ////////////////////////////////////////////////////////////////////////////////
-void GLShader::SetAdvancedUniform(unsigned int advancedUniformType, unsigned int advancedUniformIndex, GLfloat* data) {
+void GLShader::SetAdvancedUniform(unsigned int advancedUniformType, unsigned int advancedUniformIndex, const GLfloat* data) {
 	// stop if no advanced uniforms were created or if index is out of bounds
 	if ((!advancedUniformLocations) ||
 		(advancedUniformIndex > (sizeof(advancedUniformLocations) / sizeof(advancedUniformLocations[0])) - 1))
