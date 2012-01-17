@@ -245,8 +245,6 @@ void Program::Draw() {
 
 	// all draw code goes here
 	// set Camera
-	flatShader->SetStandardUniform(GLShader::SUTYPE_MATRIX4_VIEW, &(camera->GetView())[0][0]);
-	flatShader->SetStandardUniform(GLShader::SUTYPE_MATRIX4_PROJECTION, &(camera->GetProjection())[0][0]);
 
 	timeTexShader->SetTexture(GL_TEXTURE_2D,0,0,timeTextureID[ping],samplerID);
 	timeTexShader->SetAdvancedUniform(GLShader::AUTYPE_VECTOR2,0,&texWidth);
@@ -268,9 +266,14 @@ void Program::Draw() {
 	}
 	glEnd();
 
+	timeTexShader->UseNoShaderProgram();
+
 	glBindFramebuffer(GL_FRAMEBUFFER,0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+	flatShader->SetStandardUniform(GLShader::SUTYPE_MATRIX4_VIEW, &(camera->GetView())[0][0]);
+	flatShader->SetStandardUniform(GLShader::SUTYPE_MATRIX4_PROJECTION, &(camera->GetProjection())[0][0]);
+	flatShader->Use();
 	// render scene
 	m_pSolidSurface->Render();
 
