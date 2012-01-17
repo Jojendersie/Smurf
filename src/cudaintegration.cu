@@ -1,10 +1,6 @@
 #include <math.h>
 #include "cudamath.hpp"
 
-float* integrateVectorFieldGPU(float* fVectorField, float* fVertices, float* fDeviceResultVertices, 
-										  unsigned int uiElementSize, unsigned int uiBlockSize, int iSizeFieldx, 
-										  int iSizeFieldy, int iSizeFieldz, float stepsize, unsigned int bitmask);
-
 __device__ int3 convert_int3(float3 vec)
 {
 	int3 tmp;
@@ -71,9 +67,11 @@ __device__ float3 SampleL(float3 Vector, const float *Vector_Field, int3 Size)
 				lerp(lerp(s[1],s[5],Vector.x),lerp(s[3],s[7],Vector.x),Vector.y),Vector.z);	
 }
 
-__global__ void IntegrateVectorField(const float *Vector_Field, float3 *dptr, int Size_x, int Size_y, int Size_z, float stepsize, unsigned int bitmask)
+__global__ void IntegrateVectorField(float *Vector_Field, float3 *dptr, unsigned int ElementSize, unsigned int Size_x, unsigned int Size_y, unsigned int Size_z, float stepsize, unsigned int bitmask)
 {
 	const int index=blockDim.x*blockIdx.x+threadIdx.x;
+	if(index>ElementSize)
+		return;
 	int3 Size;
 	Size.x=Size_x;
 	Size.y=Size_y;
@@ -99,17 +97,12 @@ __global__ void IntegrateVectorField(const float *Vector_Field, float3 *dptr, in
 	dptr[index]=clVertex;
 }
 
-extern "C" void integrateVectorFieldGPU(float* fVectorField, float3 *dptr, unsigned int uiElementSize, unsigned int uiBlockSize, int iSizeFieldx, int iSizeFieldy, int iSizeFieldz, float stepsize, unsigned int bitmask)
+extern "C" void integrateVectorFieldGPU(float *fVectorField, float3 *dptr, unsigned int uiElementSize, unsigned int uiGridSize, unsigned int uiBlockSize, unsigned int iSizeFieldx, unsigned int iSizeFieldy, unsigned int iSizeFieldz, float stepsize, unsigned int bitmask)
 {
 	dim3 BlockSize;
 	BlockSize.x=uiBlockSize;
-	int up=0;
-	if(uiElementSize%uiBlockSize!=0)
-		up=1;
 	dim3 GridSize;
-	GridSize.x=(uiElementSize/uiBlockSize)+up;
-	
-	float *pfTransformedVertices = new float[uiElementSize*3];
+	GridSize.x=uiGridSize;
 
-	IntegrateVectorField<<<GridSize,BlockSize>>>(fVectorField, dptr,iSizeFieldx,iSizeFieldy,iSizeFieldz,stepsize,bitmask);
+	IntegrateVectorField<<<GridSize,BlockSize>>>(fVectorField, dptr,uiElementSize,iSizeFieldx,iSizeFieldy,iSizeFieldz,stepsize,bitmask);
 }
