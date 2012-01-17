@@ -28,7 +28,9 @@
 #include <iostream>
 #include <GL/glew.h>
 #include "globals.hpp"
+#include "amloader.hpp"
 #include "program.hpp"
+#include "cudamanager.hpp"
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -67,6 +69,8 @@ Program::~Program() {
 	delete alphaShader;
 	delete timeTexShader;
 	delete graphics;
+	delete m_pSmokeSurface;
+	delete m_pSolidSurface;
 }
 
 
@@ -110,6 +114,31 @@ float Program::GetFramerate() {
 ////////////////////////////////////////////////////////////////////////////////
 void Program::Run() {
 	// application main loop
+
+	/*glm::vec3 fieldSize;
+	fieldSize.x=fieldSize.y=fieldSize.z=32;
+	int size=fieldSize.x*3*fieldSize.y*3*fieldSize.z*3;
+	int elementsize=16;
+	float *VectorField = new float[size];
+	float *Vertices = new float[elementsize*3];
+	float *ResultVertices;
+	
+	CudaManager manager;
+	manager.AllocateMemory(fieldSize,elementsize);
+
+	manager.RandomInit(VectorField,fieldSize.x*fieldSize.y*fieldSize.z);
+	manager.RandomInit(Vertices,elementsize);
+
+	manager.SetVertices(Vertices);
+	manager.SetVectorField(VectorField);
+
+	manager.PrintResult(Vertices,elementsize);
+
+	ResultVertices = manager.Integrate(0.5f,CudaManager::INTEGRATION_MODEULER | CudaManager::INTEGRATION_FILTER_LINEAR);
+
+	manager.PrintResult(ResultVertices,elementsize);*/
+
+
 	mainWindow.SetActive();
 	Initialize();
 	while (mainWindow.IsOpened()) {
@@ -187,7 +216,9 @@ void Program::Initialize() {
 	pong=1-ping;
 
 	// load vector field
-	m_VectorField.Load("res/data/Wing_128x64x32_T0.am");
+	m_VectorField.Load("res\\data\\BubbleChamber_11x11x10_T0.am");
+	m_pSmokeSurface = new SmokeSurface(1000, 20, m_VectorField.GetBoundingBoxMax(), m_VectorField.GetBoundingBoxMin());
+	m_pSolidSurface = new SolidSurface(&m_VectorField, 1000);
 }
 
 
@@ -201,6 +232,9 @@ void Program::Update() {
 
 	// all update code goes here
 	camera->Update();
+
+	m_pSmokeSurface->ReleaseNextColumn();
+	m_pSmokeSurface->IntegrateCPU(&m_VectorField, 10.01f);
 }
 
 
@@ -210,6 +244,7 @@ void Program::Draw() {
 	graphics->ClearBuffers();
 
 	// all draw code goes here
+	// set Camera
 	flatShader->SetStandardUniform(GLShader::SUTYPE_MATRIX4_VIEW, &(camera->GetView())[0][0]);
 	flatShader->SetStandardUniform(GLShader::SUTYPE_MATRIX4_PROJECTION, &(camera->GetProjection())[0][0]);
 
@@ -233,6 +268,9 @@ void Program::Draw() {
 	}
 	glEnd();
 
+	// render scene
+	m_pSolidSurface->Render();
+
 	glBindFramebuffer(GL_FRAMEBUFFER,0);
 
 	alphaShader->SetTexture(GL_TEXTURE_2D,0,0,timeTextureID[pong],samplerID);
@@ -250,6 +288,7 @@ void Program::Draw() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	//Drawing geometry here
+	m_pSmokeSurface->Render();
 	/*
 	glBindVertexArray(vao);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,ibo);

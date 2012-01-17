@@ -9,9 +9,9 @@
 //	|				/|                              /|
 //	|			  7  |                            5  |
 //	|			 /   8                           /   9
-//	|		  7+---------------6---------------+6    |
+//	|(0,0,0)  7+---------------6---------------+6    |
 //	|		   |     |                         |     |
-//	|		   |    0+--------------0----------|-----+1
+//	|		   |    0+--------------0----------|-----+1	(1,1,1)
 //	|	   z   11   /                          10   /
 //	|	 /	   |  3                            |  1
 //	|  /	   |/                              |/
@@ -67,6 +67,26 @@ unsigned short g_acEdges[256] = {
 		0xf00, 0xe09, 0xd03, 0xc0a, 0xb06, 0xa0f, 0x905, 0x80c,
 		0x70c, 0x605, 0x50f, 0x406, 0x30a, 0x203, 0x109, 0x0   };
 
+// **************************************************************** //
+// Position offset vectors for all 12 edges (cell midpoint -> edge midpoint)
+const glm::vec3 g_vEdgeOffsets[] = {glm::vec3(0.0f, 0.5f, 0.5f),
+									glm::vec3(0.5f, 0.5f, 0.0f),
+									glm::vec3(0.0f, 0.5f, -0.5f),
+									glm::vec3(-0.5f, 0.5f, 0.0f),
+									glm::vec3(0.0f, -0.5f, 0.5f),
+									glm::vec3(0.5f, -0.5f, 0.0f),
+									glm::vec3(0.0f, -0.5f, -0.5f),
+									glm::vec3(-0.5f, -0.5f, 0.0f),
+									glm::vec3(-0.5f, 0.0f, 0.5f),
+									glm::vec3(0.5f, 0.0f, 0.5f),
+									glm::vec3(0.5f, 0.0f, -0.5f),
+									glm::vec3(-0.5f, 0.0f, -0.5f)	};
+// Exclude edge-vertices from creation if in a middle position
+const unsigned int g_uiVertexCreationMaskX = 0x677;	// 011001110111
+const unsigned int g_uiVertexCreationMaskY = 0xf0f;	// 111100001111
+const unsigned int g_uiVertexCreationMaskZ = 0x3bb;	// 001110111011
+
+// **************************************************************** //
 // TriangleIndices contains the index offsets for the triangles.
 // The offset 0 refers to the vertex of the first (least significant) egde.
 // Therefore the indices depend on the creation order of vertices.
@@ -387,8 +407,8 @@ unsigned int CountBits32(unsigned int n)
 	n =    (n & MASK_01010101)  + ((n >> 1) & MASK_01010101);
 	n =    (n & MASK_00110011)  + ((n >> 2) & MASK_00110011);
 	n =    (n & MASK_00001111)  + ((n >> 4) & MASK_00001111);
-	n =    (n & MASK_0x8_1x8)   + ((n >> 4) & MASK_0x8_1x8);
-	return (n & MASK_0x16_1x16) + ((n >> 4) & MASK_0x16_1x16);
+	n =    (n & MASK_0x8_1x8)   + ((n >> 8) & MASK_0x8_1x8);
+	return (n & MASK_0x16_1x16) + ((n >> 16) & MASK_0x16_1x16);
 }
 
 unsigned int CountBits16(unsigned short n)
@@ -396,7 +416,7 @@ unsigned int CountBits16(unsigned short n)
 	n =    (n & MASK_01010101) + ((n >> 1) & MASK_01010101);
 	n =	   (n & MASK_00110011) + ((n >> 2) & MASK_00110011);
 	n =    (n & MASK_00001111) + ((n >> 4) & MASK_00001111);
-	return (n & MASK_0x8_1x8)  + ((n >> 4) & MASK_0x8_1x8);
+	return (n & MASK_0x8_1x8)  + ((n >> 8) & MASK_0x8_1x8);
 }
 
 // **************************************************************** //
@@ -404,11 +424,30 @@ unsigned int CountBits16(unsigned short n)
 // has the vertex at the spezified edge?
 char g_acNeighborEdge[6][12] =
 	   {{ 2, -1, -1, -1,  6, -1, -1, -1, 11, 10, -1, -1},		// z+
-		{-1, -1, -1, -1,  0,  1,  2,  3, -1, -1, -1, -1},		// y+
+		{ 4,  5,  6,  7, -1, -1, -1, -1, -1, -1, -1, -1},		// y+
 		{-1,  3, -1, -1, -1,  7, -1, -1, -1,  8, 11, -1},		// x+
 		{-1, -1,  0, -1, -1, -1,  4, -1, -1, -1,  9,  8},		// z-
-		{ 4,  5,  6,  7, -1, -1, -1, -1, -1, -1, -1, -1},		// y-
+		{-1, -1, -1, -1,  0,  1,  2,  3, -1, -1, -1, -1},		// y-
 		{-1, -1, -1,  1, -1, -1, -1,  5,  9, -1, -1, 10}};		// x-
+
+// Go back as much as possible in each direction. If there was no neighbor (borders of volume)
+// in the direction look for an other possible older neighbor. If this doesn't exists go
+// to the node itself (0,0,0) - no neighbor edge.
+// Interpretation: (1,0,0) - use vertex from edge 1 from the left neighbor (x-1 - neighbor)
+char g_acNeighborPriority[12][3] = 
+{{-1,-1,-1},
+ {-1,-1,-1},
+ {-1,-1, 0},
+ { 1,-1,-1},
+ {-1, 0,-1},
+ {-1, 1,-1},
+ {-1, 0, 4},
+ { 1, 3,-1},
+ { 9,-1,-1},
+ {-1,-1,-1},
+ {-1,-1, 9},
+ { 9,-1, 8}
+};
 
 // **************************************************************** //
 // Calculate how many vertices are created before the one for the current edge.
@@ -431,9 +470,10 @@ struct SolidVertex {
 // Sample the vector field and estimate solid or not
 bool IsSolid(AmiraMesh* _pMesh, int _x, int _y, int _z)
 {
-	return (abs(_pMesh->GetData()[((_z*_pMesh->GetSizeY()+_y)*_pMesh->GetSizeX()+_x)*3])
-		+ abs(_pMesh->GetData()[((_z*_pMesh->GetSizeY()+_y)*_pMesh->GetSizeX()+_x)*3+1])
-		+ abs(_pMesh->GetData()[((_z*_pMesh->GetSizeY()+_y)*_pMesh->GetSizeX()+_x)*3+2]))
+	int iDataIndex = ((_z*_pMesh->GetSizeY()+_y)*_pMesh->GetSizeX()+_x)*3;
+	return (abs(_pMesh->GetData()[iDataIndex])
+		+ abs(_pMesh->GetData()[iDataIndex+1])
+		+ abs(_pMesh->GetData()[iDataIndex+2]))
 			<= 0.000001f;
 }
 
@@ -442,15 +482,20 @@ bool IsSolid(AmiraMesh* _pMesh, int _x, int _y, int _z)
 SolidSurface::SolidSurface(AmiraMesh* _pMesh, int _iTriangles)
 {
 	// Create Buffers for the estimated number of triangles
-	SolidVertex*  pVertexData = (SolidVertex*)malloc(sizeof(SolidVertex) * _iTriangles * 3);
-	unsigned int* pIndexData = (unsigned int*)malloc(sizeof(unsigned int) * _iTriangles);
-	unsigned int* pIndexOffsetsZ1 = (unsigned int*)malloc(sizeof(unsigned int) * (_pMesh->GetSizeX()-1) * (_pMesh->GetSizeY()-1));
-	unsigned int* pIndexOffsetsZ0 = (unsigned int*)malloc(sizeof(unsigned int) * (_pMesh->GetSizeX()-1) * (_pMesh->GetSizeY()-1));
+	SolidVertex*  pVertexData = (SolidVertex*)malloc(sizeof(SolidVertex) * _iTriangles * 3);	// Upload only necessary vertices at the end, but worst case is every triangle has its own vertices (not possible - closed surface - worst case==valence 3?)
+	unsigned int* pIndexData = (unsigned int*)malloc(sizeof(unsigned int) * _iTriangles * 3);
+	int iBufferSize = sizeof(unsigned int) * (_pMesh->GetSizeX() * _pMesh->GetSizeY() - 1);
+	unsigned int* pIndexOffsetsZ1 = (unsigned int*)malloc(iBufferSize);
+	unsigned int* pIndexOffsetsZ0 = (unsigned int*)malloc(iBufferSize);
+	memset(pIndexOffsetsZ1, 0, iBufferSize);
 	unsigned int uiIndex = 0;
 	unsigned int uiVertex = 0;
 
+	glm::vec3 vDimension = _pMesh->GetBoundingBoxMax() - _pMesh->GetBoundingBoxMin();
+	glm::vec3 vCellSize = glm::vec3(1.0f/_pMesh->GetSizeX(), 1.0f/_pMesh->GetSizeY(), 1.0f/_pMesh->GetSizeZ());
+
 	// Traverse the amira mesh and create triangles with marching cubes.
-	// There is one cube less than data points
+	// There is one cube less than data points in each direction.
 	for(int z=0;z<_pMesh->GetSizeZ()-1;++z)
 	{
 		for(int y=0;y<_pMesh->GetSizeY()-1;++y)
@@ -458,61 +503,73 @@ SolidSurface::SolidSurface(AmiraMesh* _pMesh, int _iTriangles)
 			for(int x=0;x<_pMesh->GetSizeX()-1;++x)
 			{
 				// Create case-code
-				unsigned int uiCase = IsSolid(_pMesh, x, y, z+1);
-				uiCase |= IsSolid(_pMesh, x+1, y  , z+1)<<1;
-				uiCase |= IsSolid(_pMesh, x+1, y  , z  )<<2;
-				uiCase |= IsSolid(_pMesh, x  , y  , z  )<<3;
-				uiCase |= IsSolid(_pMesh, x  , y+1, z+1)<<4;
-				uiCase |= IsSolid(_pMesh, x+1, y+1, z+1)<<5;
-				uiCase |= IsSolid(_pMesh, x+1, y+1, z  )<<6;
-				uiCase |= IsSolid(_pMesh, x  , y+1, z  )<<7;
+				unsigned int uiCase;
+				uiCase  = IsSolid(_pMesh, x  , y+1, z+1);
+				uiCase |= IsSolid(_pMesh, x+1, y+1, z+1)<<1;
+				uiCase |= IsSolid(_pMesh, x+1, y+1, z  )<<2;
+				uiCase |= IsSolid(_pMesh, x  , y+1, z  )<<3;
+				uiCase |= IsSolid(_pMesh, x  , y  , z+1)<<4;
+				uiCase |= IsSolid(_pMesh, x+1, y  , z+1)<<5;
+				uiCase |= IsSolid(_pMesh, x+1, y  , z  )<<6;
+				uiCase |= IsSolid(_pMesh, x  , y  , z  )<<7;
 
 				// Save current index offset and case in neighborhood table (for later boxes)
 				pIndexOffsetsZ0[y*_pMesh->GetSizeX()+x] = (uiCase<<24) | uiVertex;
 				unsigned int uiV = uiVertex;
 
-				// Lookup
+				// Lookup on which edges a split-vertex is generated
 				int iEdges = g_acEdges[uiCase];
+				// Exlude all prior created vertices
+				if(x>0) iEdges &= g_uiVertexCreationMaskX;
+				if(y>0) iEdges &= g_uiVertexCreationMaskY;
+				if(z>0) iEdges &= g_uiVertexCreationMaskZ;
 
+		//		if(uiVertex+12 >= _iTriangles) goto finishcreation;
 				// Add vertices
-				for(int i=1;i<=2048;i<<=1)
+				for(int i=0;i<12;++i)
 				{
-					if(iEdges & i)
+					if(iEdges & (1<<i))
 					{
-						// Calculate Position exact in the middle
-						pVertexData[uiVertex].vPosition.x = (_pMesh->GetBoundingBoxMax().x - _pMesh->GetBoundingBoxMin().x) * (_pMesh->GetSizeX()-2)/(x+0.5f);
-						pVertexData[uiVertex].vPosition.y = (_pMesh->GetBoundingBoxMax().y - _pMesh->GetBoundingBoxMin().y) * (_pMesh->GetSizeY()-2)/(y+0.5f);
-						pVertexData[uiVertex].vPosition.z = (_pMesh->GetBoundingBoxMax().z - _pMesh->GetBoundingBoxMin().z) * (_pMesh->GetSizeZ()-2)/(z+0.5f);
-						// Do something with the normal
+						// Calculate position exact in the middle (cell)
+						pVertexData[uiVertex].vPosition.x = (x+0.5f)/(_pMesh->GetSizeX()-2);
+						pVertexData[uiVertex].vPosition.y = (y+0.5f)/(_pMesh->GetSizeY()-2);
+						pVertexData[uiVertex].vPosition.z = (z+0.5f)/(_pMesh->GetSizeZ()-2);
+						// Calculate offset to the edge
+						pVertexData[uiVertex].vPosition += g_vEdgeOffsets[i]*vCellSize;
+						pVertexData[uiVertex].vPosition *= vDimension;
+						pVertexData[uiVertex].vPosition += _pMesh->GetBoundingBoxMin();
+//						printf("%f, %f, %f\n", pVertexData[uiVertex].vPosition.x, pVertexData[uiVertex].vPosition.y, pVertexData[uiVertex].vPosition.z);
+						// Do something with the normal (TODO)
 						++uiVertex;
 					}
 				}
 
 				// Add indices
 				int i=-1;
-				while((i<14) && g_acTriangleIndices[uiCase][++i])
+				while((i<14) && (g_acTriangleIndices[uiCase][++i]>-1))
 				{
-					// Use edge vertex from z-1?
-					if((z>0) && (g_acNeighborEdge[3][i] > -1))
-					{
-						unsigned int uiVal = pIndexOffsetsZ1[y*_pMesh->GetSizeX()+x];
-						unsigned int uiNC = uiVal>>24;
-						pIndexData[uiIndex++] = uiVal&0xffffff + GetEdgeIndexOffset(g_acEdges[uiNC], g_acTriangleIndices[uiNC][g_acNeighborEdge[3][i]]);
-					// Use edge vertex from y-1?
-					} else if((y>0) && (g_acNeighborEdge[4][i] > -1))
-					{
-						unsigned int uiVal = pIndexOffsetsZ0[(y-1)*_pMesh->GetSizeX()+x];
-						unsigned int uiNC = uiVal>>24;
-						pIndexData[uiIndex++] = uiVal&0xffffff + GetEdgeIndexOffset(g_acEdges[uiNC], g_acTriangleIndices[uiNC][g_acNeighborEdge[4][i]]);
-					// Use edge vertex from x-1?
-					} else if((x>0) && (g_acNeighborEdge[5][i] > -1))
-					{
-						unsigned int uiVal = pIndexOffsetsZ0[y*_pMesh->GetSizeX()+x-1];
-						unsigned int uiNC = uiVal>>24;
-						pIndexData[uiIndex++] = uiVal&0xffffff + GetEdgeIndexOffset(g_acEdges[uiNC], g_acTriangleIndices[uiNC][g_acNeighborEdge[5][i]]);
-					// Use new vertex
-					} else
-						pIndexData[uiIndex++] = uiV + GetEdgeIndexOffset(iEdges, g_acTriangleIndices[uiCase][i]);
+					// Calculate in which cell the vertex was created and on which edge.
+					char cCurrentEdgeIndex = g_acTriangleIndices[uiCase][i];
+					char cGotoX = (g_acNeighborPriority[cCurrentEdgeIndex][0]>=0) && (x>0);
+					char cGotoY = (g_acNeighborPriority[cCurrentEdgeIndex][1]>=0) && (y>0);
+					char cGotoZ = (g_acNeighborPriority[cCurrentEdgeIndex][2]>=0) && (z>0);
+					char cNeighborEdge = cCurrentEdgeIndex;
+					if(cGotoZ) cNeighborEdge = g_acNeighborEdge[3][cCurrentEdgeIndex];
+					if(cGotoY) cNeighborEdge = g_acNeighborEdge[4][cCurrentEdgeIndex];
+					if(cGotoX) cNeighborEdge = g_acNeighborEdge[5][cCurrentEdgeIndex];
+					if(cGotoZ && cGotoX) cNeighborEdge = g_acNeighborPriority[cCurrentEdgeIndex][0];
+					if(cGotoZ && cGotoY) cNeighborEdge = g_acNeighborPriority[cCurrentEdgeIndex][1];
+					if(cGotoY && cGotoX) cNeighborEdge = g_acNeighborPriority[cCurrentEdgeIndex][0];
+
+					// Extract base index and case from neighbor cell(, can be the cell itself too).
+					unsigned int uiVal = cGotoZ?pIndexOffsetsZ1[(y-cGotoY)*_pMesh->GetSizeX()+x-cGotoX] : pIndexOffsetsZ0[(y-cGotoY)*_pMesh->GetSizeX()+x-cGotoX];
+					unsigned int uiNC = uiVal>>24;
+					// Lookup the edge-vertex creations and exculde prior ones
+					uiNC = g_acEdges[uiNC] & ((x>cGotoX)?g_uiVertexCreationMaskX:0xfff) & ((y>cGotoY)?g_uiVertexCreationMaskY:0xfff) & ((z>cGotoZ)?g_uiVertexCreationMaskZ:0xfff);
+					pIndexData[uiIndex] = (uiVal&0xffffff) + GetEdgeIndexOffset(uiNC, cNeighborEdge);
+
+					++uiIndex;
+					if(uiIndex >= (unsigned int)_iTriangles * 3) goto finishcreation;	// break run - to few triangles allocated
 				}
 			}
 		}
@@ -522,6 +579,7 @@ SolidSurface::SolidSurface(AmiraMesh* _pMesh, int _iTriangles)
 		pIndexOffsetsZ1 = pTemp;
 	}
 
+finishcreation:
 	// Save for statistic and rendercall
 	m_iNumIndices = uiIndex;
 	m_iNumVertices = uiVertex;
@@ -544,6 +602,8 @@ SolidSurface::SolidSurface(AmiraMesh* _pMesh, int _iTriangles)
 
 	free(pVertexData);
 	free(pIndexData);
+	free(pIndexOffsetsZ0);
+	free(pIndexOffsetsZ1);
 }
 	
 // **************************************************************** //
@@ -567,6 +627,8 @@ SolidSurface::~SolidSurface()
 // Set the buffers and make the rendercall
 void SolidSurface::Render()
 {
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	glBindVertexArray(m_uiVAO);
+	//glDrawArrays(GL_POINTS, 0, m_iNumVertices);
 	glDrawElements(GL_TRIANGLES, m_iNumIndices, GL_UNSIGNED_INT, (GLvoid*)0);
 }

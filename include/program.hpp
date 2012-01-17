@@ -34,6 +34,7 @@
 #include "sfcamera.hpp"
 #include "amloader.hpp"
 #include "smokesurface.hpp"
+#include "solidgeometry.hpp"
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -85,6 +86,7 @@ private:
 	SFCamera* camera;
 	AmiraMesh m_VectorField;
 	SmokeSurface* m_pSmokeSurface;
+	SolidSurface* m_pSolidSurface;
 	int ping,pong;//for ping-pong rendering
 };
 

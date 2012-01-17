@@ -23,6 +23,12 @@ const char* FindAndJump(const char* _pcBuffer, const char* _pcSearchString)
     return _pcBuffer;
 }
 
+void ToggleEndian(unsigned char* _pcData)
+{
+	unsigned char ucBuf = _pcData[0]; _pcData[0] = _pcData[3]; _pcData[3] = ucBuf;
+	ucBuf = _pcData[1]; _pcData[1] = _pcData[2]; _pcData[2] = ucBuf;
+}
+
 // **************************************************************** //
 // Load the mesh from file
 // Most things copied from http://www.mpi-inf.mpg.de/~weinkauf/notes/amiramesh.html
@@ -75,7 +81,8 @@ bool AmiraMesh::Load(char* _pcFileName)
 
 
 	// Find the beginning of the data section
-    const long idxStartData = strstr(acBuffer, "# Data section follows\n@1\n") - acBuffer;
+    const long idxStartData = 26+strstr(acBuffer, "# Data section follows\n@1\n") - acBuffer;
+//	char* pcTest = &acBuffer[idxStartData];
     if (idxStartData > 0)
     {
         // Set the file pointer to the end of "# Data section follows\n@1\n"
@@ -94,7 +101,7 @@ bool AmiraMesh::Load(char* _pcFileName)
 		}
         
 		// - do it
-        const size_t ActRead = fread((void*)m_pvBuffer, sizeof(float), NumToRead, pFile);
+        const size_t ActRead = fread((void*)m_pvBuffer, sizeof(glm::vec3), NumToRead, pFile);
         // - ok?
         if (NumToRead != ActRead)
         {
@@ -103,13 +110,47 @@ bool AmiraMesh::Load(char* _pcFileName)
             fclose(pFile);
             return false;
         }
-    }
+
+		// Our data have big endian representation!
+		unsigned char* pData = (unsigned char*)m_pvBuffer;
+		for(int i=0;i<NumToRead*3;++i)
+		{
+			ToggleEndian(pData);
+			pData += 4;
+		}
+
+/*/Test: Print all data values
+			float* _pData = (float*)m_pvBuffer;
+            //Note: Data runs x-fastest, i.e., the loop over the x-axis is the innermost
+            printf("\nPrinting all values in the same order in which they are in memory:\n");
+            int Idx(0);
+			for(int k=0;k<m_iSizeZ;k++)
+            {
+				for(int j=0;j<m_iSizeY;j++)
+                {
+					for(int i=0;i<m_iSizeX;i++)
+                    {
+                        //Note: Random access to the value (of the first component) of the grid point (i,j,k):
+                        // pData[((k * yDim + j) * xDim + i) * NumComponents]
+                     //   assert(pData[((k * yDim + j) * xDim + i) * NumComponents] == pData[Idx * NumComponents]);
+
+                        for(int c=0;c<3;c++)
+                        {
+                            printf("%g ", _pData[Idx * 3 + c]);
+                        }
+                        printf("\n");
+                        Idx++;
+                    }
+                }
+            }
+			//*/
+	}
 
 	// Optimation stuff
 	// Factor m_iSize/(m_vBBMax-m_vBBMin) to translate positions to grid positions faster
-	m_fScaleX = m_iSizeX/(m_vBBMax.x-m_vBBMin.x);
-	m_fScaleY = m_iSizeY/(m_vBBMax.y-m_vBBMin.y);
-	m_fScaleZ = m_iSizeZ/(m_vBBMax.z-m_vBBMin.z);
+	m_vPosToGrid.x = m_iSizeX/(m_vBBMax.x-m_vBBMin.x);
+	m_vPosToGrid.y = m_iSizeY/(m_vBBMax.y-m_vBBMin.y);
+	m_vPosToGrid.z = m_iSizeZ/(m_vBBMax.z-m_vBBMin.z);
 
 	fclose(pFile);
 	return true;	// Yes loaded
@@ -123,6 +164,10 @@ glm::vec3 AmiraMesh::Sample(float x, float y, float z)
 	glm::vec3 vOut;
 	// Divide into fractal and index
 	int ix=(int)x,	iy=(int)y,	iz=(int)z;
+
+	// Edge handling
+	if((ix>=m_iSizeX) || (iy>=m_iSizeY) || (iz>=m_iSizeZ) || (ix<0) || (iy<0) || (iz<0))
+		return glm::vec3(0.0f);
 
 	return m_pvBuffer[ix+m_iSizeX*(iy+m_iSizeY*(iz))];
 }
@@ -143,6 +188,10 @@ glm::vec3 AmiraMesh::SampleL(float x, float y, float z)
 	int ix=(int)x,	iy=(int)y,	iz=(int)z;
 		x -= ix;	y -= iy;	z -= iz;
 
+	// Edge handling
+	if((ix>=m_iSizeX) || (iy>=m_iSizeY) || (iz>=m_iSizeZ) || (ix<0) || (iy<0) || (iz<0))
+		return glm::vec3(0.0f);
+
 	// Load the 8 vectors (s{X}{Y}{Z}{vector component})
 	glm::vec3 s000 = m_pvBuffer[ix+  m_iSizeX*(iy+  m_iSizeY*(iz))];
 	glm::vec3 s100 = m_pvBuffer[ix+1+m_iSizeX*(iy+  m_iSizeY*(iz))];
@@ -160,6 +209,7 @@ glm::vec3 AmiraMesh::SampleL(float x, float y, float z)
 					lrp(s011, s111, x), y), z);
 }
 
+const float MAXRNDINV = 0.000003051850948f;	// 0.00003051850948f
 // **************************************************************** //
 // Integrate one step over the vector field to determine new position
 // Input:	_vPosition - old position
@@ -168,25 +218,25 @@ glm::vec3 AmiraMesh::SampleL(float x, float y, float z)
 glm::vec3 AmiraMesh::Integrate(glm::vec3 _vPosition, float _fStepSize, int _iMethod)
 {
 	// Translate Position
-	float x = _vPosition.x;//*m_fScaleX;
-	float y = _vPosition.y;//*m_fScaleY;
-	float z = _vPosition.z;//*m_fScaleZ;
+	glm::vec3 vPos = (_vPosition - m_vBBMin) * m_vPosToGrid;
 
 	// Trilinear sample
 	glm::vec3 vS;
-	vS = (_iMethod & INTEGRATION_FILTER_POINT)?Sample(x,y,z):SampleL(x,y,z);
+	vS = (_iMethod & INTEGRATION_FILTER_POINT)?Sample(vPos.x,vPos.y,vPos.z):SampleL(vPos.x,vPos.y,vPos.z);
+
+	vS += glm::vec3(rand()*MAXRNDINV, rand()*MAXRNDINV, rand()*MAXRNDINV);
 
 	// Calculate new position
 	if(_iMethod & INTEGRATION_EULER)
-		return _vPosition + _fStepSize*vS;
+		return (vPos + _fStepSize*vS) / m_vPosToGrid + m_vBBMin;
 	else
 	{
 		// Calculate new position with StepSize and with two times
 		// StepSize/2. Calculate error from the difference of this two
 		// positions. Then extrapolate the real new position.
-		glm::vec3 vNewPos1 = _vPosition + _fStepSize*vS;
+		glm::vec3 vNewPos1 = vPos + _fStepSize*vS;
 
-		glm::vec3 vNewPos2 = _vPosition + _fStepSize*0.5f*vS;
+		glm::vec3 vNewPos2 = vPos + _fStepSize*0.5f*vS;
 		// Resample and step again
 		vS = (_iMethod & INTEGRATION_FILTER_POINT) ?
 				  Sample(vNewPos2.x,vNewPos2.y,vNewPos2.z)
@@ -195,7 +245,7 @@ glm::vec3 AmiraMesh::Integrate(glm::vec3 _vPosition, float _fStepSize, int _iMet
 		vNewPos2 += _fStepSize*0.5f*vS;
 
 		// Extrapolate the position (simple double the difference)
-		return 2.0f*vNewPos2-vNewPos1;
+		return (2.0f*vNewPos2-vNewPos1) / m_vPosToGrid + m_vBBMin;
 
 		//vNewPos1 = 2.0f*vNewPos2-vNewPos1;
 		// Rescale and return

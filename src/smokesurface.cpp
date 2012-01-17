@@ -1,6 +1,6 @@
 #include <cassert>
 #include <GL/glew.h>
-#include <stdlib.h>
+#include <cstdlib>
 #include "smokesurface.hpp"
 
 // **************************************************************** //
@@ -21,8 +21,8 @@ SmokeSurface::SmokeSurface(int _iNumCols, int _iNumRows, glm::vec3 _vStart, glm:
 	m_iNumReleasedColumns = 0;
 
 	// Create data
-	int iNumVertices = _iNumCols*_iNumRows;
-	int iVertexDataSize = sizeof(PositionVertex)*iNumVertices;
+	m_iNumVertices = _iNumCols*_iNumRows;
+	int iVertexDataSize = sizeof(PositionVertex)*m_iNumVertices;
 	PositionVertex* pVertices = (PositionVertex*)malloc(iVertexDataSize);	// TODO free somewhere
 	for(int i=0; i<_iNumCols; ++i)
 		for(int j=0; j<_iNumRows; ++j)
@@ -31,17 +31,24 @@ SmokeSurface::SmokeSurface(int _iNumCols, int _iNumRows, glm::vec3 _vStart, glm:
 	// Create Triangulation
 	m_iNumIndices = _iNumCols*(_iNumRows-1)*6;
 	GLuint* pIndices = (GLuint*)malloc(m_iNumIndices*sizeof(GLuint));
+	GLuint* pI = pIndices;
 	for(int i=0; i<_iNumCols; ++i)
 		for(int j=0; j<_iNumRows-1; ++j)
 		{
 			int iVertex = (i*_iNumRows+j);
 			// Adding a quad (2 triangles)
-			pIndices[iVertex*6    ] = iVertex;
+			*(pI++) = iVertex;
+			*(pI++) = iVertex+1;
+			*(pI++) = (iVertex+_iNumRows)%m_iNumVertices;
+			*(pI++) = iVertex+1;
+			*(pI++) = (iVertex+_iNumRows)%m_iNumVertices;
+			*(pI++) = (iVertex+_iNumRows+1)%m_iNumVertices;
+		/*	pIndices[iVertex*6    ] = iVertex;
 			pIndices[iVertex*6 + 1] = iVertex+1;
 			pIndices[iVertex*6 + 2] = (iVertex+_iNumRows)%iNumVertices;
 			pIndices[iVertex*6 + 3] = iVertex+1;
 			pIndices[iVertex*6 + 4] = (iVertex+_iNumRows)%iNumVertices;
-			pIndices[iVertex*6 + 5] = (iVertex+_iNumRows+1)%iNumVertices;
+			pIndices[iVertex*6 + 5] = (iVertex+_iNumRows+1)%iNumVertices;*/
 		}
 
 	// Create OpenGL buffers
@@ -58,7 +65,7 @@ SmokeSurface::SmokeSurface(int _iNumCols, int _iNumRows, glm::vec3 _vStart, glm:
 	// Insert triangulation
 	glGenBuffers(1, &m_uiIBO);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_uiIBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(pIndices), pIndices, GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_iNumIndices*sizeof(GLuint), pIndices, GL_STATIC_DRAW);
 
 	// data is no loaded to GPU
 	free(pVertices);	//? dynamic buffers? TODO benchmarktest with just uploading and or double vbo,s
@@ -87,9 +94,8 @@ SmokeSurface::~SmokeSurface()
 void SmokeSurface::Render()
 {
 	glBindVertexArray(m_uiVAO);
-//	glBindBuffer(GL_ARRAY_BUFFER, m_uiVBO);
-//	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_uiIBO);
-	glDrawElements(GL_TRIANGLES, m_iNumIndices, GL_UNSIGNED_INT, (GLvoid*)0);
+	glDrawArrays(GL_POINTS, 0, m_iNumVertices);
+	//glDrawElements(GL_TRIANGLES, m_iNumIndices, GL_UNSIGNED_INT, (GLvoid*)0);
 }
 
 // **************************************************************** //
@@ -133,7 +139,8 @@ void SmokeSurface::IntegrateCPU(AmiraMesh* _pMesh, float _fStepSize)
 		for(int j=0; j<m_iNumRows; ++j)
 		{
 			// Integrate now this vertex one step
-			pVertices[i*m_iNumRows+j].vPosition = _pMesh->Integrate(pVertices[i*m_iNumRows+j].vPosition, _fStepSize, AmiraMesh::INTEGRATION_MODEULER);
+			pVertices[i*m_iNumRows+j].vPosition = _pMesh->Integrate(pVertices[i*m_iNumRows+j].vPosition, _fStepSize, AmiraMesh::INTEGRATION_MODEULER | AmiraMesh::INTEGRATION_FILTER_POINT);
+			//pVertices[i*m_iNumRows+j].vPosition = _pMesh->Integrate(pVertices[i*m_iNumRows+j].vPosition, _fStepSize, AmiraMesh::INTEGRATION_MODEULER);
 		}
 
 	// Unlock
