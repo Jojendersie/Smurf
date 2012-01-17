@@ -1,3 +1,26 @@
+////////////////////////////////////////////////////////////////////////////////
+//
+// Smurf
+// =====
+// ##### Martin Kirst, Johannes Jendersie, Christoph Lämmerhirt, Laura Osten #####
+//
+// Smoke Surfaces: An Interactive Flow Visualization
+// Technique Inspired by Real-World Flow Experiments
+//
+// File:              /src/cudaintegration.cu
+// Author:            Christoph Lämmerhirt
+// Creation Date:     2012.01.11
+// Description:
+//
+// Declaration of the interface from C++ to Cuda and the Cuda-Kernel.
+//
+////////////////////////////////////////////////////////////////////////////////
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Preprocessor Directives and Namespaces
+////////////////////////////////////////////////////////////////////////////////
+
 #include <math.h>
 #include "cudamath.hpp"
 

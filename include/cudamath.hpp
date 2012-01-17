@@ -1,9 +1,28 @@
+////////////////////////////////////////////////////////////////////////////////
+//
+// Smurf
+// =====
+// ##### Martin Kirst, Johannes Jendersie, Christoph Lämmerhirt, Laura Osten #####
+//
+// Smoke Surfaces: An Interactive Flow Visualization
+// Technique Inspired by Real-World Flow Experiments
+//
+// File:              /include/cudamath.hpp
+// Author:            Christoph Lämmerhirt
+// Creation Date:     2012.01.11
+// Description:
+//
+// Implementation of some overloaded operators to implement float3 vectors.
+//
+////////////////////////////////////////////////////////////////////////////////
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Preprocessor Directives and Namespaces
+////////////////////////////////////////////////////////////////////////////////
+
 #ifndef CUDAMATH_HPP_
 #define CUDAMATH_HPP_
-
-
-//#include <cuda.h>
-//#include <device_launch_parameters.h>
 
 #include <cuda_runtime.h>
 #include <vector_types.h>

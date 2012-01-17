@@ -268,10 +268,11 @@ void Program::Draw() {
 	}
 	glEnd();
 
+	glBindFramebuffer(GL_FRAMEBUFFER,0);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 	// render scene
 	m_pSolidSurface->Render();
-
-	glBindFramebuffer(GL_FRAMEBUFFER,0);
 
 	alphaShader->SetTexture(GL_TEXTURE_2D,0,0,timeTextureID[pong],samplerID);
 	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 0,&Globals::SMOKE_CURVATURE_CONSTANT);
@@ -284,8 +285,6 @@ void Program::Draw() {
 	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 7,&Globals::SMOKE_MAX_TIME);
 	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_VECTOR3,8,Globals:: SMOKE_COLOR);
 	alphaShader->Use();
-
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	//Drawing geometry here
 	m_pSmokeSurface->Render();

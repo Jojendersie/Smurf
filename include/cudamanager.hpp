@@ -1,3 +1,28 @@
+////////////////////////////////////////////////////////////////////////////////
+//
+// Smurf
+// =====
+// ##### Martin Kirst, Johannes Jendersie, Christoph Lämmerhirt, Laura Osten #####
+//
+// Smoke Surfaces: An Interactive Flow Visualization
+// Technique Inspired by Real-World Flow Experiments
+//
+// File:              /include/cudamanager.hpp
+// Author:            Christoph Lämmerhirt
+// Creation Date:     2012.01.11
+// Description:
+//
+// Declaration of the cudamanager.
+// The cudamanager  is responsible for creating the cuda device, managing the cuda runtime behavior,
+// allocating memory for vertices/vector field and running the kernel.
+//
+////////////////////////////////////////////////////////////////////////////////
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Preprocessor Directives and Namespaces
+////////////////////////////////////////////////////////////////////////////////
+
 #ifndef CUDAMANAGER_HPP_
 #define CUDAMANAGER_HPP_
 
