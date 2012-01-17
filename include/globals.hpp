@@ -65,7 +65,7 @@ namespace Globals {
 	const float CAM_FOV = 45.f;
 	const float CAM_ZNEAR = 0.1f;
 	const float CAM_ZFAR = 1000.f;
-	const float CAM_SENSITIVITY = 0.3f;
+	const float CAM_SENSITIVITY = 50.f;
 	const float CAM_VELOCITY = 0.3f;
 
 	// Input Settings
