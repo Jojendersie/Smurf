@@ -1,7 +1,7 @@
 #include <math.h>
 #include "cudamath.hpp"
 
-extern "C" float* integrateVectorFieldGPU(float* fVectorField, float* fVertices, float* fDeviceResultVertices, 
+float* integrateVectorFieldGPU(float* fVectorField, float* fVertices, float* fDeviceResultVertices, 
 										  unsigned int uiElementSize, unsigned int uiBlockSize, int iSizeFieldx, 
 										  int iSizeFieldy, int iSizeFieldz, float stepsize, unsigned int bitmask);
 
@@ -71,11 +71,9 @@ __device__ float3 SampleL(float3 Vector, const float *Vector_Field, int3 Size)
 				lerp(lerp(s[1],s[5],Vector.x),lerp(s[3],s[7],Vector.x),Vector.y),Vector.z);	
 }
 
-//__global__ void IntegrateVectorField(const float *Vector_Field, float3 *dptr, int Size_x, int Size_y, int Size_z, float stepsize, unsigned int bitmask)
-__global__ void IntegrateVectorField(const float *Vector_Field, const float *Vertices, float *TransformedVertices, int Size_x, int Size_y, int Size_z, float stepsize, unsigned int bitmask)
+__global__ void IntegrateVectorField(const float *Vector_Field, float3 *dptr, int Size_x, int Size_y, int Size_z, float stepsize, unsigned int bitmask)
 {
-	//const int index=blockDim.x*blockIdx.x+threadIdx.x;
-	const int index=blockDim.x*blockIdx.x*3+threadIdx.x*3; // nur jeder dritte index darf gelesen werden (x,y,z)
+	const int index=blockDim.x*blockIdx.x+threadIdx.x;
 	int3 Size;
 	Size.x=Size_x;
 	Size.y=Size_y;
@@ -83,11 +81,7 @@ __global__ void IntegrateVectorField(const float *Vector_Field, const float *Ver
 
 	float3 clVs,clVertex;
 
-	//clVertex=dptr[index];
-
-	clVertex.x=Vertices[index+0];
-	clVertex.y=Vertices[index+1];
-	clVertex.z=Vertices[index+2];
+	clVertex=dptr[index];
 
 	clVs=(bitmask & 0x00000001) ? Sample(clVertex,Vector_Field,Size) : SampleL(clVertex,Vector_Field,Size);
 
@@ -102,14 +96,10 @@ __global__ void IntegrateVectorField(const float *Vector_Field, const float *Ver
 		clVertex=2 * clVertex-clVertexTMP;
 	}
 
-	//dptr[index]=clVertex;
-	TransformedVertices[index+0]=clVertex.x;
-	TransformedVertices[index+1]=clVertex.y;
-	TransformedVertices[index+2]=clVertex.z;
+	dptr[index]=clVertex;
 }
 
-//extern "C" float* integrateVectorFieldGPU(float* fVectorField, float3 *dptr, unsigned int uiElementSize, unsigned int uiBlockSize, int iSizeFieldx, int iSizeFieldy, int iSizeFieldz, float stepsize, unsigned int bitmask)
-extern "C" float* integrateVectorFieldGPU(float* fVectorField, float* fVertices, float* fDeviceResultVertices, unsigned int uiElementSize, unsigned int uiBlockSize, int iSizeFieldx, int iSizeFieldy, int iSizeFieldz, float stepsize, unsigned int bitmask)
+extern "C" void integrateVectorFieldGPU(float* fVectorField, float3 *dptr, unsigned int uiElementSize, unsigned int uiBlockSize, int iSizeFieldx, int iSizeFieldy, int iSizeFieldz, float stepsize, unsigned int bitmask)
 {
 	dim3 BlockSize;
 	BlockSize.x=uiBlockSize;
@@ -121,10 +111,5 @@ extern "C" float* integrateVectorFieldGPU(float* fVectorField, float* fVertices,
 	
 	float *pfTransformedVertices = new float[uiElementSize*3];
 
-	//IntegrateVectorField<<<GridSize,BlockSize>>>(fVectorField, dptr,iSizeFieldx,iSizeFieldy,iSizeFieldz,stepsize,bitmask);
-	IntegrateVectorField<<<GridSize,BlockSize>>>(fVectorField, fVertices,fDeviceResultVertices,iSizeFieldx,iSizeFieldy,iSizeFieldz,stepsize,bitmask);
-	size_t size=uiElementSize*3*sizeof(float);
-	cudaMemcpy(pfTransformedVertices,fDeviceResultVertices,size,cudaMemcpyDeviceToHost);
-
-	return pfTransformedVertices;
+	IntegrateVectorField<<<GridSize,BlockSize>>>(fVectorField, dptr,iSizeFieldx,iSizeFieldy,iSizeFieldz,stepsize,bitmask);
 }

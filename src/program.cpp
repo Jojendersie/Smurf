@@ -66,6 +66,8 @@ Program::Program() {
 Program::~Program() {
 	delete camera;
 	delete flatShader;
+	delete alphaShader;
+	delete timeTexShader;
 	delete graphics;
 	delete m_pSmokeSurface;
 	delete m_pSolidSurface;
@@ -171,9 +173,47 @@ void Program::Initialize() {
 	// load test shader
 	flatShader = new GLShader(graphics);
 	flatShader->CreateStandardUniforms(GLShader::SUSET_PROJECTION_VIEW_MODEL);
-	flatShader->CreateShaderProgram("res/vfx/flat_vert.glsl", "res/vfx/flat_frag.glsl", 0, 1, 0, "inPosition");
+	flatShader->CreateShaderProgram("res/vfx/flat_vert.glsl", "res/vfx/flat_frag.glsl", 0, 1, GLGraphics::ASLOT_POSITION, "inPosition");
 	flatShader->CreateAdvancedUniforms(1, "solidColor");
 	flatShader->Use();
+
+	alphaShader = new GLShader(graphics);
+	alphaShader->CreateShaderProgram("res/vfx/alphashader.vert", "res/vfx/alphashader.frag", "res/vfx/alphashader.geom",4,GLGraphics::ASLOT_POSITION,"in_Pos",GLGraphics::ASLOT_NORMAL,"in_O_normal",GLGraphics::ASLOT_ADJACENT,"in_adj",GLGraphics::ASLOT_ID,"vertexID");
+	alphaShader->CreateAdvancedUniforms(9,"b","ProjectionView","texWidth","shapeStrength","invProjectionView","eyePos","k","maxTime","color");
+	alphaShader->CreateTextures(1,"timeTex");
+
+	timeTexShader = new GLShader(graphics);
+	timeTexShader->CreateShaderProgram("res/vfx/alphaTimeTex.vert","res/vfx/alphaTimeTex.frag",NULL,1,GLGraphics::ASLOT_POSITION,"vertIndex");
+	timeTexShader->CreateAdvancedUniforms(1,"textureInfo");
+	timeTexShader->CreateTextures(1,"timeTex");
+
+	glGenSamplers(1,&samplerID);
+	glBindSampler(GL_SAMPLER_2D,samplerID);
+	glSamplerParameteri(samplerID,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
+	glSamplerParameteri(samplerID,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
+	glSamplerParameteri(samplerID,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
+	glSamplerParameteri(samplerID,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
+	
+	glGenTextures(2,timeTextureID);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D,timeTextureID[0]);
+
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D,timeTextureID[1]);
+
+	glGenFramebuffers(1,timeTexFB);
+
+	glBindFramebuffer(GL_FRAMEBUFFER,timeTexFB[0]);
+	glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,timeTextureID[0],0);
+
+	glBindFramebuffer(GL_FRAMEBUFFER,timeTexFB[1]);
+	glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,timeTextureID[1],0);
+
+	texWidth=0;//MUST BE AS BIG AS THE NUMBER OF VERTICES PER COLUMN!!
+
+	ping=0;
+	pong=1-ping;
 
 	// load vector field
 	m_VectorField.Load("res\\data\\BubbleChamber_11x11x10_T0.am");
@@ -200,6 +240,7 @@ void Program::Update() {
 
 ////////////////////////////////////////////////////////////////////////////////
 void Program::Draw() {
+
 	graphics->ClearBuffers();
 
 	// all draw code goes here
@@ -207,13 +248,60 @@ void Program::Draw() {
 	flatShader->SetStandardUniform(GLShader::SUTYPE_MATRIX4_VIEW, &(camera->GetView())[0][0]);
 	flatShader->SetStandardUniform(GLShader::SUTYPE_MATRIX4_PROJECTION, &(camera->GetProjection())[0][0]);
 
+	timeTexShader->SetTexture(GL_TEXTURE_2D,0,0,timeTextureID[ping],samplerID);
+	timeTexShader->SetAdvancedUniform(GLShader::AUTYPE_VECTOR2,0,&texWidth);
+	timeTexShader->Use();
+
+	glBindFramebuffer(GL_FRAMEBUFFER,timeTexFB[pong]);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	glBegin(GL_QUADS);
+	{
+		glTexCoord2f(0.0f,0.0f);
+		glVertex2f(-1.0,-1.0);
+		glTexCoord2f(1.0f,0.0f);
+		glVertex2f(1.0,-1.0);
+		glTexCoord2f(0.0f,1.0f);
+		glVertex2f(-1.0,1.0);
+		glTexCoord2f(1.0f,1.0f);
+		glVertex2f(1.0,1.0);
+	}
+	glEnd();
+
 	// render scene
 	m_pSolidSurface->Render();
 
-	// switch targets
-	// render smoke
+	glBindFramebuffer(GL_FRAMEBUFFER,0);
+
+	alphaShader->SetTexture(GL_TEXTURE_2D,0,0,timeTextureID[pong],samplerID);
+	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 0,&Globals::SMOKE_CURVATURE_CONSTANT);
+	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_MATRIX4,1,&(camera->GetProjection()*camera->GetView())[0][0]);
+	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 2,&texWidth);
+	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 3,&Globals::SMOKE_SHAPE_CONSTANT);
+	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_MATRIX4,4,&(camera->GetProjection()*camera->GetView())._inverse()[0][0]);
+	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_VECTOR3,5,&camera->GetPosition()[0]);
+	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 6,&Globals::SMOKE_DENSITY_CONSTANT_K);
+	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 7,&Globals::SMOKE_MAX_TIME);
+	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_VECTOR3,8,Globals:: SMOKE_COLOR);
+	alphaShader->Use();
+
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	//Drawing geometry here
 	m_pSmokeSurface->Render();
-	// add smoke target to scene
+	/*
+	glBindVertexArray(vao);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,ibo);
+
+	glDrawElements(GL_TRIANGLES,count,GL_UNSIGNED_INT,indices);
+
+	glBindVertexArray(0);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,0);
+	*/
+	glFlush();
+
+	ping=1-ping;
+	pong=1-ping;
 }
 
 

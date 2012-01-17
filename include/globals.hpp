@@ -76,6 +76,17 @@ namespace Globals {
 	const sf::Keyboard::Key INPUT_CAM_BACK = sf::Keyboard::S;
 	const sf::Keyboard::Key INPUT_CAM_RIGHT = sf::Keyboard::D;
 	const sf::Mouse::Button INPUT_CAM_ROTATION = sf::Mouse::Left;
+
+	// Smoke Properties
+	////////////////////////////////////////////////////////////////////////////////
+	const unsigned int SMOKE_PARTICLE_NUMBER=50;
+	const float SMOKE_PRISM_THICKNESS=0.2f;
+	const float SMOKE_DENSTY_CONSTANT=1.0f;
+	const float SMOKE_SHAPE_CONSTANT=0.75f;
+	const float SMOKE_CURVATURE_CONSTANT=2.0f;
+	const float SMOKE_MAX_TIME=1000.0f;
+	const float SMOKE_COLOR[]={0.1f,0.1f,0.9f};
+	const float SMOKE_DENSITY_CONSTANT_K=SMOKE_PARTICLE_NUMBER*SMOKE_DENSTY_CONSTANT*SMOKE_PRISM_THICKNESS;
 }
 
 
