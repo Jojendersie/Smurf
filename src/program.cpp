@@ -40,6 +40,7 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 Program::Program() {
+	m_bCloseRequest = false;
 	// set a valid video mode
 	sf::VideoMode mode(Globals::RENDER_VIEWPORT_WIDTH, Globals::RENDER_VIEWPORT_HEIGHT, Globals::RENDER_COLOR_DEPTH);
 	if (!mode.IsValid())
@@ -64,13 +65,13 @@ Program::Program() {
 
 ////////////////////////////////////////////////////////////////////////////////
 Program::~Program() {
+	delete m_pSmokeSurface;
+	delete m_pSolidSurface;
 	delete camera;
 	delete flatShader;
 	delete alphaShader;
 	delete timeTexShader;
 	delete graphics;
-	delete m_pSmokeSurface;
-	delete m_pSolidSurface;
 }
 
 
@@ -141,11 +142,12 @@ void Program::Run() {
 
 	mainWindow.SetActive();
 	Initialize();
-	while (mainWindow.IsOpened()) {
+	while (!m_bCloseRequest) {
 		Update();
 		Draw();
 		mainWindow.Display();
 	}
+	mainWindow.Close();
 }
 
 
@@ -248,6 +250,10 @@ void Program::Draw() {
 	flatShader->SetStandardUniform(GLShader::SUTYPE_MATRIX4_VIEW, &(camera->GetView())[0][0]);
 	flatShader->SetStandardUniform(GLShader::SUTYPE_MATRIX4_PROJECTION, &(camera->GetProjection())[0][0]);
 
+/*	glBindFramebuffer(GL_FRAMEBUFFER,0);
+	m_pSolidSurface->Render();
+	m_pSmokeSurface->Render();*/
+
 	timeTexShader->SetTexture(GL_TEXTURE_2D,0,0,timeTextureID[ping],samplerID);
 	timeTexShader->SetAdvancedUniform(GLShader::AUTYPE_VECTOR2,0,&texWidth);
 	timeTexShader->Use();
@@ -312,11 +318,11 @@ void Program::HandleBasicEvents() {
 	while (mainWindow.PollEvent(event)) {
 		// close main window after clicking the window's close button
 		if (event.Type == sf::Event::Closed)
-			mainWindow.Close();
+			m_bCloseRequest = true; //mainWindow.Close();
 
 		// close main window after pressing Esc
 		if ((event.Type == sf::Event::KeyPressed) && (event.Key.Code == Globals::INPUT_PROGRAM_EXIT))
-			mainWindow.Close();
+			m_bCloseRequest = true;
 
 		// adjust OpenGL viewport after window resizing
 		if (event.Type == sf::Event::Resized)

@@ -88,6 +88,7 @@ private:
 	SmokeSurface* m_pSmokeSurface;
 	SolidSurface* m_pSolidSurface;
 	int ping,pong;//for ping-pong rendering
+	bool m_bCloseRequest;
 };
 
 
