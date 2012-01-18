@@ -224,7 +224,8 @@ glm::vec3 AmiraMesh::Integrate(glm::vec3 _vPosition, float _fStepSize, int _iMet
 	glm::vec3 vS;
 	vS = (_iMethod & INTEGRATION_FILTER_POINT)?Sample(vPos.x,vPos.y,vPos.z):SampleL(vPos.x,vPos.y,vPos.z);
 
-	vS += glm::vec3(rand()*MAXRNDINV, rand()*MAXRNDINV, rand()*MAXRNDINV);
+	if(_iMethod & INTEGRATION_NOISE)
+		vS += glm::vec3(rand()*MAXRNDINV, rand()*MAXRNDINV, rand()*MAXRNDINV);
 
 	// Calculate new position
 	if(_iMethod & INTEGRATION_EULER)
@@ -251,4 +252,54 @@ glm::vec3 AmiraMesh::Integrate(glm::vec3 _vPosition, float _fStepSize, int _iMet
 		// Rescale and return
 	//	return glm::vec3(vNewPos1.x/m_fScaleX, );
 	}
+}
+
+// **************************************************************** //
+// Ray casting: if the ray hits the solid this point is returned. Othervise the
+// middle point of the straight line through the vectorfield is returned.
+// Input:	_vPositions - start of can be inside or in front of the vector field
+//			_vDirection - direction of ray
+// Output: first solid point in the volume starting at position and shooting into direction.
+glm::vec3 AmiraMesh::RayCast(glm::vec3 _vPosition, glm::vec3 _vDirection)
+{
+	// Transform position to object space
+	_vPosition = (_vPosition - m_vBBMin) * m_vPosToGrid;
+
+	// Calculate entry point to the volume
+	// Clipping for each direction. That means, that we move the start point on
+	// its ray into the direction of the nearest clipping plane. 
+	// (Projection to the supporting plan in ray direction -> finaly the point is:
+	//	on the ray, on the plane of the BB, which is hited first from the ray)
+	// It is essential, that the projections are computed iteratively, because the
+	// coordinates are changing in between.
+	// Ray cast from left or right?
+	float fDistProjMax = ((_vPosition.x - m_vBBMax.x)/_vDirection.x);	// Search nearest plane
+	float fDistProjMin = ((_vPosition.x - m_vBBMin.x)/_vDirection.x);
+	glm::vec3 vOut = _vPosition + ((fDistProjMin>fDistProjMax)?fDistProjMin:fDistProjMax)*_vDirection;
+	_vPosition += ((fDistProjMin<fDistProjMax)?fDistProjMin:fDistProjMax)*_vDirection;
+	// Ray cast from up or down?
+	fDistProjMax = ((_vPosition.y - m_vBBMax.y)/_vDirection.y);	// Y
+	fDistProjMin = ((_vPosition.y - m_vBBMin.y)/_vDirection.y);
+	vOut += ((fDistProjMin>fDistProjMax)?fDistProjMin:fDistProjMax)*_vDirection;
+	_vPosition += ((fDistProjMin<fDistProjMax)?fDistProjMin:fDistProjMax)*_vDirection;
+	// Ray cast from front or back?
+	fDistProjMax = ((_vPosition.z - m_vBBMax.z)/_vDirection.z);	// Z
+	fDistProjMin = ((_vPosition.z - m_vBBMin.z)/_vDirection.z);
+	vOut += ((fDistProjMin>fDistProjMax)?fDistProjMin:fDistProjMax)*_vDirection;
+	_vPosition += ((fDistProjMin<fDistProjMax)?fDistProjMin:fDistProjMax)*_vDirection;
+
+	float fIntersectionLength = glm::length(vOut-_vPosition);
+
+	// Go linear through the volume
+	for(float i=0; i<fIntersectionLength; i+=1.0f)
+	{
+		glm::vec3 vCurrent = _vPosition + _vDirection*i;
+		glm::vec3 vSample = Sample(vCurrent.x, vCurrent.y, vCurrent.z);
+		// Current point in volume == solid?
+		if(abs(vSample.x)+abs(vSample.y)+abs(vSample.z) < 0.00001f)
+			return vCurrent;
+	}
+
+	// No point was found -> return middle position per default
+	return (vOut + _vPosition)*0.5f;
 }

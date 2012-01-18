@@ -73,7 +73,7 @@ public:
 	//			_fStepSize - The size (distance) of the one integration step.
 	//				To integrate over larger timeslices call IntegrateCPU
 	//				multiple times.
-	void IntegrateCPU(AmiraMesh* _pMesh, float _fStepSize);
+	void IntegrateCPU(AmiraMesh* _pMesh, float _fStepSize, int _iMethod);
 
 	int GetVBO();
 	int GetNumColums();
@@ -81,6 +81,14 @@ public:
 	int GetNumVertices();
 	GLuint GetVertexMap()		{return m_uiVertexMap;}
 	int GetLastReleasedColumn()	{return m_iNumReleasedColumns;}
+
+	// TODO @Martin see programm.cpp m_bInvalidSeedLine
+	// Dynamic movement of the seedline
+	void SetSeedLineStart(const glm::vec3& _v)		{m_vStart = _v;}
+	void SetSeedLineEnd(const glm::vec3& _v)		{m_vEnd = _v;}
+
+	// Reset all vertices to the seedline
+	void Reset();
 
 	// IntegrateGPU(AmiraMesh* _pMesh)
 };

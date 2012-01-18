@@ -85,11 +85,19 @@ private:
 	GLuint vertexmapID;
 	GLuint vertexmapFB;
 	SFCamera* camera;
+	GLuint m_uiFrameCount;
 	AmiraMesh m_VectorField;
 	SmokeSurface* m_pSmokeSurface;
 	SolidSurface* m_pSolidSurface;
 	bool m_bCloseRequest;
-	GLuint m_uiFrameCount;
+	bool m_bNoisyIntegration;
+	bool m_bUseLinearFilter;
+	bool m_bUseAdvancedEuler;
+
+	// TODO @Martin
+	// If you click once (the moment where m_bInvalidSeedLine==false) -> {m_pSmokeSurface->SetSeedLineStart(m_VectorField.RayCast(...)); m_bInvalidSeedLine=true;}
+	// If clicked second time (m_bInvalidSeedLine==true) -> {m_pSmokeSurface->SetSeedLineEnd(m_VectorField.RayCast(...)); m_pSmokeSurface->Reset(); m_bInvalidSeedLine = false;}
+	bool m_bInvalidSeedLine;
 };
 
 

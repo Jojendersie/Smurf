@@ -53,6 +53,8 @@ namespace Globals {
 	const unsigned short RENDER_BUFFER_STENCIL = 8;
 	const unsigned short RENDER_ANTIALIASING_LEVEL = 4;
 	const unsigned short RENDER_FRAMERATE_MAX = 120;
+	const unsigned short RENDER_SMURF_COLUMS = 1000;
+	const unsigned short RENDER_SMURF_ROWS = 50;
 	const bool RENDER_FULLSCREEN = false;
 	const bool RENDER_VSYNC = true;
 

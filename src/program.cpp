@@ -41,6 +41,10 @@
 ////////////////////////////////////////////////////////////////////////////////
 Program::Program() {
 	m_bCloseRequest = false;
+	m_bNoisyIntegration = false;
+	m_bInvalidSeedLine = false;
+	m_bUseLinearFilter = false;
+	m_bUseAdvancedEuler = true;
 	m_uiFrameCount = 0;
 	// set a valid video mode
 	sf::VideoMode mode(Globals::RENDER_VIEWPORT_WIDTH, Globals::RENDER_VIEWPORT_HEIGHT, Globals::RENDER_COLOR_DEPTH);
@@ -186,7 +190,7 @@ void Program::Initialize() {
 
 	// load vector field
 	m_VectorField.Load("res\\data\\BubbleChamber_11x11x10_T0.am");
-	m_pSmokeSurface = new SmokeSurface(1000, 20, m_VectorField.GetBoundingBoxMax(), m_VectorField.GetBoundingBoxMin());
+	m_pSmokeSurface = new SmokeSurface(Globals::RENDER_SMURF_COLUMS, Globals::RENDER_SMURF_ROWS, m_VectorField.GetBoundingBoxMax(), m_VectorField.GetBoundingBoxMin());
 	m_pSolidSurface = new SolidSurface(&m_VectorField, 1000);
 
 	/*cudamanager.AllocateMemory(glm::vec3(m_VectorField.GetSizeX(),m_VectorField.GetSizeY(),m_VectorField.GetSizeZ()),m_pSmokeSurface->GetNumVertices());
@@ -208,7 +212,10 @@ void Program::Update() {
 
 	if(m_uiFrameCount++ % Globals::PROGRAM_FRAMES_PER_RELEASE == 0)
 		m_pSmokeSurface->ReleaseNextColumn();
-	m_pSmokeSurface->IntegrateCPU(&m_VectorField, 10.01f);
+	m_pSmokeSurface->IntegrateCPU(&m_VectorField, 10.01f,
+		  (m_bUseAdvancedEuler	?AmiraMesh::INTEGRATION_MODEULER		: AmiraMesh::INTEGRATION_EULER)
+		| (m_bUseLinearFilter	?AmiraMesh::INTEGRATION_FILTER_LINEAR	: AmiraMesh::INTEGRATION_FILTER_POINT)
+		| (m_bNoisyIntegration	?AmiraMesh::INTEGRATION_NOISE			: 0));
 }
 
 
@@ -222,8 +229,8 @@ void Program::Draw() {
 
 	cudamanager.Integrate(0.5f,CudaManager::INTEGRATION_EULER|CudaManager::INTEGRATION_FILTER_POINT);
 
-	const GLfloat numColums=m_pSmokeSurface->GetNumColums();
-	const GLfloat numRows=m_pSmokeSurface->GetNumRows();
+	const GLfloat numColums=(float)m_pSmokeSurface->GetNumColums();
+	const GLfloat numRows=(float)m_pSmokeSurface->GetNumRows();
 	vertexmapShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR,0,&numColums);
 	vertexmapShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR,1,&numRows);
 	vertexmapShader->Use();
@@ -256,7 +263,7 @@ void Program::Draw() {
 	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 7,&Globals::SMOKE_MAX_TIME);
 	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_VECTOR3,8,Globals:: SMOKE_COLOR);
 
-	float fCurrentColumn = ((m_pSmokeSurface->GetLastReleasedColumn()+m_uiFrameCount%Globals::PROGRAM_FRAMES_PER_RELEASE)%m_pSmokeSurface->GetNumColums())/m_pSmokeSurface->GetNumColums();
+	float fCurrentColumn = ((m_pSmokeSurface->GetLastReleasedColumn()+m_uiFrameCount%Globals::PROGRAM_FRAMES_PER_RELEASE)%m_pSmokeSurface->GetNumColums())/(float)m_pSmokeSurface->GetNumColums();
 	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 9, &fCurrentColumn);
 	//alphaShader->Use();
 
@@ -279,6 +286,18 @@ void Program::HandleBasicEvents() {
 		// close main window after pressing Esc
 		if ((event.Type == sf::Event::KeyPressed) && (event.Key.Code == Globals::INPUT_PROGRAM_EXIT))
 			m_bCloseRequest = true;
+
+		// Toggle noisy integration
+		if ((event.Type == sf::Event::KeyPressed) && (event.Key.Code == sf::Keyboard::N))
+			m_bNoisyIntegration = !m_bNoisyIntegration;
+
+		// Toggle filter
+		if ((event.Type == sf::Event::KeyPressed) && (event.Key.Code == sf::Keyboard::F))
+			m_bUseLinearFilter = !m_bUseLinearFilter;
+
+		// Toggle integration method
+		if ((event.Type == sf::Event::KeyPressed) && (event.Key.Code == sf::Keyboard::I))
+			m_bUseAdvancedEuler = !m_bUseAdvancedEuler;
 
 		// adjust OpenGL viewport after window resizing
 		if (event.Type == sf::Event::Resized)

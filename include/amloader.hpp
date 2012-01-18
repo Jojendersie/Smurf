@@ -63,12 +63,20 @@ public:
 	const static int	INTEGRATION_FILTER_LINEAR	= 0x0010;
 	const static int	INTEGRATION_EULER			= 0x00010000;
 	const static int	INTEGRATION_MODEULER		= 0x00100000;
+	const static int	INTEGRATION_NOISE			= 0x80000000;
 
 	// Integrate one step over the vector field to determine new position
 	// Input:	_vPosition - old position
 	//			_fStepSize - the size of the integration step; smaller then m_fBBX/m_iSizeX recomended
 	// Output: new position _fStepSize away from the old one.
 	glm::vec3 Integrate(glm::vec3 _vPosition, float _fStepSize, int _iMethod);
+
+	// Ray casting: if the ray hits the solid this point is returned. Othervise the
+	// middle point of the straight line through the vectorfield is returned.
+	// Input:	_vPositions - start of can be inside or in front of the vector field
+	//			_vDirection - direction of ray, have to be normalized
+	// Output: first solid point in the volume starting at position and shooting into direction.
+	glm::vec3 RayCast(glm::vec3 _vPosition, glm::vec3 _vDirection);
 
 	// Getter
 	glm::vec3 GetBoundingBoxMin()	{return m_vBBMin;}

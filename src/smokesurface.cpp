@@ -17,15 +17,15 @@ SmokeSurface::SmokeSurface(int _iNumCols, int _iNumRows, glm::vec3 _vStart, glm:
 
 	// Create data
 	m_iNumVertices = _iNumCols*_iNumRows;
-	int iVertexDataSize = sizeof(PositionVertex)*m_iNumVertices;
-	m_pPositionMap = (PositionVertex*)malloc(iVertexDataSize);
-	GridVertex* pGridVertices = (GridVertex*)malloc(sizeof(GridVertex)*m_iNumVertices);
+	int iVertexDataSize = sizeof(GridVertex)*m_iNumVertices;
+	m_pPositionMap = (PositionVertex*)malloc(sizeof(PositionVertex)*m_iNumVertices);
+	GridVertex* pGridVertices = (GridVertex*)malloc(iVertexDataSize);
 	for(int i=0; i<_iNumCols; ++i)
 		for(int j=0; j<_iNumRows; ++j)
 		{
 			m_pPositionMap[i*_iNumRows+j].vPosition = glm::mix(_vStart, _vEnd, j/(float)(_iNumRows-1));
-			pGridVertices[i*_iNumRows+j].fColumn = i/(_iNumCols);
-			pGridVertices[i*_iNumRows+j].fRow = j/(_iNumRows);
+			pGridVertices[i*_iNumRows+j].fColumn = i/(float)(_iNumCols);
+			pGridVertices[i*_iNumRows+j].fRow = j/(float)(_iNumRows);
 		}
 
 	// Create Triangulation
@@ -54,7 +54,7 @@ SmokeSurface::SmokeSurface(int _iNumCols, int _iNumRows, glm::vec3 _vStart, glm:
     glBindBuffer(GL_ARRAY_BUFFER, m_uiVBO);
 	// Insert data and usage declaration
 	glBufferData(GL_ARRAY_BUFFER, iVertexDataSize, pGridVertices, GL_DYNAMIC_DRAW);
-	glVertexAttribPointer(GLGraphics::ASLOT_SPECIAL0, 2, GL_FLOAT, GL_FALSE, 0, 0);
+	glVertexAttribPointer(/*GLGraphics::ASLOT_SPECIAL0*/0, 2, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(0);
 	// Insert triangulation
 	glGenBuffers(1, &m_uiIBO);
@@ -62,6 +62,7 @@ SmokeSurface::SmokeSurface(int _iNumCols, int _iNumRows, glm::vec3 _vStart, glm:
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_iNumIndices*sizeof(GLuint), pIndices, GL_STATIC_DRAW);
 
 	// data is no loaded to GPU
+	free(pGridVertices);
 //	free(pVertices);	//? dynamic buffers? TODO benchmarktest with just uploading and or double vbo,s
 	free(pIndices);
 
@@ -94,8 +95,8 @@ SmokeSurface::~SmokeSurface()
 void SmokeSurface::Render()
 {
 	glBindVertexArray(m_uiVAO);
-	glDrawArrays(GL_POINTS, 0, m_iNumVertices);
-	//glDrawElements(GL_TRIANGLES, m_iNumIndices, GL_UNSIGNED_INT, (GLvoid*)0);
+	//glDrawArrays(GL_POINTS, 0, m_iNumVertices);
+	glDrawElements(GL_TRIANGLES, m_iNumIndices, GL_UNSIGNED_INT, (GLvoid*)0);
 }
 
 // **************************************************************** //
@@ -125,27 +126,23 @@ void SmokeSurface::ReleaseNextColumn()
 //			_fStepSize - The size (distance) of the one integration step.
 //				To integrate over larger timeslices call IntegrateCPU
 //				multiple times.
-void SmokeSurface::IntegrateCPU(AmiraMesh* _pMesh, float _fStepSize)
+void SmokeSurface::IntegrateCPU(AmiraMesh* _pMesh, float _fStepSize, int _iMethod)
 {
 	// Integrate everything in flow (streak surface)
 	int iNumCols = glm::min(m_iNumCols, m_iNumReleasedColumns);
-
-	// Lock dynamic buffer
-	//glBindBuffer(GL_ARRAY_BUFFER, m_uiVBO);
-	//PositionVertex* pVertices = (PositionVertex*)glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE);
-	//assert(pVertices);	// TODO real error output?
 
 	for(int i=0; i<iNumCols; ++i)
 		for(int j=0; j<m_iNumRows; ++j)
 		{
 			// Integrate now this vertex one step
-			m_pPositionMap[i*m_iNumRows+j].vPosition = _pMesh->Integrate(m_pPositionMap[i*m_iNumRows+j].vPosition, _fStepSize, AmiraMesh::INTEGRATION_MODEULER | AmiraMesh::INTEGRATION_FILTER_POINT);
-			//pVertices[i*m_iNumRows+j].vPosition = _pMesh->Integrate(pVertices[i*m_iNumRows+j].vPosition, _fStepSize, AmiraMesh::INTEGRATION_MODEULER);
+			m_pPositionMap[i*m_iNumRows+j].vPosition = _pMesh->Integrate(
+				m_pPositionMap[i*m_iNumRows+j].vPosition,
+				_fStepSize,
+				_iMethod);
 		}
 
 	// Upoad as vertexmap
-	//glUnmapBuffer(GL_ARRAY_BUFFER);
-		glGetError();
+	glGetError();	// Clear errors
 
 	glBindTexture(GL_TEXTURE_2D, m_uiVertexMap);
 	glTexImage2D(GL_TEXTURE_2D,	// Target
@@ -181,4 +178,13 @@ int SmokeSurface::GetNumRows()
 int SmokeSurface::GetNumVertices()
 {
 	return m_iNumVertices;
+}
+
+// **************************************************************** //
+// Reset all vertices to the seedline
+void SmokeSurface::Reset()
+{
+	for(int i=0; i<m_iNumCols; ++i)
+		for(int j=0; j<m_iNumRows; ++j)
+			m_pPositionMap[i*m_iNumRows+j].vPosition = glm::mix(m_vStart, m_vEnd, j/(float)(m_iNumRows-1));
 }
