@@ -83,6 +83,7 @@ private:
 	float fov;
 	float zNear;
 	float zFar;
+	glm::mat4 frame;
 	glm::mat4 view;
 	glm::mat4 projection;
 	bool mouseActive;

@@ -27,11 +27,24 @@
 
 #include "amloader.hpp"
 
+// **************************************************************** //
+// Vertex formats
+struct PositionVertex {
+	glm::vec3 vPosition;
+};
+
+struct GridVertex {
+	float fRow;		// Row = X-Coord in vertex map
+	float fColumn;
+};
+
+// **************************************************************** //
 class SmokeSurface
 {
 	unsigned int	m_uiVAO;
 	unsigned int	m_uiVBO;
 	unsigned int	m_uiIBO;
+	unsigned int	m_uiVertexMap;
 	int				m_iNumCols;
 	int				m_iNumRows;
 	int				m_iNumIndices;
@@ -39,6 +52,7 @@ class SmokeSurface
 	int				m_iNumReleasedColumns;		// Number of flowing columns in the vectorfield (the remaining are at the seed line), the number can be larger than the number of columns -> modolu operator (rotating cylinder)
 	glm::vec3		m_vStart;
 	glm::vec3		m_vEnd;
+	PositionVertex*	m_pPositionMap;
 public:
 	// Create one surface cylinder at a specified seedline.
 	// Input:	_iNumCols, _iNumRows - detail of the surface
@@ -60,6 +74,13 @@ public:
 	//				To integrate over larger timeslices call IntegrateCPU
 	//				multiple times.
 	void IntegrateCPU(AmiraMesh* _pMesh, float _fStepSize);
+
+	int GetVBO();
+	int GetNumColums();
+	int GetNumRows();
+	int GetNumVertices();
+	GLuint GetVertexMap()		{return m_uiVertexMap;}
+	int GetLastReleasedColumn()	{return m_iNumReleasedColumns;}
 
 	// IntegrateGPU(AmiraMesh* _pMesh)
 };

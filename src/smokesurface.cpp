@@ -2,12 +2,7 @@
 #include <GL/glew.h>
 #include <cstdlib>
 #include "smokesurface.hpp"
-
-// **************************************************************** //
-// Vertex formats
-struct PositionVertex {
-	glm::vec3 vPosition;
-};
+#include "glgraphics.hpp"
 
 // **************************************************************** //
 // Create one surface cylinder at a specified seedline.
@@ -23,10 +18,15 @@ SmokeSurface::SmokeSurface(int _iNumCols, int _iNumRows, glm::vec3 _vStart, glm:
 	// Create data
 	m_iNumVertices = _iNumCols*_iNumRows;
 	int iVertexDataSize = sizeof(PositionVertex)*m_iNumVertices;
-	PositionVertex* pVertices = (PositionVertex*)malloc(iVertexDataSize);	// TODO free somewhere
+	m_pPositionMap = (PositionVertex*)malloc(iVertexDataSize);
+	GridVertex* pGridVertices = (GridVertex*)malloc(sizeof(GridVertex)*m_iNumVertices);
 	for(int i=0; i<_iNumCols; ++i)
 		for(int j=0; j<_iNumRows; ++j)
-			pVertices[i*_iNumRows+j].vPosition = glm::mix(_vStart, _vEnd, j/(float)(_iNumRows-1));
+		{
+			m_pPositionMap[i*_iNumRows+j].vPosition = glm::mix(_vStart, _vEnd, j/(float)(_iNumRows-1));
+			pGridVertices[i*_iNumRows+j].fColumn = i/(_iNumCols);
+			pGridVertices[i*_iNumRows+j].fRow = j/(_iNumRows);
+		}
 
 	// Create Triangulation
 	m_iNumIndices = _iNumCols*(_iNumRows-1)*6;
@@ -43,12 +43,6 @@ SmokeSurface::SmokeSurface(int _iNumCols, int _iNumRows, glm::vec3 _vStart, glm:
 			*(pI++) = iVertex+1;
 			*(pI++) = (iVertex+_iNumRows)%m_iNumVertices;
 			*(pI++) = (iVertex+_iNumRows+1)%m_iNumVertices;
-		/*	pIndices[iVertex*6    ] = iVertex;
-			pIndices[iVertex*6 + 1] = iVertex+1;
-			pIndices[iVertex*6 + 2] = (iVertex+_iNumRows)%iNumVertices;
-			pIndices[iVertex*6 + 3] = iVertex+1;
-			pIndices[iVertex*6 + 4] = (iVertex+_iNumRows)%iNumVertices;
-			pIndices[iVertex*6 + 5] = (iVertex+_iNumRows+1)%iNumVertices;*/
 		}
 
 	// Create OpenGL buffers
@@ -59,8 +53,8 @@ SmokeSurface::SmokeSurface(int _iNumCols, int _iNumRows, glm::vec3 _vStart, glm:
 	glGenBuffers(1, &m_uiVBO);
     glBindBuffer(GL_ARRAY_BUFFER, m_uiVBO);
 	// Insert data and usage declaration
-	glBufferData(GL_ARRAY_BUFFER, iVertexDataSize, pVertices, GL_DYNAMIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	glBufferData(GL_ARRAY_BUFFER, iVertexDataSize, pGridVertices, GL_DYNAMIC_DRAW);
+	glVertexAttribPointer(GLGraphics::ASLOT_SPECIAL0, 2, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(0);
 	// Insert triangulation
 	glGenBuffers(1, &m_uiIBO);
@@ -68,8 +62,12 @@ SmokeSurface::SmokeSurface(int _iNumCols, int _iNumRows, glm::vec3 _vStart, glm:
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_iNumIndices*sizeof(GLuint), pIndices, GL_STATIC_DRAW);
 
 	// data is no loaded to GPU
-	free(pVertices);	//? dynamic buffers? TODO benchmarktest with just uploading and or double vbo,s
+//	free(pVertices);	//? dynamic buffers? TODO benchmarktest with just uploading and or double vbo,s
 	free(pIndices);
+
+	// Vertex Map
+	// Create a texture buffer object
+	glGenTextures(1, &m_uiVertexMap);
 }
 	
 // **************************************************************** //
@@ -87,6 +85,8 @@ SmokeSurface::~SmokeSurface()
 	// Detach and delete array
 	glBindVertexArray(0);
 	glDeleteVertexArrays(1, &m_uiVAO);
+
+	free(m_pPositionMap);
 }
 
 // **************************************************************** //
@@ -106,16 +106,16 @@ void SmokeSurface::ReleaseNextColumn()
 	if(m_iNumReleasedColumns >= m_iNumCols)
 	{
 		// Lock dynamic buffer
-		glBindBuffer(GL_ARRAY_BUFFER, m_uiVBO);
+	/*	glBindBuffer(GL_ARRAY_BUFFER, m_uiVBO);
 		PositionVertex* pVertices = (PositionVertex*)glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE);
-		assert(pVertices);	// TODO real error output?
+		assert(pVertices);	// TODO real error output?*/
 
 		int i=m_iNumReleasedColumns%m_iNumCols;
 		for(int j=0; j<m_iNumRows; ++j)
-			pVertices[i*m_iNumRows+j].vPosition = glm::mix(m_vStart, m_vEnd, j/(float)(m_iNumRows-1));
+			m_pPositionMap[i*m_iNumRows+j].vPosition = glm::mix(m_vStart, m_vEnd, j/(float)(m_iNumRows-1));
 
 		// Unlock
-		glUnmapBuffer(GL_ARRAY_BUFFER);
+		//glUnmapBuffer(GL_ARRAY_BUFFER);
 	}
 	++m_iNumReleasedColumns;
 }
@@ -131,18 +131,54 @@ void SmokeSurface::IntegrateCPU(AmiraMesh* _pMesh, float _fStepSize)
 	int iNumCols = glm::min(m_iNumCols, m_iNumReleasedColumns);
 
 	// Lock dynamic buffer
-	glBindBuffer(GL_ARRAY_BUFFER, m_uiVBO);
-	PositionVertex* pVertices = (PositionVertex*)glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE);
-	assert(pVertices);	// TODO real error output?
+	//glBindBuffer(GL_ARRAY_BUFFER, m_uiVBO);
+	//PositionVertex* pVertices = (PositionVertex*)glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE);
+	//assert(pVertices);	// TODO real error output?
 
 	for(int i=0; i<iNumCols; ++i)
 		for(int j=0; j<m_iNumRows; ++j)
 		{
 			// Integrate now this vertex one step
-			pVertices[i*m_iNumRows+j].vPosition = _pMesh->Integrate(pVertices[i*m_iNumRows+j].vPosition, _fStepSize, AmiraMesh::INTEGRATION_MODEULER | AmiraMesh::INTEGRATION_FILTER_POINT);
+			m_pPositionMap[i*m_iNumRows+j].vPosition = _pMesh->Integrate(m_pPositionMap[i*m_iNumRows+j].vPosition, _fStepSize, AmiraMesh::INTEGRATION_MODEULER | AmiraMesh::INTEGRATION_FILTER_POINT);
 			//pVertices[i*m_iNumRows+j].vPosition = _pMesh->Integrate(pVertices[i*m_iNumRows+j].vPosition, _fStepSize, AmiraMesh::INTEGRATION_MODEULER);
 		}
 
-	// Unlock
-	glUnmapBuffer(GL_ARRAY_BUFFER);
+	// Upoad as vertexmap
+	//glUnmapBuffer(GL_ARRAY_BUFFER);
+		glGetError();
+
+	glBindTexture(GL_TEXTURE_2D, m_uiVertexMap);
+	glTexImage2D(GL_TEXTURE_2D,	// Target
+		0,						// Mip-Level
+		GL_RGB32F,				// Internal format
+		m_iNumRows,				// Width
+		m_iNumCols,				// Height
+		0,						// Border
+		GL_RGB,					// Format
+		GL_FLOAT,				// Type
+		m_pPositionMap);		// Data
+
+	const GLenum ErrorValue = glGetError();
+	if(ErrorValue != GL_NO_ERROR) 
+		printf("Vertexmap: %s\n",gluErrorString(ErrorValue));
+}
+
+int SmokeSurface::GetVBO()
+{
+	return m_uiVBO;
+}
+
+int SmokeSurface::GetNumColums()
+{
+	return m_iNumCols;
+}
+
+int SmokeSurface::GetNumRows()
+{
+	return m_iNumRows;
+}
+
+int SmokeSurface::GetNumVertices()
+{
+	return m_iNumVertices;
 }

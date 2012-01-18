@@ -41,6 +41,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 Program::Program() {
 	m_bCloseRequest = false;
+	m_uiFrameCount = 0;
 	// set a valid video mode
 	sf::VideoMode mode(Globals::RENDER_VIEWPORT_WIDTH, Globals::RENDER_VIEWPORT_HEIGHT, Globals::RENDER_COLOR_DEPTH);
 	if (!mode.IsValid())
@@ -70,7 +71,7 @@ Program::~Program() {
 	delete camera;
 	delete flatShader;
 	delete alphaShader;
-	delete timeTexShader;
+	delete vertexmapShader;
 	delete graphics;
 }
 
@@ -116,30 +117,6 @@ float Program::GetFramerate() {
 void Program::Run() {
 	// application main loop
 
-	/*glm::vec3 fieldSize;
-	fieldSize.x=fieldSize.y=fieldSize.z=32;
-	int size=fieldSize.x*3*fieldSize.y*3*fieldSize.z*3;
-	int elementsize=16;
-	float *VectorField = new float[size];
-	float *Vertices = new float[elementsize*3];
-	float *ResultVertices;
-	
-	CudaManager manager;
-	manager.AllocateMemory(fieldSize,elementsize);
-
-	manager.RandomInit(VectorField,fieldSize.x*fieldSize.y*fieldSize.z);
-	manager.RandomInit(Vertices,elementsize);
-
-	manager.SetVertices(Vertices);
-	manager.SetVectorField(VectorField);
-
-	manager.PrintResult(Vertices,elementsize);
-
-	ResultVertices = manager.Integrate(0.5f,CudaManager::INTEGRATION_MODEULER | CudaManager::INTEGRATION_FILTER_LINEAR);
-
-	manager.PrintResult(ResultVertices,elementsize);*/
-
-
 	mainWindow.SetActive();
 	Initialize();
 	while (!m_bCloseRequest) {
@@ -181,13 +158,12 @@ void Program::Initialize() {
 
 	alphaShader = new GLShader(graphics);
 	alphaShader->CreateShaderProgram("res/vfx/alphashader.vert", "res/vfx/alphashader.frag", "res/vfx/alphashader.geom",4,GLGraphics::ASLOT_POSITION,"in_Pos",GLGraphics::ASLOT_NORMAL,"in_O_normal",GLGraphics::ASLOT_ADJACENT,"in_adj",GLGraphics::ASLOT_ID,"vertexID");
-	alphaShader->CreateAdvancedUniforms(9,"b","ProjectionView","texWidth","shapeStrength","invProjectionView","eyePos","k","maxTime","color");
-	alphaShader->CreateTextures(1,"timeTex");
+	alphaShader->CreateAdvancedUniforms(9,"b","ProjectionView","gridWidth","shapeStrength","invProjectionView","eyePos","k","maxTime","color","currentColumn");
+	alphaShader->CreateTextures(1,"adjTex");
 
-	timeTexShader = new GLShader(graphics);
-	timeTexShader->CreateShaderProgram("res/vfx/alphaTimeTex.vert","res/vfx/alphaTimeTex.frag",NULL,1,GLGraphics::ASLOT_POSITION,"vertIndex");
-	timeTexShader->CreateAdvancedUniforms(1,"textureInfo");
-	timeTexShader->CreateTextures(1,"timeTex");
+	vertexmapShader = new GLShader(graphics);
+	vertexmapShader->CreateShaderProgram("res/vfx/vertexMap.vert","res/vfx/vertexMap.frag",NULL,1,GLGraphics::ASLOT_POSITION,"in_Pos",GLGraphics::ASLOT_ID,"in_vertIndex");
+	vertexmapShader->CreateAdvancedUniforms(2,"gridWidth","gridHeight");
 
 	glGenSamplers(1,&samplerID);
 	glBindSampler(GL_SAMPLER_2D,samplerID);
@@ -195,32 +171,27 @@ void Program::Initialize() {
 	glSamplerParameteri(samplerID,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
 	glSamplerParameteri(samplerID,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
 	glSamplerParameteri(samplerID,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
-	
-	glGenTextures(2,timeTextureID);
 
+	//int numColums=m_pSmokeSurface->GetNumColums();
+	//int numRows=m_pSmokeSurface->GetNumRows();
+
+	glGenTextures(1,&vertexmapID);
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D,timeTextureID[0]);
+	glBindTexture(GL_TEXTURE_2D,vertexmapID);
+	glTexImage2D (GL_TEXTURE_2D, 0, GL_RGBA8, 1000/*static_cast<GLsizei>(numColums)*/, 1000/*static_cast<GLsizei>(numRows)*/, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D,timeTextureID[1]);
-
-	glGenFramebuffers(1,timeTexFB);
-
-	glBindFramebuffer(GL_FRAMEBUFFER,timeTexFB[0]);
-	glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,timeTextureID[0],0);
-
-	glBindFramebuffer(GL_FRAMEBUFFER,timeTexFB[1]);
-	glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,timeTextureID[1],0);
-
-	texWidth=0;//MUST BE AS BIG AS THE NUMBER OF VERTICES PER COLUMN!!
-
-	ping=0;
-	pong=1-ping;
+	glGenFramebuffers(1,&vertexmapFB);
+	glBindFramebuffer(GL_FRAMEBUFFER,vertexmapFB);
+	glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,vertexmapID,0);
 
 	// load vector field
 	m_VectorField.Load("res\\data\\BubbleChamber_11x11x10_T0.am");
 	m_pSmokeSurface = new SmokeSurface(1000, 20, m_VectorField.GetBoundingBoxMax(), m_VectorField.GetBoundingBoxMin());
 	m_pSolidSurface = new SolidSurface(&m_VectorField, 1000);
+
+	/*cudamanager.AllocateMemory(glm::vec3(m_VectorField.GetSizeX(),m_VectorField.GetSizeY(),m_VectorField.GetSizeZ()),m_pSmokeSurface->GetNumVertices());
+	cudamanager.SetVectorField(m_VectorField.GetData());
+	cudamanager.RegisterVertices(m_pSmokeSurface->GetVBO(),m_pSmokeSurface->GetVBO());*/
 }
 
 
@@ -235,7 +206,8 @@ void Program::Update() {
 	// all update code goes here
 	camera->Update();
 
-	m_pSmokeSurface->ReleaseNextColumn();
+	if(m_uiFrameCount++ % Globals::PROGRAM_FRAMES_PER_RELEASE == 0)
+		m_pSmokeSurface->ReleaseNextColumn();
 	m_pSmokeSurface->IntegrateCPU(&m_VectorField, 10.01f);
 }
 
@@ -247,67 +219,51 @@ void Program::Draw() {
 
 	// all draw code goes here
 	// set Camera
-	flatShader->SetStandardUniform(GLShader::SUTYPE_MATRIX4_VIEW, &(camera->GetView())[0][0]);
-	flatShader->SetStandardUniform(GLShader::SUTYPE_MATRIX4_PROJECTION, &(camera->GetProjection())[0][0]);
 
-/*	glBindFramebuffer(GL_FRAMEBUFFER,0);
-	m_pSolidSurface->Render();
-	m_pSmokeSurface->Render();*/
+	cudamanager.Integrate(0.5f,CudaManager::INTEGRATION_EULER|CudaManager::INTEGRATION_FILTER_POINT);
 
-	timeTexShader->SetTexture(GL_TEXTURE_2D,0,0,timeTextureID[ping],samplerID);
-	timeTexShader->SetAdvancedUniform(GLShader::AUTYPE_VECTOR2,0,&texWidth);
-	timeTexShader->Use();
+	const GLfloat numColums=m_pSmokeSurface->GetNumColums();
+	const GLfloat numRows=m_pSmokeSurface->GetNumRows();
+	vertexmapShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR,0,&numColums);
+	vertexmapShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR,1,&numRows);
+	vertexmapShader->Use();
 
-	glBindFramebuffer(GL_FRAMEBUFFER,timeTexFB[pong]);
+	glBindFramebuffer(GL_FRAMEBUFFER,vertexmapFB);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	glBegin(GL_QUADS);
-	{
-		glTexCoord2f(0.0f,0.0f);
-		glVertex2f(-1.0,-1.0);
-		glTexCoord2f(1.0f,0.0f);
-		glVertex2f(1.0,-1.0);
-		glTexCoord2f(0.0f,1.0f);
-		glVertex2f(-1.0,1.0);
-		glTexCoord2f(1.0f,1.0f);
-		glVertex2f(1.0,1.0);
-	}
-	glEnd();
+	m_pSmokeSurface->Render();
+
+	vertexmapShader->UseNoShaderProgram();
+
+	glBindFramebuffer(GL_FRAMEBUFFER,0);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	flatShader->SetStandardUniform(GLShader::SUTYPE_MATRIX4_VIEW, &(camera->GetView())[0][0]);
+	flatShader->SetStandardUniform(GLShader::SUTYPE_MATRIX4_PROJECTION, &(camera->GetProjection())[0][0]);
+	flatShader->Use();
 
 	// render scene
 	m_pSolidSurface->Render();
 
-	glBindFramebuffer(GL_FRAMEBUFFER,0);
-
-	alphaShader->SetTexture(GL_TEXTURE_2D,0,0,timeTextureID[pong],samplerID);
+	alphaShader->SetTexture(GL_TEXTURE_2D,0,0,m_pSmokeSurface->GetVertexMap(),samplerID);
 	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 0,&Globals::SMOKE_CURVATURE_CONSTANT);
 	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_MATRIX4,1,&(camera->GetProjection()*camera->GetView())[0][0]);
-	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 2,&texWidth);
+	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 2,&numColums);
 	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 3,&Globals::SMOKE_SHAPE_CONSTANT);
 	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_MATRIX4,4,&(camera->GetProjection()*camera->GetView())._inverse()[0][0]);
 	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_VECTOR3,5,&camera->GetPosition()[0]);
 	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 6,&Globals::SMOKE_DENSITY_CONSTANT_K);
 	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 7,&Globals::SMOKE_MAX_TIME);
 	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_VECTOR3,8,Globals:: SMOKE_COLOR);
-	alphaShader->Use();
 
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	float fCurrentColumn = ((m_pSmokeSurface->GetLastReleasedColumn()+m_uiFrameCount%Globals::PROGRAM_FRAMES_PER_RELEASE)%m_pSmokeSurface->GetNumColums())/m_pSmokeSurface->GetNumColums();
+	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 9, &fCurrentColumn);
+	//alphaShader->Use();
 
 	//Drawing geometry here
 	m_pSmokeSurface->Render();
-	/*
-	glBindVertexArray(vao);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,ibo);
 
-	glDrawElements(GL_TRIANGLES,count,GL_UNSIGNED_INT,indices);
-
-	glBindVertexArray(0);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,0);
-	*/
 	glFlush();
-
-	ping=1-ping;
-	pong=1-ping;
 }
 
 

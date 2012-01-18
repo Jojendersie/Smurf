@@ -35,6 +35,7 @@
 #include "amloader.hpp"
 #include "smokesurface.hpp"
 #include "solidgeometry.hpp"
+#include "cudamanager.hpp"
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -76,19 +77,19 @@ private:
 	static unsigned int timeLast;
 	static unsigned long long timeTotal;
 	GLGraphics* graphics;
+	CudaManager cudamanager;
 	GLShader* flatShader;
-	GLShader* timeTexShader;
+	GLShader* vertexmapShader;
 	GLShader* alphaShader;
-	GLuint timeTextureID[2];
 	GLuint samplerID;
-	GLuint timeTexFB[2];
-	GLfloat texWidth;
+	GLuint vertexmapID;
+	GLuint vertexmapFB;
 	SFCamera* camera;
 	AmiraMesh m_VectorField;
 	SmokeSurface* m_pSmokeSurface;
 	SolidSurface* m_pSolidSurface;
-	int ping,pong;//for ping-pong rendering
 	bool m_bCloseRequest;
+	GLuint m_uiFrameCount;
 };
 
 

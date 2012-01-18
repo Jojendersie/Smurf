@@ -1,6 +1,7 @@
 #include <cassert>
 #include <GL/glew.h>
 #include "solidgeometry.hpp"
+#include "glgraphics.hpp"
 
 // **************************************************************** //
 // Marching cubes indices (+ vertices)
@@ -592,8 +593,8 @@ finishcreation:
 	// Upload only necessary data (size of temporary buffer can be much larger than realy used)
 	glBufferData(GL_ARRAY_BUFFER, uiVertex * sizeof(SolidVertex), pVertexData, GL_STATIC_DRAW);
 	// Insert data and usage declaration
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(SolidVertex), 0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(SolidVertex), (GLvoid*)(3 * sizeof(float)));
+	glVertexAttribPointer(GLGraphics::ASLOT_POSITION, 3, GL_FLOAT, GL_FALSE, sizeof(SolidVertex), 0);
+	glVertexAttribPointer(GLGraphics::ASLOT_NORMAL, 3, GL_FLOAT, GL_FALSE, sizeof(SolidVertex), (GLvoid*)(3 * sizeof(float)));
 	glEnableVertexAttribArray(0);
 	// Insert triangulation
 	glGenBuffers(1, &m_uiIBO);

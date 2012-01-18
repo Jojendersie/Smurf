@@ -1,3 +1,28 @@
+////////////////////////////////////////////////////////////////////////////////
+//
+// Smurf
+// =====
+// ##### Martin Kirst, Johannes Jendersie, Christoph Lämmerhirt, Laura Osten #####
+//
+// Smoke Surfaces: An Interactive Flow Visualization
+// Technique Inspired by Real-World Flow Experiments
+//
+// File:              /include/cudamanager.hpp
+// Author:            Christoph Lämmerhirt
+// Creation Date:     2012.01.11
+// Description:
+//
+// Declaration of the cudamanager.
+// The cudamanager  is responsible for creating the cuda device, managing the cuda runtime behavior,
+// allocating memory for vertices/vector field and running the kernel.
+//
+////////////////////////////////////////////////////////////////////////////////
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Preprocessor Directives and Namespaces
+////////////////////////////////////////////////////////////////////////////////
+
 #ifndef CUDAMANAGER_HPP_
 #define CUDAMANAGER_HPP_
 
@@ -14,8 +39,8 @@ public:
 
 	void AllocateMemory(glm::vec3 vSizeVectorField, unsigned int uiSizeVertices);
 
-	void SetVectorField(float *VectorField);
-	void SetVertices(GLuint *vbo);
+	void SetVectorField(const float *VectorField);
+	void RegisterVertices(GLuint vbo, GLuint timevbo);
 
 	void Integrate(float stepsize, unsigned int bitmask);
 
@@ -31,12 +56,21 @@ public:
 
 private:
 
+	void HandleError(cudaError_t cuError);
+
 	unsigned int m_uiElementSize;
 	unsigned int m_uiBlockSize;
+	unsigned int m_uiGridSize;
 	
 	float *m_fDeviceVectorField;
-	GLuint *vbo;
+	GLuint vboPos,vboTime;
 	glm::vec3 m_vSizeField;
+
+	cudaGraphicsResource *posRes;
+	cudaGraphicsResource *timeRes;
+
+	cudaDeviceProp cudaProp;
+	int device;
 };
 
 

@@ -42,6 +42,7 @@ namespace Globals {
 	const short PROGRAM_VERSION_REVISION = 0;
 	const short PROGRAM_VERSION_BUILD = 0;
 	const bool PROGRAM_OPEN_CENTERED = true;
+	const unsigned short PROGRAM_FRAMES_PER_RELEASE = 5;
 
 	// Render Globals
 	////////////////////////////////////////////////////////////////////////////////
@@ -65,7 +66,7 @@ namespace Globals {
 	const float CAM_FOV = 45.f;
 	const float CAM_ZNEAR = 0.1f;
 	const float CAM_ZFAR = 1000.f;
-	const float CAM_SENSITIVITY = 0.3f;
+	const float CAM_SENSITIVITY = 50.f;
 	const float CAM_VELOCITY = 0.3f;
 
 	// Input Settings

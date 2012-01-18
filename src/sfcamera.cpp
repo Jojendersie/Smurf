@@ -25,6 +25,7 @@
 
 
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include "program.hpp"
 #include "sfcamera.hpp"
 
@@ -40,6 +41,7 @@ SFCamera::SFCamera(const float& posX, const float& posY, const float& posZ, cons
 	: position(posX, posY, posZ),
 	up(0.f, 1.f, 0.f),
 	center(0.f, 0.f, 1.f),
+	view(glm::lookAt(this->position, center, up)),
 	projection(glm::perspectiveFov<float>(fov, Globals::RENDER_VIEWPORT_WIDTH, Globals::RENDER_VIEWPORT_HEIGHT, zNear, zFar))
 {
 	this->heading = heading;
@@ -47,7 +49,6 @@ SFCamera::SFCamera(const float& posX, const float& posY, const float& posZ, cons
 	this->fov = fov;
 	this->zNear = zNear;
 	this->zFar = zFar;
-	view = glm::lookAt(this->position, center, up);
 	mouseActive = false;
 }
 
@@ -178,19 +179,22 @@ void SFCamera::Update() {
 	}
 	else if (sf::Mouse::IsButtonPressed(Globals::INPUT_CAM_ROTATION) && mouseActive) {
 		sf::Vector2i mouseDiff = sf::Mouse::GetPosition() - mouseActivePosition;
-		heading += mouseDiff.x * Globals::CAM_SENSITIVITY * performance;
-		pitch += mouseDiff.y * Globals::CAM_SENSITIVITY * performance;
+		if (pitch - mouseDiff.y * Globals::CAM_SENSITIVITY * performance <= 80.f &&
+			pitch - mouseDiff.y * Globals::CAM_SENSITIVITY * performance >= -80.f)
+			pitch -= mouseDiff.y * Globals::CAM_SENSITIVITY * performance;
+		heading -= mouseDiff.x * Globals::CAM_SENSITIVITY * performance;
 		sf::Mouse::SetPosition(mouseActivePosition);
 	}
 	else if (mouseActive)
 		mouseActive = false;
 
 	// calculate rotation transformation
-	glm::mat4 rotation = glm::rotate(glm::mat4(1.f), heading, glm::normalize(up));
-	glm::vec4 homoCenter = rotation * glm::vec4(glm::normalize(center), 1.f);
+	glm::mat4 rotationHeading = glm::rotate(glm::mat4(1.f), heading, glm::normalize(up));
+	glm::vec4 homoCenter = rotationHeading * glm::vec4(glm::normalize(center), 1.f);
 	glm::vec3 viewCenter(homoCenter.x, homoCenter.y, homoCenter.z);
 	glm::vec3 viewSide = glm::cross(glm::normalize(viewCenter), glm::normalize(up));
-	rotation = glm::rotate(rotation, pitch, glm::normalize(viewSide));
+	glm::mat4 rotationPitch = glm::rotate(glm::mat4(1.f), pitch, glm::normalize(viewSide));
+	glm::mat4 rotation = rotationPitch * rotationHeading;
 	homoCenter = rotation * glm::vec4(glm::normalize(center), 1.f);
 	viewCenter = glm::vec3(homoCenter.x, homoCenter.y, homoCenter.z);
 	viewSide = glm::cross(glm::normalize(viewCenter), glm::normalize(up));
@@ -206,7 +210,7 @@ void SFCamera::Update() {
 		position += viewSide * Globals::CAM_VELOCITY * performance;
 
 	// calculate the view matrix
-	view = glm::lookAt(position, center, up);
+	view = glm::lookAt(position, viewCenter, up);
 }
 
 
