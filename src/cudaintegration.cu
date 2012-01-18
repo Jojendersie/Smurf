@@ -44,19 +44,16 @@ __device__ float3 convert_float3(int3 vec)
 
 __device__ float3 Sample(float3 Vector, const float *Vector_Field, int3 Size)
 {
-	float3 Out;
-
 	int3 fi;
 	int index;
 
 	fi=convert_int3(Vector);
+	if(fi.x > Size.x || fi.y > Size.y || fi.z > Size.z || fi.x<0 || fi.y<0 || fi.z<0)
+			return make_float3(0,0,0);
+
 	index=fi.x+fi.y*Size.x+fi.z*Size.y*Size.x;
 
-	Out.x=Vector_Field[index+0];
-	Out.y=Vector_Field[index+1];
-	Out.z=Vector_Field[index+2];
-
-	return Out;
+	return make_float3(Vector_Field[index+0],Vector_Field[index+1],Vector_Field[index+2]);
 }
 
 __device__ float3 lerp(float3 start, float3 end, float t)
@@ -71,6 +68,9 @@ __device__ float3 SampleL(float3 Vector, const float *Vector_Field, int3 Size)
 	int3 fi;
 	fi=convert_int3(Vector);
 
+	if(fi.x > Size.x || fi.y > Size.y || fi.z > Size.z || fi.x<0 || fi.y<0 || fi.z<0)
+			return make_float3(0,0,0);
+
 	Vector-=convert_float3(fi);
 
 	int index;
@@ -78,23 +78,21 @@ __device__ float3 SampleL(float3 Vector, const float *Vector_Field, int3 Size)
 	{
 		index=fi.x+(i/4) + (fi.y+(i/2))*Size.x + (fi.z+(i/1))*Size.y*Size.x;
 
-		if(index + 2 < Size.x*Size.y*Size.z)
-		{
-			s[i].x=Vector_Field[index + 0];
-			s[i].y=Vector_Field[index + 1];
-			s[i].z=Vector_Field[index + 2];
-		}
+		s[i].x=Vector_Field[index + 0];
+		s[i].y=Vector_Field[index + 1];
+		s[i].z=Vector_Field[index + 2];
 	}
 
 	return lerp(lerp(lerp(s[0],s[4],Vector.x),lerp(s[2],s[6],Vector.x),Vector.y),
 				lerp(lerp(s[1],s[5],Vector.x),lerp(s[3],s[7],Vector.x),Vector.y),Vector.z);	
 }
 
-__global__ void IntegrateVectorField(float *Vector_Field, float3 *dptr, unsigned int ElementSize, unsigned int Size_x, unsigned int Size_y, unsigned int Size_z, float stepsize, unsigned int bitmask)
+__global__ void IntegrateVectorField(float *Vector_Field, float3 *posptr, float *timeptr, unsigned int ElementSize, unsigned int Size_x, unsigned int Size_y, unsigned int Size_z, float stepsize, unsigned int bitmask)
 {
 	const int index=blockDim.x*blockIdx.x+threadIdx.x;
 	if(index>ElementSize)
 		return;
+
 	int3 Size;
 	Size.x=Size_x;
 	Size.y=Size_y;
@@ -102,7 +100,8 @@ __global__ void IntegrateVectorField(float *Vector_Field, float3 *dptr, unsigned
 
 	float3 clVs,clVertex;
 
-	clVertex=dptr[index];
+	clVertex=posptr[index];
+	timeptr[index]++;//add the amount of time
 
 	clVs=(bitmask & 0x00000001) ? Sample(clVertex,Vector_Field,Size) : SampleL(clVertex,Vector_Field,Size);
 
@@ -117,15 +116,15 @@ __global__ void IntegrateVectorField(float *Vector_Field, float3 *dptr, unsigned
 		clVertex=2 * clVertex-clVertexTMP;
 	}
 
-	dptr[index]=clVertex;
+	posptr[index]=clVertex;
 }
 
-extern "C" void integrateVectorFieldGPU(float *fVectorField, float3 *dptr, unsigned int uiElementSize, unsigned int uiGridSize, unsigned int uiBlockSize, unsigned int iSizeFieldx, unsigned int iSizeFieldy, unsigned int iSizeFieldz, float stepsize, unsigned int bitmask)
+extern "C" void integrateVectorFieldGPU(float *fVectorField, float3 *posptr, float *timeptr, unsigned int uiElementSize, unsigned int uiGridSize, unsigned int uiBlockSize, unsigned int iSizeFieldx, unsigned int iSizeFieldy, unsigned int iSizeFieldz, float stepsize, unsigned int bitmask)
 {
 	dim3 BlockSize;
 	BlockSize.x=uiBlockSize;
 	dim3 GridSize;
 	GridSize.x=uiGridSize;
 
-	IntegrateVectorField<<<GridSize,BlockSize>>>(fVectorField, dptr,uiElementSize,iSizeFieldx,iSizeFieldy,iSizeFieldz,stepsize,bitmask);
+	IntegrateVectorField<<<GridSize,BlockSize>>>(fVectorField, posptr,timeptr,uiElementSize,iSizeFieldx,iSizeFieldy,iSizeFieldz,stepsize,bitmask);
 }

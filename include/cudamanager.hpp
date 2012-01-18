@@ -40,7 +40,7 @@ public:
 	void AllocateMemory(glm::vec3 vSizeVectorField, unsigned int uiSizeVertices);
 
 	void SetVectorField(const float *VectorField);
-	void SetVertices(GLuint *vbo);
+	void RegisterVertices(GLuint vbo, GLuint timevbo);
 
 	void Integrate(float stepsize, unsigned int bitmask);
 
@@ -56,13 +56,21 @@ public:
 
 private:
 
+	void HandleError(cudaError_t cuError);
+
 	unsigned int m_uiElementSize;
 	unsigned int m_uiBlockSize;
 	unsigned int m_uiGridSize;
 	
 	float *m_fDeviceVectorField;
-	GLuint *vbo;
+	GLuint vboPos,vboTime;
 	glm::vec3 m_vSizeField;
+
+	cudaGraphicsResource *posRes;
+	cudaGraphicsResource *timeRes;
+
+	cudaDeviceProp cudaProp;
+	int device;
 };
 
 

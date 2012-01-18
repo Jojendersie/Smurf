@@ -146,3 +146,23 @@ void SmokeSurface::IntegrateCPU(AmiraMesh* _pMesh, float _fStepSize)
 	// Unlock
 	glUnmapBuffer(GL_ARRAY_BUFFER);
 }
+
+int SmokeSurface::GetVBO()
+{
+	return m_uiVBO;
+}
+
+int SmokeSurface::GetNumColums()
+{
+	return m_iNumCols;
+}
+
+int SmokeSurface::GetNumRows()
+{
+	return m_iNumRows;
+}
+
+int SmokeSurface::GetNumVertices()
+{
+	return m_iNumVertices;
+}

@@ -2,12 +2,12 @@
 
 uniform float b;
 uniform mat4 ProjectionView;
-uniform sampler2D timeTex;
-uniform float texWidth;
+uniform sampler2D adjTex;
+uniform float gridWidth;
 
 in vec3 in_Pos;
 in vec3 in_normal;
-in vec3 in_adj[6];
+in float in_time;
 in float vertexID;
 /*
 in vec3 in_adj1;
@@ -27,15 +27,18 @@ void main()
 	vs_out_normal=in_normal;//normale durchreichen
 
 	ivec2 index;
-	index.x=int(mod(vertexID,texWidth));
-	index.y=int(floor(vertexID/texWidth));
-	vs_out_alphaTime=texelFetch(timeTex,index,0).r;
+	index.x=int(mod(vertexID,gridWidth));
+	index.y=int(floor(vertexID/gridWidth));
+
+	vs_out_alphaTime=in_time;
 
 	float etmp=0,e=0;
 	int j=0;
+	vec3 adj[6];
 	for(int i=0;i<6;i++)
 	{
-		vec3 tmp=in_adj[i]-in_Pos;
+		adj[i]=texelFetch(adjTex,index,0).xyz;
+		vec3 tmp=adj[i]-in_Pos;//index must be changed to access the right adjacent vertex on the vertex map
 		etmp=abs(dot(in_normal,tmp/dot(tmp,tmp)));//precalculation saves 5 square roots for one extra calculation, i bet it's worth it
 		if(e<etmp)
 		{
@@ -44,7 +47,7 @@ void main()
 		}
 	}
 
-	vec3 tmp=in_adj[j]-in_Pos;
+	vec3 tmp=adj[j]-in_Pos;
 	e=abs(dot(in_normal,tmp/sqrt(dot(tmp,tmp))));
 
 	vs_out_alphaCurvature=clamp(1.0-b*e,0.0,1.0);

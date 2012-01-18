@@ -61,6 +61,11 @@ public:
 	//				multiple times.
 	void IntegrateCPU(AmiraMesh* _pMesh, float _fStepSize);
 
+	int GetVBO();
+	int GetNumColums();
+	int GetNumRows();
+	int GetNumVertices();
+
 	// IntegrateGPU(AmiraMesh* _pMesh)
 };
 

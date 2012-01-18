@@ -28,7 +28,7 @@
 #include <cuda_runtime.h>
 #include "cudamanager.hpp"
 
-extern "C" void integrateVectorFieldGPU(float* fVectorField, float3 *dptr, unsigned int uiElementSize, unsigned int uiGridSize, 
+extern "C" void integrateVectorFieldGPU(float* fVectorField, float3 *posptr, float *timeptr, unsigned int uiElementSize, unsigned int uiGridSize, 
 										  unsigned int uiBlockSize, unsigned int iSizeFieldx, unsigned int iSizeFieldy, 
 										  unsigned int iSizeFieldz, float stepsize, unsigned int bitmask);
 
@@ -36,12 +36,28 @@ extern "C" void integrateVectorFieldGPU(float* fVectorField, float3 *dptr, unsig
 {
 	m_fDeviceVectorField=NULL;
 
-	vbo=0;
+	posRes=0;
+	timeRes=0;
+
+	memset(&cudaProp,0,sizeof(cudaDeviceProp));
+	HandleError(cudaChooseDevice(&device,&cudaProp));
+	cudaProp.major=2.0;
+	cudaProp.minor=0.0;
+	HandleError(cudaGLSetGLDevice(device));
 }
 
 CudaManager::~CudaManager()
 {
 	
+}
+
+void CudaManager::HandleError(cudaError_t cuError)
+{
+	if(cuError!=cudaSuccess)
+	{
+		printf("Error: %s \n",cudaGetErrorString(cuError));
+		exit(EXIT_FAILURE);
+	}
 }
 
 void CudaManager::AllocateMemory(glm::vec3 vSizeVectorField, unsigned int uiSizeVertices)
@@ -62,21 +78,31 @@ void CudaManager::SetVectorField(const float *fVectorField)
 	cudaMemcpy(m_fDeviceVectorField,fVectorField,size,cudaMemcpyHostToDevice);
 }
 
-void CudaManager::SetVertices(GLuint *vbo)
+void CudaManager::RegisterVertices(GLuint vbo, GLuint timevbo)
 {
-	if(this->vbo!=NULL)
+	if(posRes!=NULL ||timeRes!=NULL)
 	{
-		cudaGLUnregisterBufferObject(*this->vbo);
-		this->vbo=NULL;
+		HandleError(cudaGraphicsUnregisterResource(posRes));
+		HandleError(cudaGraphicsUnregisterResource(timeRes));
+		posRes=NULL;
+		timeRes=NULL;
 	}
-	this->vbo=vbo;
-	cudaGLRegisterBufferObject(*vbo);
+	vboPos=vbo;
+	vboTime=timevbo;
+
+	HandleError(cudaGraphicsGLRegisterBuffer(&posRes,vboPos,cudaGraphicsMapFlagsNone));
+	HandleError(cudaGraphicsGLRegisterBuffer(&timeRes,vboTime,cudaGraphicsMapFlagsNone));
 }
 
 void CudaManager::Clear()
 {
-	if(vbo!=NULL)
-		cudaGLUnregisterBufferObject(*vbo);
+	if(posRes!=NULL || timeRes!=NULL)
+	{
+		HandleError(cudaGraphicsUnregisterResource(posRes));
+		HandleError(cudaGraphicsUnregisterResource(timeRes));
+		posRes=NULL;
+		timeRes=NULL;
+	}
 
 	if(m_fDeviceVectorField!=NULL)
 	{
@@ -87,10 +113,21 @@ void CudaManager::Clear()
 
 void CudaManager::Integrate(float stepsize, unsigned int bitmask)
 {
-	float3 *dptr;
-	cudaGLMapBufferObject((void**)&dptr,*vbo);
-	integrateVectorFieldGPU(m_fDeviceVectorField,dptr,m_uiElementSize,m_uiGridSize,m_uiBlockSize,static_cast<unsigned int>(m_vSizeField.x),static_cast<unsigned int>(m_vSizeField.y),static_cast<unsigned int>(m_vSizeField.z),stepsize,bitmask);
-	cudaGLUnmapBufferObject(*vbo);
+	GLfloat *devPosptr=NULL;
+	GLfloat *devTimeptr=NULL;
+	cudaGraphicsMapResources(1,&posRes);
+	cudaGraphicsMapResources(1,&timeRes);
+
+	size_t posSize=m_uiElementSize*sizeof(float)*3;
+	size_t timeSize=m_uiElementSize*sizeof(float);
+
+	cudaGraphicsResourceGetMappedPointer((void**)devPosptr,&posSize,posRes);
+	cudaGraphicsResourceGetMappedPointer((void**)devTimeptr,&timeSize,timeRes);
+
+	integrateVectorFieldGPU(m_fDeviceVectorField,(float3*)devPosptr,devTimeptr,m_uiElementSize,m_uiGridSize,m_uiBlockSize,static_cast<unsigned int>(m_vSizeField.x),static_cast<unsigned int>(m_vSizeField.y),static_cast<unsigned int>(m_vSizeField.z),stepsize,bitmask);
+
+	cudaGraphicsUnmapResources(1,&posRes);
+	cudaGraphicsUnmapResources(1,&timeRes);
 }
 
 void CudaManager::RandomInit(float *a, unsigned int uiSize)
