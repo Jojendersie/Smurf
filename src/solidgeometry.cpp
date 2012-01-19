@@ -539,37 +539,56 @@ SolidSurface::SolidSurface(AmiraMesh* _pMesh, int _iTriangles)
 						pVertexData[uiVertex].vPosition += g_vEdgeOffsets[i]*vCellSize;
 						pVertexData[uiVertex].vPosition *= vDimension;
 						pVertexData[uiVertex].vPosition += _pMesh->GetBoundingBoxMin();
-//						printf("%f, %f, %f\n", pVertexData[uiVertex].vPosition.x, pVertexData[uiVertex].vPosition.y, pVertexData[uiVertex].vPosition.z);
-						// Do something with the normal (TODO)
+						pVertexData[uiVertex].vNormal = glm::vec3(0.0);
 						++uiVertex;
+						// Normals are calculated during triangulation, there we know the triangle normals
 					}
 				}
 
 				// Add indices
-				int i=-1;
-				while((i<14) && (g_acTriangleIndices[uiCase][++i]>-1))
+				int i=0;
+				while((i<15) && (g_acTriangleIndices[uiCase][i]>-1))
 				{
-					// Calculate in which cell the vertex was created and on which edge.
-					char cCurrentEdgeIndex = g_acTriangleIndices[uiCase][i];
-					char cGotoX = (g_acNeighborPriority[cCurrentEdgeIndex][0]>=0) && (x>0);
-					char cGotoY = (g_acNeighborPriority[cCurrentEdgeIndex][1]>=0) && (y>0);
-					char cGotoZ = (g_acNeighborPriority[cCurrentEdgeIndex][2]>=0) && (z>0);
-					char cNeighborEdge = cCurrentEdgeIndex;
-					if(cGotoZ) cNeighborEdge = g_acNeighborEdge[3][cCurrentEdgeIndex];
-					if(cGotoY) cNeighborEdge = g_acNeighborEdge[4][cCurrentEdgeIndex];
-					if(cGotoX) cNeighborEdge = g_acNeighborEdge[5][cCurrentEdgeIndex];
-					if(cGotoZ && cGotoX) cNeighborEdge = g_acNeighborPriority[cCurrentEdgeIndex][0];
-					if(cGotoZ && cGotoY) cNeighborEdge = g_acNeighborPriority[cCurrentEdgeIndex][1];
-					if(cGotoY && cGotoX) cNeighborEdge = g_acNeighborPriority[cCurrentEdgeIndex][0];
+					unsigned int auiCurrentIndices[3];
+					for(int j=0;j<3;++j)
+					{
+						// Calculate in which cell the vertex was created and on which edge.
+						char cCurrentEdgeIndex = g_acTriangleIndices[uiCase][i++];
+						char cGotoX = (g_acNeighborPriority[cCurrentEdgeIndex][0]>=0) && (x>0);
+						char cGotoY = (g_acNeighborPriority[cCurrentEdgeIndex][1]>=0) && (y>0);
+						char cGotoZ = (g_acNeighborPriority[cCurrentEdgeIndex][2]>=0) && (z>0);
+						char cNeighborEdge = cCurrentEdgeIndex;
+						if(cGotoZ) cNeighborEdge = g_acNeighborEdge[3][cCurrentEdgeIndex];
+						if(cGotoY) cNeighborEdge = g_acNeighborEdge[4][cCurrentEdgeIndex];
+						if(cGotoX) cNeighborEdge = g_acNeighborEdge[5][cCurrentEdgeIndex];
+						if(cGotoZ && cGotoX) cNeighborEdge = g_acNeighborPriority[cCurrentEdgeIndex][0];
+						if(cGotoZ && cGotoY) cNeighborEdge = g_acNeighborPriority[cCurrentEdgeIndex][1];
+						if(cGotoY && cGotoX) cNeighborEdge = g_acNeighborPriority[cCurrentEdgeIndex][0];
 
-					// Extract base index and case from neighbor cell(, can be the cell itself too).
-					unsigned int uiVal = cGotoZ?pIndexOffsetsZ1[(y-cGotoY)*_pMesh->GetSizeX()+x-cGotoX] : pIndexOffsetsZ0[(y-cGotoY)*_pMesh->GetSizeX()+x-cGotoX];
-					unsigned int uiNC = uiVal>>24;
-					// Lookup the edge-vertex creations and exculde prior ones
-					uiNC = g_acEdges[uiNC] & ((x>cGotoX)?g_uiVertexCreationMaskX:0xfff) & ((y>cGotoY)?g_uiVertexCreationMaskY:0xfff) & ((z>cGotoZ)?g_uiVertexCreationMaskZ:0xfff);
-					pIndexData[uiIndex] = (uiVal&0xffffff) + GetEdgeIndexOffset(uiNC, cNeighborEdge);
+						// Extract base index and case from neighbor cell(, can be the cell itself too).
+						unsigned int uiVal = cGotoZ?pIndexOffsetsZ1[(y-cGotoY)*_pMesh->GetSizeX()+x-cGotoX] : pIndexOffsetsZ0[(y-cGotoY)*_pMesh->GetSizeX()+x-cGotoX];
+						unsigned int uiNC = uiVal>>24;
+						// Lookup the edge-vertex creations and exculde prior ones
+						uiNC = g_acEdges[uiNC] & ((x>cGotoX)?g_uiVertexCreationMaskX:0xfff) & ((y>cGotoY)?g_uiVertexCreationMaskY:0xfff) & ((z>cGotoZ)?g_uiVertexCreationMaskZ:0xfff);
+						auiCurrentIndices[j] = (uiVal&0xffffff) + GetEdgeIndexOffset(uiNC, cNeighborEdge);
+						pIndexData[uiIndex] = auiCurrentIndices[j];
+						++uiIndex;
+					}
 
-					++uiIndex;
+					// Now auiCurrentVertexIndices contains the 3 correct indices for
+					// the triangle. We can use this information to calculate the triangle
+					// normal.
+					glm::vec3 vTriangleNormal = pVertexData[auiCurrentIndices[0]].vPosition;
+					vTriangleNormal = glm::cross( pVertexData[auiCurrentIndices[1]].vPosition - vTriangleNormal,
+												  pVertexData[auiCurrentIndices[2]].vPosition - vTriangleNormal);
+					vTriangleNormal = glm::normalize( vTriangleNormal );
+					// The vertex normals are computed from the sum of all adjacent
+					// triangle normals. => Add this normal to all of the 3 vertices.
+					// normalization is done later.
+					pVertexData[auiCurrentIndices[0]].vNormal += vTriangleNormal;
+					pVertexData[auiCurrentIndices[1]].vNormal += vTriangleNormal;
+					pVertexData[auiCurrentIndices[2]].vNormal += vTriangleNormal;
+
 					if(uiIndex >= (unsigned int)_iTriangles * 3) goto finishcreation;	// break run - to few triangles allocated
 				}
 			}
@@ -581,6 +600,10 @@ SolidSurface::SolidSurface(AmiraMesh* _pMesh, int _iTriangles)
 	}
 
 finishcreation:
+	// Go through all vertices and normalize the normals
+	for(int i=0; i<uiVertex; ++i)
+		pVertexData[i].vNormal = glm::normalize( pVertexData[i].vNormal );
+
 	// Save for statistic and rendercall
 	m_iNumIndices = uiIndex;
 	m_iNumVertices = uiVertex;
