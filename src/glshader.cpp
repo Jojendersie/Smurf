@@ -427,7 +427,6 @@ void GLShader::CreateAdvancedUniforms(unsigned int numUniforms, ...) {
 	va_start(uniformNames, numUniforms);
 	for (unsigned int i = 0; i < numUniforms; i++) {
 		name = va_arg(uniformNames, const char*);
-		GLint tmp=glGetUniformLocation(shaderProgramId, name);
 		advancedUniformLocations[i] = glGetUniformLocation(shaderProgramId, name);
 	}
 	va_end(uniformNames);

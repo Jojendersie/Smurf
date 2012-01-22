@@ -5,7 +5,7 @@ uniform float currentColumn;
 
 in vec2 in_Indices;
 
-out vec2 vs_out_Indices;
+flat out vec2 vs_out_Indices;
 out float vs_out_alphaTime;
 
 void main()

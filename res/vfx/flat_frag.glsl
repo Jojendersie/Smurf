@@ -24,7 +24,13 @@
 
 
 //uniform vec4 solidColor;
+uniform vec3 eyePos;
+uniform mat4 ProjectionView;
+
 out vec4 out_Color;
+
+in vec3 gs_out_normal;
+in vec3 gs_out_worldPos;
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -34,5 +40,16 @@ out vec4 out_Color;
 
 ////////////////////////////////////////////////////////////////////////////////
 void main() {
-	out_Color = vec4(1,0.5,0,1);
+	vec3 lightPos=vec3(3,5,-1);
+	float kAmbient=0.6f,kDiffuse=0.4f,kSpecular=0.8f,specPower=30.0,LightPower=10.8;;
+
+	vec3 rayView=normalize(gs_out_worldPos-eyePos);
+	vec3 rayLight=normalize(gs_out_worldPos-lightPos);
+	float diffuse=clamp(dot(rayLight,gs_out_normal),0,1);
+	float shine=clamp(dot(max(reflect(rayLight,gs_out_normal),0),rayView),0,1);
+
+	float phongShade=max(diffuse*kDiffuse+pow(shine,specPower)*kSpecular*LightPower,0)+kAmbient;
+
+	vec3 color= vec3(1,0.5,0)*phongShade;
+	out_Color = vec4(color,1);
 }

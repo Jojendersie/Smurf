@@ -23,11 +23,12 @@ SmokeSurface::SmokeSurface(int _iNumCols, int _iNumRows, glm::vec3 _vStart, glm:
 	for(int i=0; i<_iNumCols; ++i)
 		for(int j=0; j<_iNumRows; ++j)
 		{
-			m_pPositionMap[i*_iNumRows+j].vPosition = glm::mix(_vStart, _vEnd, j/(float)(_iNumRows-1));
-			float tmp=i/(float)(_iNumCols);
-			tmp=j/(float)(_iNumRows);
+			
 			pGridVertices[i*_iNumRows+j].fColumn = i/(float)(_iNumCols);
 			pGridVertices[i*_iNumRows+j].fRow = j/(float)(_iNumRows);
+			float tmp=*reinterpret_cast<float*>(pGridVertices+(i*_iNumRows+j));
+			tmp=*(reinterpret_cast<float*>(pGridVertices+(i*_iNumRows+j))+1);
+			m_pPositionMap[i*_iNumRows+j].vPosition = glm::mix(_vStart, _vEnd, j/(float)(_iNumRows-1));
 		}
 
 	// Create Triangulation
@@ -133,7 +134,7 @@ void SmokeSurface::Render()
 	glBindVertexArray(m_uiVAO);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,m_uiIBO);
 	//glDrawArrays(GL_POINTS, 0, m_iNumVertices);
-	glDrawElements(GL_TRIANGLES, m_iNumIndices, GL_UNSIGNED_INT, (GLvoid*)0);
+	glDrawElements(GL_POINTS, m_iNumIndices, GL_UNSIGNED_INT, (GLvoid*)0);
 }
 
 // **************************************************************** //

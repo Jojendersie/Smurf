@@ -155,7 +155,7 @@ void Program::Initialize() {
 
 	// load test shader
 	flatShader = new GLShader(graphics);
-	flatShader->CreateShaderProgram("res/vfx/flat_vert.glsl", "res/vfx/flat_frag.glsl", 0, 1, GLGraphics::ASLOT_POSITION, "in_Position");
+	flatShader->CreateShaderProgram("res/vfx/flat_vert.glsl", "res/vfx/flat_frag.glsl", "res/vfx/flat_geom.glsl", 1, GLGraphics::ASLOT_POSITION, "in_Position");
 	flatShader->CreateAdvancedUniforms(1,"ProjectionView");
 
 	alphaShader = new GLShader(graphics);
@@ -217,8 +217,8 @@ void Program::Update() {
 	}
 	else
 	{
-		cudamanager.Integrate(Globals::RENDER_SMURF_STEPSIZE,CudaManager::INTEGRATION_MODEULER|CudaManager::INTEGRATION_FILTER_POINT);
-	//cudamanager.Integrate(0.5f,CudaManager::INTEGRATION_MODEULER|CudaManager::INTEGRATION_FILTER_LINEAR|CudaManager::INTEGRATION_RANDOM);
+		//cudamanager.Integrate(Globals::RENDER_SMURF_STEPSIZE,CudaManager::INTEGRATION_MODEULER|CudaManager::INTEGRATION_FILTER_POINT);
+		cudamanager.Integrate(0.5f,CudaManager::INTEGRATION_MODEULER|CudaManager::INTEGRATION_FILTER_LINEAR|CudaManager::INTEGRATION_RANDOM);
 	}
 
 	if(m_bCloseRequest)
@@ -265,7 +265,7 @@ void Program::Draw() {
 	glBindTexture(GL_TEXTURE_2D,0);*/
 
 	glBindTexture(GL_TEXTURE_2D,m_pSmokeSurface->GetVertexMap());
-	alphaShader->Use();
+	//alphaShader->Use();
 	float fCurrentColumn = float(cudamanager.GetLastReleasedColumn()%cudamanager.GetNumColumns()+float(m_uiFrameCount%Globals::PROGRAM_FRAMES_PER_RELEASE)/Globals::PROGRAM_FRAMES_PER_RELEASE)/cudamanager.GetNumColumns();
 	float fColumnStride=1.0f/m_pSmokeSurface->GetNumColums();
 	float fRowStride=1.0f/m_pSmokeSurface->GetNumRows();
@@ -282,7 +282,7 @@ void Program::Draw() {
 	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_VECTOR2,9,&viewPort[0]);
 	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_VECTOR3,10,Globals::SMOKE_COLOR);
 
-	//testShader->Use();
+	testShader->Use();
 	testShader->SetAdvancedUniform(GLShader::AUTYPE_MATRIX4,0,&(camera->GetProjection()*camera->GetView())[0][0]);
 
 	//Drawing geometry here

@@ -15,7 +15,7 @@ uniform float rowStride;
 uniform float columnStride;
 uniform sampler2D adjTex;
 
-in vec2[] vs_out_Indices;
+flat in vec2[] vs_out_Indices;
 in float[] vs_out_alphaTime;
 
 out vec4 gs_out_worldPos;
@@ -32,7 +32,7 @@ void main()
 	for(int l=0;l<maxv;l++)
 	{
 		//////////////////////NORMAL/////////////////////////////////////////////
-		gs_out_normal=cross(gl_in[0].gl_Position.xyz,gl_in[1].gl_Position.xyz);
+		gs_out_normal=cross(gl_in[1].gl_Position.xyz-gl_in[0].gl_Position.xyz,gl_in[2].gl_Position.xyz-gl_in[0].gl_Position.xyz);
 		if(dot(gl_in[0].gl_Position.xyz-eyePos,gs_out_normal)<=0)
 			gs_out_normal*=-1;
 
