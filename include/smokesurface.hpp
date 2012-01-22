@@ -45,6 +45,7 @@ class SmokeSurface
 	unsigned int	m_uiVBO;
 	unsigned int	m_uiIBO;
 	unsigned int	m_uiVertexMap;
+	unsigned int	m_uiPBO;
 	int				m_iNumCols;
 	int				m_iNumRows;
 	int				m_iNumIndices;
@@ -80,6 +81,7 @@ public:
 	int GetNumRows();
 	int GetNumVertices();
 	GLuint GetVertexMap()		{return m_uiVertexMap;}
+	GLuint GetPBO()				{return m_uiPBO;}
 	int GetLastReleasedColumn()	{return m_iNumReleasedColumns;}
 
 	// TODO @Martin see programm.cpp m_bInvalidSeedLine

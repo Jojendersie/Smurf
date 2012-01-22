@@ -45,30 +45,58 @@ SmokeSurface::SmokeSurface(int _iNumCols, int _iNumRows, glm::vec3 _vStart, glm:
 			*(pI++) = (iVertex+_iNumRows+1)%m_iNumVertices;
 		}
 
+	// Insert triangulation
+	glGenBuffers(1, &m_uiIBO);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_uiIBO);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_iNumIndices*sizeof(GLuint), pIndices, GL_STATIC_DRAW);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
 	// Create OpenGL buffers
 	// Create Vertex array object
 	glGenVertexArrays(1, &m_uiVAO);
-	// Create Vertex buffer object
 	glBindVertexArray(m_uiVAO);
-	glGenBuffers(1, &m_uiVBO);
-    glBindBuffer(GL_ARRAY_BUFFER, m_uiVBO);
-	// Insert data and usage declaration
-	glBufferData(GL_ARRAY_BUFFER, iVertexDataSize, pGridVertices, GL_DYNAMIC_DRAW);
-	glVertexAttribPointer(/*GLGraphics::ASLOT_SPECIAL0*/0, 2, GL_FLOAT, GL_FALSE, 0, 0);
-	glEnableVertexAttribArray(0);
-	// Insert triangulation
-	glGenBuffers(1, &m_uiIBO);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_uiIBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_iNumIndices*sizeof(GLuint), pIndices, GL_STATIC_DRAW);
+		// Create Vertex buffer object
+		glGenBuffers(1, &m_uiVBO);
+		glBindBuffer(GL_ARRAY_BUFFER, m_uiVBO);
+		// Insert data and usage declaration
+		glBufferData(GL_ARRAY_BUFFER, iVertexDataSize, pGridVertices, GL_STATIC_DRAW);
+		glVertexAttribPointer(GLGraphics::ASLOT_POSITION, 2, GL_FLOAT, GL_FALSE, 0,0);
+		glBindBuffer(GL_ARRAY_BUFFER,0);
 
+		glEnableVertexAttribArray(GLGraphics::ASLOT_POSITION);
+
+	glBindVertexArray(0);
+	
 	// data is no loaded to GPU
 	free(pGridVertices);
 //	free(pVertices);	//? dynamic buffers? TODO benchmarktest with just uploading and or double vbo,s
 	free(pIndices);
 
+	//Create a pbo for a performant access through CUDA and copying the modified vertices to a texture completely on the GPU.
+	glGenBuffers(1,&m_uiPBO);
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER,m_uiPBO);
+	glBufferData(GL_PIXEL_UNPACK_BUFFER,m_iNumRows*m_iNumCols*sizeof(float)*3,reinterpret_cast<float*>(m_pPositionMap),GL_STATIC_COPY);
+
 	// Vertex Map
 	// Create a texture buffer object
 	glGenTextures(1, &m_uiVertexMap);
+	glBindTexture(GL_TEXTURE_2D,m_uiVertexMap);
+	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_MIRRORED_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_MIRRORED_REPEAT);
+
+	glTexImage2D(GL_TEXTURE_2D,	// Target
+		0,						// Mip-Level
+		GL_RGB32F,				// Internal format
+		m_iNumRows,				// Width
+		m_iNumCols,				// Height
+		0,						// Border
+		GL_RGB,					// Format
+		GL_FLOAT,				// Type
+		NULL);					// Data
+	glBindTexture(GL_TEXTURE_2D,0);
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER,0);
 }
 	
 // **************************************************************** //
@@ -83,9 +111,15 @@ SmokeSurface::~SmokeSurface()
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	glDeleteBuffers(1, &m_uiIBO);
 
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER,0);
+	glDeleteBuffers(1, &m_uiPBO);
+
 	// Detach and delete array
 	glBindVertexArray(0);
 	glDeleteVertexArrays(1, &m_uiVAO);
+
+	glBindTexture(GL_TEXTURE_2D,m_uiVertexMap);
+	glDeleteTextures(1,&m_uiVertexMap);
 
 	free(m_pPositionMap);
 }
@@ -95,6 +129,7 @@ SmokeSurface::~SmokeSurface()
 void SmokeSurface::Render()
 {
 	glBindVertexArray(m_uiVAO);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,m_uiIBO);
 	//glDrawArrays(GL_POINTS, 0, m_iNumVertices);
 	glDrawElements(GL_TRIANGLES, m_iNumIndices, GL_UNSIGNED_INT, (GLvoid*)0);
 }

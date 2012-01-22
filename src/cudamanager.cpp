@@ -23,32 +23,32 @@
 // Preprocessor Directives and Namespaces
 ////////////////////////////////////////////////////////////////////////////////
 
+#include <time.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <cuda_runtime.h>
 #include "cudamanager.hpp"
 
-extern "C" void integrateVectorFieldGPU(float* fVectorField, float3 *posptr, float *timeptr, unsigned int uiElementSize, unsigned int uiGridSize, 
-										  unsigned int uiBlockSize, unsigned int iSizeFieldx, unsigned int iSizeFieldy, 
-										  unsigned int iSizeFieldz, float stepsize, unsigned int bitmask);
+extern "C" void integrateVectorFieldGPU(float* fVectorField, float3 *posptr, unsigned int uiElementSize, unsigned int uiGridSize, 
+										  unsigned int uiBlockSize, uint3 sizeField, uint3 rnd, float3 bbMin, float3 posgridOff, int resetcolumn, int rows, float stepsize, unsigned int bitmask);
+
+extern "C" void resetOldColumn(float3* posptr, float3 bbMin, float3 bbMax, int columns, int rows, int resetColumn);
 
  CudaManager::CudaManager()
 {
 	m_fDeviceVectorField=NULL;
-
 	posRes=0;
-	timeRes=0;
+	releasedColumns=0;
 
 	memset(&cudaProp,0,sizeof(cudaDeviceProp));
 	HandleError(cudaChooseDevice(&device,&cudaProp));
-	cudaProp.major=1.0;
+	cudaProp.major=2.0;
 	cudaProp.minor=0.0;
 	HandleError(cudaGLSetGLDevice(device));
 }
 
 CudaManager::~CudaManager()
 {
-	
 }
 
 void CudaManager::HandleError(cudaError_t cuError)
@@ -56,11 +56,11 @@ void CudaManager::HandleError(cudaError_t cuError)
 	if(cuError!=cudaSuccess)
 	{
 		printf("Error: %s \n",cudaGetErrorString(cuError));
-		exit(EXIT_FAILURE);
+		//exit(EXIT_FAILURE);
 	}
 }
 
-void CudaManager::AllocateMemory(glm::vec3 vSizeVectorField, unsigned int uiSizeVertices)
+void CudaManager::AllocateMemory(uint3 vSizeVectorField, unsigned int uiSizeVertices)
 {
 	m_vSizeField=vSizeVectorField;
 	m_uiElementSize=uiSizeVertices;
@@ -71,37 +71,44 @@ void CudaManager::AllocateMemory(glm::vec3 vSizeVectorField, unsigned int uiSize
 	cudaMalloc(&m_fDeviceVectorField,size);
 }
 
-void CudaManager::SetVectorField(const float *fVectorField)
+void CudaManager::SetVectorField(const float *VectorField, glm::vec3 bbMax, glm::vec3 bbMin)
 {
 	size_t size = static_cast<size_t>(m_vSizeField.x * m_vSizeField.y * m_vSizeField.z * 3 * sizeof(float));
 
-	cudaMemcpy(m_fDeviceVectorField,fVectorField,size,cudaMemcpyHostToDevice);
+	posGridOff.x=m_vSizeField.x/(bbMax.x-bbMin.x);
+	posGridOff.y=m_vSizeField.y/(bbMax.y-bbMin.y);
+	posGridOff.z=m_vSizeField.z/(bbMax.z-bbMin.z);
+
+	this->bbMin.x=bbMin.x;
+	this->bbMin.y=bbMin.y;
+	this->bbMin.z=bbMin.z;
+
+	this->bbMax.x=bbMax.x;
+	this->bbMax.y=bbMax.y;
+	this->bbMax.z=bbMax.z;
+
+	cudaMemcpy(m_fDeviceVectorField,VectorField,size,cudaMemcpyHostToDevice);
 }
 
-void CudaManager::RegisterVertices(GLuint vbo, GLuint timevbo)
+void CudaManager::RegisterVertices(GLuint *pbo, unsigned int columns, unsigned int rows)
 {
-	if(posRes!=NULL ||timeRes!=NULL)
+	if(posRes!=NULL)
 	{
 		HandleError(cudaGraphicsUnregisterResource(posRes));
-		HandleError(cudaGraphicsUnregisterResource(timeRes));
 		posRes=NULL;
-		timeRes=NULL;
 	}
-	vboPos=vbo;
-	vboTime=timevbo;
+	HandleError(cudaGraphicsGLRegisterBuffer(&posRes,*pbo,cudaGraphicsMapFlagsNone));
 
-	HandleError(cudaGraphicsGLRegisterBuffer(&posRes,vboPos,cudaGraphicsMapFlagsNone));
-	HandleError(cudaGraphicsGLRegisterBuffer(&timeRes,vboTime,cudaGraphicsMapFlagsNone));
+	this->columns=columns;
+	this->rows=rows;
 }
 
 void CudaManager::Clear()
 {
-	if(posRes!=NULL || timeRes!=NULL)
+	if(posRes!=NULL)
 	{
 		HandleError(cudaGraphicsUnregisterResource(posRes));
-		HandleError(cudaGraphicsUnregisterResource(timeRes));
 		posRes=NULL;
-		timeRes=NULL;
 	}
 
 	if(m_fDeviceVectorField!=NULL)
@@ -111,23 +118,41 @@ void CudaManager::Clear()
 	}
 }
 
+void CudaManager::ReleaseNextColumn()
+{
+	float *devPosptr=NULL;
+	size_t posSize;
+
+	if(releasedColumns>=columns)
+	{
+		int resetColumn=releasedColumns%columns;
+		HandleError(cudaGraphicsMapResources(1,&posRes));
+		HandleError(cudaGraphicsResourceGetMappedPointer((void**)&devPosptr,&posSize,posRes));
+
+		resetOldColumn((float3*)devPosptr,bbMax,bbMin,columns,rows,resetColumn);
+
+		HandleError(cudaGraphicsUnmapResources(1,&posRes));
+	}
+
+	releasedColumns++;
+}
+
 void CudaManager::Integrate(float stepsize, unsigned int bitmask)
 {
-	GLfloat *devPosptr=NULL;
-	GLfloat *devTimeptr=NULL;
-	cudaGraphicsMapResources(1,&posRes);
-	cudaGraphicsMapResources(1,&timeRes);
+	float *devPosptr=NULL;
+	size_t posSize;
 
-	size_t posSize=m_uiElementSize*sizeof(float)*3;
-	size_t timeSize=m_uiElementSize*sizeof(float);
+	uint3 rnd;
+	rnd.x=time(NULL);
+	rnd.y=releasedColumns;
+	rnd.z=rand();
 
-	cudaGraphicsResourceGetMappedPointer((void**)devPosptr,&posSize,posRes);
-	cudaGraphicsResourceGetMappedPointer((void**)devTimeptr,&timeSize,timeRes);
+	HandleError(cudaGraphicsMapResources(1,&posRes));
+	HandleError(cudaGraphicsResourceGetMappedPointer((void**)&devPosptr,&posSize,posRes));
 
-	integrateVectorFieldGPU(m_fDeviceVectorField,(float3*)devPosptr,devTimeptr,m_uiElementSize,m_uiGridSize,m_uiBlockSize,static_cast<unsigned int>(m_vSizeField.x),static_cast<unsigned int>(m_vSizeField.y),static_cast<unsigned int>(m_vSizeField.z),stepsize,bitmask);
+	integrateVectorFieldGPU(m_fDeviceVectorField,(float3*)devPosptr,m_uiElementSize,m_uiGridSize,m_uiBlockSize,m_vSizeField,rnd,bbMin,posGridOff,releasedColumns,rows,stepsize,bitmask);
 
-	cudaGraphicsUnmapResources(1,&posRes);
-	cudaGraphicsUnmapResources(1,&timeRes);
+	HandleError(cudaGraphicsUnmapResources(1,&posRes));
 }
 
 void CudaManager::RandomInit(float *a, unsigned int uiSize)

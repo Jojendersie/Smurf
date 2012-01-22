@@ -183,9 +183,9 @@ void GLShader::SetStandardUniform(unsigned int standardUniformType, const GLfloa
 ////////////////////////////////////////////////////////////////////////////////
 void GLShader::SetAdvancedUniform(unsigned int advancedUniformType, unsigned int advancedUniformIndex, const GLfloat* data) {
 	// stop if no advanced uniforms were created or if index is out of bounds
-	if ((!advancedUniformLocations) ||
-		(advancedUniformIndex > (sizeof(advancedUniformLocations) / sizeof(advancedUniformLocations[0])) - 1))
-		return;
+	//if ((!advancedUniformLocations) ||
+	//	(advancedUniformIndex > (sizeof(advancedUniformLocations) / sizeof(advancedUniformLocations[0])) - 1))
+	//	return;
 
 	// get location of the uniform by specified index
 	GLint location = advancedUniformLocations[advancedUniformIndex];
@@ -254,10 +254,12 @@ void GLShader::SetTexture(GLenum textureType, unsigned int textureUnit, unsigned
 		graphics->SetActiveTextureId(textureUnit, textureId);
 	}
 	if (activeSamplerId != samplerId) {
-		glBindSampler(textureStage, samplerId);
-		graphics->SetActiveSamplerId(textureUnit, samplerId);
+		/*glBindSampler(textureStage, samplerId);
+		graphics->SetActiveSamplerId(textureUnit, samplerId);*/
 	}
-	glUniform1i(location, textureStage);
+
+	//glUniform1i(location, textureStage);
+	glUniform1i(location, 0);
 }
 
 
@@ -425,6 +427,7 @@ void GLShader::CreateAdvancedUniforms(unsigned int numUniforms, ...) {
 	va_start(uniformNames, numUniforms);
 	for (unsigned int i = 0; i < numUniforms; i++) {
 		name = va_arg(uniformNames, const char*);
+		GLint tmp=glGetUniformLocation(shaderProgramId, name);
 		advancedUniformLocations[i] = glGetUniformLocation(shaderProgramId, name);
 	}
 	va_end(uniformNames);

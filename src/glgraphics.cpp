@@ -25,6 +25,7 @@
 
 #include <iostream>
 #include <cstdlib>
+#include "globals.hpp"
 #include "glgraphics.hpp"
 
 
@@ -46,7 +47,7 @@ GLGraphics::GLGraphics(unsigned int maxNumAttributes, unsigned int maxNumTexture
 		this->maxNumAttributes = 1;
 	this->maxNumTextureUnits = maxNumTextureUnits;
 	activeTextureStage = GL_TEXTURE0;
-	activeShaderProgramId = 0;
+	activeShaderProgramId = -1;
 	activeUboId = 0;
 
 	// allocate new memory for the texture register to save an active texture per texture unit
@@ -193,13 +194,21 @@ void GLGraphics::InitializeGraphics() {
 			<< glewGetErrorString(glewInitResult);
 		std::exit(EXIT_FAILURE);
 	}
-	// set color, depth and stencil buffer clear value
-	glClearColor(1.f, 1.f, 0.f, 0.f);
-	glClearDepth(1.f);
-	glClearStencil(0);
 	// enable Z-buffer read and write
 	glEnable(GL_DEPTH_TEST);
 	glDepthMask(GL_TRUE);
+
+	// set color, depth and stencil buffer clear value
+	glClearColor(1.f, 1.f, 1.f, 0.f);
+	glClearDepth(1.f);
+	glClearStencil(0);
+
+	//filled polygons GL_LINE for wireframe
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+	//enable alphablending
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_ONE,GL_ONE_MINUS_SRC_ALPHA);
 }
 
 

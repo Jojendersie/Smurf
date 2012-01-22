@@ -135,6 +135,7 @@ public:
 	void Use();
 	void UseNoShaderProgram();
 	void UseNoUbo();
+	GLuint GetShaderProgramm() {return shaderProgramId;}
 
 private:
 	// Private Methods

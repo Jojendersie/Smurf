@@ -651,7 +651,6 @@ SolidSurface::~SolidSurface()
 // Set the buffers and make the rendercall
 void SolidSurface::Render()
 {
-	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	glBindVertexArray(m_uiVAO);
 	//glDrawArrays(GL_POINTS, 0, m_iNumVertices);
 	glDrawElements(GL_TRIANGLES, m_iNumIndices, GL_UNSIGNED_INT, (GLvoid*)0);

@@ -23,11 +23,13 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 
-layout(std140) uniform StandardUniforms {
-	mat4 projection;
-	mat4 view;
-	mat4 model;
-};
+//layout(std140) uniform StandardUniforms {
+	//mat4 projection;
+	//mat4 view;
+	//mat4 model;
+//};
+
+uniform mat4 ProjectionView;
 in vec4 in_Position;
 
 
@@ -38,5 +40,6 @@ in vec4 in_Position;
 
 ////////////////////////////////////////////////////////////////////////////////
 void main() {
-	gl_Position = projection * view * model * in_Position;
+	//gl_Position = projection * view * model * in_Position;
+	gl_Position = ProjectionView * in_Position;
 }

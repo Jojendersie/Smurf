@@ -77,13 +77,12 @@ private:
 	static unsigned int timeLast;
 	static unsigned long long timeTotal;
 	GLGraphics* graphics;
+	GLint texLoc;
 	CudaManager cudamanager;
-	GLShader* flatShader;
 	GLShader* vertexmapShader;
+	GLShader* testShader;
+	GLShader* flatShader;
 	GLShader* alphaShader;
-	GLuint samplerID;
-	GLuint vertexmapID;
-	GLuint vertexmapFB;
 	SFCamera* camera;
 	GLuint m_uiFrameCount;
 	AmiraMesh m_VectorField;
