@@ -210,14 +210,14 @@ void Program::Update() {
 
 	if(Globals::RENDER_CPU_CMOKE)
 	{
-		m_pSmokeSurface->IntegrateCPU(&m_VectorField, 10.01f,
+		m_pSmokeSurface->IntegrateCPU(&m_VectorField, Globals::RENDER_SMURF_STEPSIZE,
 			  (m_bUseAdvancedEuler	?AmiraMesh::INTEGRATION_MODEULER		: AmiraMesh::INTEGRATION_EULER)
 			| (m_bUseLinearFilter	?AmiraMesh::INTEGRATION_FILTER_LINEAR	: AmiraMesh::INTEGRATION_FILTER_POINT)
 			| (m_bNoisyIntegration	?AmiraMesh::INTEGRATION_NOISE			: 0));
 	}
 	else
 	{
-		cudamanager.Integrate(0.5f,CudaManager::INTEGRATION_MODEULER|CudaManager::INTEGRATION_FILTER_POINT);
+		cudamanager.Integrate(Globals::RENDER_SMURF_STEPSIZE,CudaManager::INTEGRATION_MODEULER|CudaManager::INTEGRATION_FILTER_POINT);
 	//cudamanager.Integrate(0.5f,CudaManager::INTEGRATION_MODEULER|CudaManager::INTEGRATION_FILTER_LINEAR|CudaManager::INTEGRATION_RANDOM);
 	}
 
@@ -265,7 +265,7 @@ void Program::Draw() {
 	glBindTexture(GL_TEXTURE_2D,0);*/
 
 	glBindTexture(GL_TEXTURE_2D,m_pSmokeSurface->GetVertexMap());
-	alphaShader->Use();
+	//alphaShader->Use();
 	float fCurrentColumn = float(cudamanager.GetLastReleasedColumn()%cudamanager.GetNumColumns()+float(m_uiFrameCount%Globals::PROGRAM_FRAMES_PER_RELEASE)/Globals::PROGRAM_FRAMES_PER_RELEASE)/cudamanager.GetNumColumns();
 	float fmaxColumns=m_pSmokeSurface->GetNumColums();
 	float fmaxRows=m_pSmokeSurface->GetNumRows();
@@ -282,7 +282,7 @@ void Program::Draw() {
 	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_VECTOR2, 9,&viewPort[0]);
 	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_VECTOR3,10,Globals::SMOKE_COLOR);
 
-	//testShader->Use();
+	testShader->Use();
 	testShader->SetAdvancedUniform(GLShader::AUTYPE_MATRIX4,0,&(camera->GetProjection()*camera->GetView())[0][0]);
 
 	//Drawing geometry here

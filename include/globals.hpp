@@ -54,7 +54,8 @@ namespace Globals {
 	const unsigned short RENDER_ANTIALIASING_LEVEL = 4;
 	const unsigned short RENDER_FRAMERATE_MAX = 120;
 	const unsigned short RENDER_SMURF_COLUMS = 1000;
-	const unsigned short RENDER_SMURF_ROWS = 50;
+	const unsigned short RENDER_SMURF_ROWS = 5;
+	const float RENDER_SMURF_STEPSIZE = 0.05f;
 	const bool RENDER_CPU_CMOKE = true;
 	const bool RENDER_FULLSCREEN = false;
 	const bool RENDER_VSYNC = true;

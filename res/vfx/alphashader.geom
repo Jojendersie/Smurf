@@ -88,7 +88,7 @@ void main()
 		int j=0;
 		for(int i=0;i<6;i++)
 		{
-			vec3 tmp=adj[i]-gl_in[l].gl_Position.xyz;//index must be changed to access the right adjacent vertex on the vertex map
+			vec3 tmp=adj[i]-gl_in[l].gl_Position.xyz;
 			etmp=max(etmp,abs(dot(gs_out_normal,normalize(tmp))));
 		}
 
