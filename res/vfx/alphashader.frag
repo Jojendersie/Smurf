@@ -6,10 +6,10 @@ uniform float k;//constant: height_of_the_prism*number_of_particles*constant
 uniform vec3 fragColor;
 uniform vec2 viewPort;
 
-smooth in vec4 gs_out_worldPos;
-smooth in vec3 gs_out_normal;
+in vec4 gs_out_worldPos;
+in vec3 gs_out_normal;
 in float gs_out_alphaTime;
-smooth in float gs_out_alphaCurvature;
+in float gs_out_alphaCurvature;
 in float gs_out_alphaShape;
 in float gs_out_area;
 
@@ -26,13 +26,12 @@ void main()
 	//tmp=invProjectionView*vec4(tmp.xyzw);
 	//tmp.xyz/tmp.w;
 
-	vec3 viewRay=gs_out_worldPos.xyz-eyePos;
-	viewRay/=sqrt(dot(viewRay,viewRay));
+	vec3 viewRay=normalize(gs_out_worldPos.xyz-eyePos);
 
 	float gamma=dot(gs_out_normal,viewRay);///(sqrt(dot(gs_out_normal,gs_out_normal))*sqrt(dot(viewRay,viewRay)));
 
 	float alphaDensity=clamp(k/(gs_out_area*gamma),0.0,1.0);
 	float alphaFade=clamp(1.0-gs_out_alphaTime,0.0,1.0);
 
-	fs_out_Color=vec4(fragColor,alphaFade/*alphaDensity*alphaFade*gs_out_alphaShape*gs_out_alphaCurvature*/);
+	fs_out_Color=vec4(fragColor,alphaDensity*alphaFade*gs_out_alphaShape/*alphaDensity*alphaFade*gs_out_alphaShape*gs_out_alphaCurvature*/);
 }

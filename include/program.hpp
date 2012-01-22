@@ -81,6 +81,7 @@ private:
 	CudaManager cudamanager;
 	GLShader* flatShader;
 	GLShader* alphaShader;
+	GLShader* testShader;
 	SFCamera* camera;
 	GLuint m_uiFrameCount;
 	AmiraMesh m_VectorField;

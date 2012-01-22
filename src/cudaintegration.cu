@@ -124,10 +124,6 @@ __global__ void IntegrateVectorField(float *Vector_Field, float3 *posptr, unsign
 extern "C" void integrateVectorFieldGPU(float* fVectorField, float3 *posptr, unsigned int uiElementSize, unsigned int uiGridSize, 
 										unsigned int uiBlockSize, uint3 sizeField, uint3 rnd, float3 bbMin, float3 posGridOff, int resetcolumn, int rows, float stepsize, unsigned int bitmask)
 {
-	dim3 BlockSize;
-	BlockSize.x=uiBlockSize;
-	dim3 GridSize;
-	GridSize.x=uiGridSize;
 	IntegrateVectorField<<<uiGridSize,uiBlockSize>>>(fVectorField, posptr,uiElementSize,sizeField,rnd,bbMin,posGridOff,resetcolumn,rows,stepsize,bitmask);
 }
 
@@ -136,7 +132,7 @@ __global__ void ResetColumn(float3* posptr, float3 bbMin, float3 bbMax, int rows
 {
 
 	for(int i=0;i<rows;i++)
-		posptr[resetColumn*rows+i]=lerp(bbMax,bbMin,i/float(rows));
+		posptr[resetColumn*rows+i]=lerp(bbMax,bbMin,i/float(rows-1));
 }
 
 extern "C" void resetOldColumn(float3* posptr, float3 bbMin, float3 bbMax, int columns, int rows, int resetColumn)

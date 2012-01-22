@@ -152,21 +152,25 @@ void Program::Initialize() {
 
 	camera = new SFCamera();
 	camera->SetZNear(0.01f);
+
 	// load test shader
 	flatShader = new GLShader(graphics);
-	//flatShader->CreateStandardUniforms(GLShader::SUSET_PROJECTION_VIEW_MODEL);
 	flatShader->CreateShaderProgram("res/vfx/flat_vert.glsl", "res/vfx/flat_frag.glsl", 0, 1, GLGraphics::ASLOT_POSITION, "in_Position");
 	flatShader->CreateAdvancedUniforms(1,"ProjectionView");
 
 	alphaShader = new GLShader(graphics);
-	alphaShader->CreateShaderProgram("res/vfx/test.vert", "res/vfx/test.frag", "res/vfx/test.geom",1,GLGraphics::ASLOT_POSITION,"in_Indices");
+	alphaShader->CreateShaderProgram("res/vfx/alphashader.vert", "res/vfx/alphashader.frag", "res/vfx/alphashader.geom",1,GLGraphics::ASLOT_POSITION,"in_Indices");
 	alphaShader->CreateAdvancedUniforms(11,"b","ProjectionView","currentColumn","shapeStrength","invProjectionView","eyePos","k","maxColumns","maxRows","viewPort","fragColor");
 	texLoc = glGetUniformLocation(alphaShader->GetShaderProgramm(),"adjTex");
 	alphaShader->Use();
 	glUniform1i(texLoc, 0);
 
-	//int numColums=m_pSmokeSurface->GetNumColums();
-	//int numRows=m_pSmokeSurface->GetNumRows();
+	testShader = new GLShader(graphics);
+	testShader->CreateShaderProgram("res/vfx/test.vert", "res/vfx/test.frag", 0,1,GLGraphics::ASLOT_POSITION,"in_Indices");
+	testShader->CreateAdvancedUniforms(1,"ProjectionView");
+	texLoc = glGetUniformLocation(testShader->GetShaderProgramm(),"adjTex");
+	testShader->Use();
+	glUniform1i(texLoc, 0);
 
 	// load vector field
 	m_VectorField.Load("res\\data\\BubbleChamber_11x11x10_T0.am");
@@ -181,7 +185,7 @@ void Program::Initialize() {
 	cudamanager.AllocateMemory(size,m_pSmokeSurface->GetNumVertices());
 	cudamanager.SetVectorField(m_VectorField.GetData(),m_VectorField.GetBoundingBoxMax(),m_VectorField.GetBoundingBoxMin());
 	GLuint tmpPBO=m_pSmokeSurface->GetPBO();
-	cudamanager.RegisterVertices(&tmpPBO,1000,20);
+	cudamanager.RegisterVertices(&tmpPBO,Globals::RENDER_SMURF_COLUMS,Globals::RENDER_SMURF_ROWS);
 }
 
 
@@ -198,17 +202,24 @@ void Program::Update() {
 
 	if(m_uiFrameCount++ % Globals::PROGRAM_FRAMES_PER_RELEASE == 0)
 	{
-		//m_pSmokeSurface->ReleaseNextColumn();
-		cudamanager.ReleaseNextColumn();
+		if(Globals::RENDER_CPU_CMOKE) 
+			m_pSmokeSurface->ReleaseNextColumn();
+		else
+			cudamanager.ReleaseNextColumn();
 	}
 
-	/*m_pSmokeSurface->IntegrateCPU(&m_VectorField, 10.01f,
-		  (m_bUseAdvancedEuler	?AmiraMesh::INTEGRATION_MODEULER		: AmiraMesh::INTEGRATION_EULER)
-		| (m_bUseLinearFilter	?AmiraMesh::INTEGRATION_FILTER_LINEAR	: AmiraMesh::INTEGRATION_FILTER_POINT)
-		| (m_bNoisyIntegration	?AmiraMesh::INTEGRATION_NOISE			: 0));*/
-
-	cudamanager.Integrate(0.5f,CudaManager::INTEGRATION_MODEULER|CudaManager::INTEGRATION_FILTER_POINT);
+	if(Globals::RENDER_CPU_CMOKE)
+	{
+		m_pSmokeSurface->IntegrateCPU(&m_VectorField, 10.01f,
+			  (m_bUseAdvancedEuler	?AmiraMesh::INTEGRATION_MODEULER		: AmiraMesh::INTEGRATION_EULER)
+			| (m_bUseLinearFilter	?AmiraMesh::INTEGRATION_FILTER_LINEAR	: AmiraMesh::INTEGRATION_FILTER_POINT)
+			| (m_bNoisyIntegration	?AmiraMesh::INTEGRATION_NOISE			: 0));
+	}
+	else
+	{
+		cudamanager.Integrate(0.5f,CudaManager::INTEGRATION_MODEULER|CudaManager::INTEGRATION_FILTER_POINT);
 	//cudamanager.Integrate(0.5f,CudaManager::INTEGRATION_MODEULER|CudaManager::INTEGRATION_FILTER_LINEAR|CudaManager::INTEGRATION_RANDOM);
+	}
 
 	if(m_bCloseRequest)
 		cudamanager.Clear();
@@ -221,25 +232,26 @@ void Program::Draw() {
 	// all draw code goes here
 	// set Camera
 
-	glBindBuffer(GL_PIXEL_UNPACK_BUFFER,m_pSmokeSurface->GetPBO());
-	glBindTexture(GL_TEXTURE_2D,m_pSmokeSurface->GetVertexMap());
-		glTexImage2D(GL_TEXTURE_2D,	// Target
-		0,						// Mip-Level
-		GL_RGB32F,				// Internal format
-		m_pSmokeSurface->GetNumRows(),	// Width
-		m_pSmokeSurface->GetNumColums(),// Height
-		0,						// Border
-		GL_RGB,					// Format
-		GL_FLOAT,				// Type
-		NULL);					// Data
-	glBindTexture(GL_TEXTURE_2D,0);
-	glBindBuffer(GL_PIXEL_UNPACK_BUFFER,0);	
+	if(!Globals::RENDER_CPU_CMOKE)
+	{
+		glBindBuffer(GL_PIXEL_UNPACK_BUFFER,m_pSmokeSurface->GetPBO());
+		glBindTexture(GL_TEXTURE_2D,m_pSmokeSurface->GetVertexMap());
+			glTexImage2D(GL_TEXTURE_2D,	// Target
+			0,						// Mip-Level
+			GL_RGB32F,				// Internal format
+			m_pSmokeSurface->GetNumRows(),	// Width
+			m_pSmokeSurface->GetNumColums(),// Height
+			0,						// Border
+			GL_RGB,					// Format
+			GL_FLOAT,				// Type
+			NULL);					// Data
+		glBindTexture(GL_TEXTURE_2D,0);
+		glBindBuffer(GL_PIXEL_UNPACK_BUFFER,0);	
+	}
 
 	graphics->ClearBuffers();
 
 	flatShader->Use();
-	//flatShader->SetStandardUniform(GLShader::SUTYPE_MATRIX4_VIEW, &(camera->GetView())[0][0]);
-	//flatShader->SetStandardUniform(GLShader::SUTYPE_MATRIX4_PROJECTION, &(camera->GetProjection())[0][0]);
 	flatShader->SetAdvancedUniform(GLShader::AUTYPE_MATRIX4,0,&(camera->GetProjection()*camera->GetView())[0][0]);
 
 	m_pSolidSurface->Render();
@@ -270,12 +282,14 @@ void Program::Draw() {
 	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_VECTOR2, 9,&viewPort[0]);
 	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_VECTOR3,10,Globals::SMOKE_COLOR);
 
+	//testShader->Use();
+	testShader->SetAdvancedUniform(GLShader::AUTYPE_MATRIX4,0,&(camera->GetProjection()*camera->GetView())[0][0]);
+
 	//Drawing geometry here
 	m_pSmokeSurface->Render();
 	
 	alphaShader->UseNoShaderProgram();
 	glBindTexture(GL_TEXTURE_2D,0);
-	//alphaShader->UseNoShaderProgram();
 
 	//const GLenum ErrorValue = glGetError();
 	//int tmp=0;

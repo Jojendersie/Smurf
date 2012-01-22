@@ -18,50 +18,15 @@ uniform sampler2D adjTex;
 in vec2[] vs_out_Indices;
 in float[] vs_out_alphaTime;
 
-smooth out vec4 gs_out_worldPos;
-smooth out vec3 gs_out_normal;
+out vec4 gs_out_worldPos;
+out vec3 gs_out_normal;
 out float gs_out_alphaTime;
-smooth out float gs_out_alphaCurvature;
+out float gs_out_alphaCurvature;
 out float gs_out_alphaShape;
 out float gs_out_area;
 
 void main()
 {	
-	//////////////////////NORMAL/////////////////////////////////////////////
-	vec3 normaltmp;
-	normaltmp=cross(gl_in[0].gl_Position.xyz,gl_in[1].gl_Position.xyz);
-	normaltmp=normaltmp/sqrt(dot(normaltmp,normaltmp));
-	if(dot(gl_in[0].gl_Position.xyz-eyePos,normaltmp)<0)
-		normaltmp*=-1;
-
-	////////////////////////AREA////////////////////////////
-	float l[3],s;
-	l[0]=sqrt(dot(gl_in[0].gl_Position,gl_in[0].gl_Position));
-	l[1]=sqrt(dot(gl_in[1].gl_Position,gl_in[1].gl_Position));
-	l[2]=sqrt(dot(gl_in[2].gl_Position,gl_in[2].gl_Position));
-
-	s=(l[0]+l[1]+l[2])*0.5;
-
-	float areatmp=sqrt(s*(s-l[0])*(s-l[1])*(s-l[2]));
-
-	///////////////ALPHASHAPE/////////////////////////////////
-	vec3 vtmp;
-	vec3 d;
-	vtmp=gl_in[2].gl_Position.xyz-gl_in[1].gl_Position.xyz;
-	d.x=sqrt(dot(vtmp,vtmp));
-	
-	vtmp=gl_in[0].gl_Position.xyz-gl_in[2].gl_Position.xyz;
-	d.y=sqrt(dot(vtmp,vtmp));
-
-	vtmp=gl_in[1].gl_Position.xyz-gl_in[0].gl_Position.xyz;
-	d.z=sqrt(dot(vtmp,vtmp));
-
-	float dmax=max(d.x*d.y,max(d.y*d.z,d.z*d.x));
-
-	float shapetmp=clamp(pow((4.0*gs_out_area)/(ROOT3*dmax),shapeStrength),0.0,1.0);
-
-
-	///////////////////////////ALPHACURVATURE//////////////////////////////////////
 	vec3 adj[6];
 	vec2 indices[3];
 	vec2 indexStride;
@@ -69,13 +34,34 @@ void main()
 	indexStride.y=1.0/maxColumns;
 	for(int l=0;l<maxv;l++)
 	{
-		//////////////SET THE OUTPUT VALUES FOR EVERY VERTEX AGAIN//////////////
-		gs_out_normal=normaltmp;
-		gs_out_alphaTime=vs_out_alphaTime[l];
-		gs_out_alphaShape=shapetmp;
-		gs_out_area=areatmp;
-		///////////////////////////////////////////////////////////////////////
+		//////////////////////NORMAL/////////////////////////////////////////////
+		gs_out_normal=normalize(cross(gl_in[0].gl_Position.xyz,gl_in[1].gl_Position.xyz));
+		if(dot(gl_in[0].gl_Position.xyz-eyePos,gs_out_normal)<0)
+			gs_out_normal*=-1;
 
+		////////////////////////AREA////////////////////////////
+		float lengths[3],s;
+		lengths[0]=length(gl_in[0].gl_Position.xyz);
+		lengths[1]=length(gl_in[1].gl_Position.xyz);
+		lengths[2]=length(gl_in[2].gl_Position.xyz);
+
+		s=(lengths[0]+lengths[1]+lengths[2])*0.5;
+
+		gs_out_area=sqrt(s*(s-lengths[0])*(s-lengths[1])*(s-lengths[2]));
+
+		///////////////ALPHASHAPE/////////////////////////////////
+		vec3 d;
+		d.x=length(gl_in[2].gl_Position.xyz-gl_in[1].gl_Position.xyz);
+		d.y=length(gl_in[0].gl_Position.xyz-gl_in[2].gl_Position.xyz);
+		d.z=length(gl_in[1].gl_Position.xyz-gl_in[0].gl_Position.xyz);
+		float dmax=max(d.x*d.y,max(d.y*d.z,d.z*d.x));
+
+		gs_out_alphaShape=clamp(pow((4.0*gs_out_area)/(ROOT3*dmax),shapeStrength),0.0,1.0);
+
+		/////////////////////////////ALPHATIME////////////////////////////////////////
+		gs_out_alphaTime=vs_out_alphaTime[l];
+
+		///////////////////////////ALPHACURVATURE//////////////////////////////////////
 		indices[l]=vs_out_Indices[l];
 
 		indices[l].x-=indexStride.x;
@@ -98,29 +84,22 @@ void main()
 		indices[l].x=vs_out_Indices[l].x;
 		adj[5]=texture(adjTex,indices[l]).xyz;
 
-		float etmp=0,e=0;
+		float etmp=0;
 		int j=0;
 		for(int i=0;i<6;i++)
 		{
 			vec3 tmp=adj[i]-gl_in[l].gl_Position.xyz;//index must be changed to access the right adjacent vertex on the vertex map
-			etmp=abs(dot(gs_out_normal,tmp/dot(tmp,tmp)));//precalculation saves 5 square roots for one extra calculation, i bet it's worth it
-			if(e<etmp)
-			{
-				e=etmp;
-				j=i;
-			}
+			etmp=max(etmp,abs(dot(gs_out_normal,normalize(tmp))));
 		}
 
-		vec3 tmp=adj[j]-gl_in[l].gl_Position.xyz;
-		gs_out_alphaCurvature==clamp(1.0-b*abs(dot(gs_out_normal,tmp/sqrt(dot(tmp,tmp)))),0.0,1.0);
+		gs_out_alphaCurvature==clamp(1.0-b*etmp,0.0,1.0);
 
 		/////////////////////////////POSITIONS////////////////////////////////////////
-		gs_out_worldPos=ProjectionView*gl_in[l].gl_Position;
-		//gs_out_worldPos[l].xyz/gs_out_worldPos[l].w;
+		gs_out_worldPos=gl_in[l].gl_Position;;
+		//gs_out_worldPos[l].xyz/=gs_out_worldPos[l].w;
 		gl_Position=ProjectionView*gl_in[l].gl_Position;
 
 		EmitVertex();
 	}
-
 	EndPrimitive();
 }
