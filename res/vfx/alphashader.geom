@@ -11,8 +11,8 @@ uniform mat4 ProjectionView;
 uniform vec3 eyePos;
 uniform float b;
 uniform float shapeStrength;
-uniform float maxColumns;
-uniform float maxRows;
+uniform float rowStride;
+uniform float columnStride;
 uniform sampler2D adjTex;
 
 in vec2[] vs_out_Indices;
@@ -29,14 +29,11 @@ void main()
 {	
 	vec3 adj[6];
 	vec2 indices[3];
-	vec2 indexStride;
-	indexStride.x=1.0/maxRows;
-	indexStride.y=1.0/maxColumns;
 	for(int l=0;l<maxv;l++)
 	{
 		//////////////////////NORMAL/////////////////////////////////////////////
-		gs_out_normal=normalize(cross(gl_in[0].gl_Position.xyz,gl_in[1].gl_Position.xyz));
-		if(dot(gl_in[0].gl_Position.xyz-eyePos,gs_out_normal)<0)
+		gs_out_normal=cross(gl_in[0].gl_Position.xyz,gl_in[1].gl_Position.xyz);
+		if(dot(gl_in[0].gl_Position.xyz-eyePos,gs_out_normal)<=0)
 			gs_out_normal*=-1;
 
 		////////////////////////AREA////////////////////////////
@@ -64,21 +61,21 @@ void main()
 		///////////////////////////ALPHACURVATURE//////////////////////////////////////
 		indices[l]=vs_out_Indices[l];
 
-		indices[l].x-=indexStride.x;
+		indices[l].x-=rowStride;
 		adj[0]=texture(adjTex,indices[l]).xyz;
 
-		indices[l].y-=indexStride.y;
+		indices[l].y-=columnStride;
 		adj[1]=texture(adjTex,indices[l]).xyz;
 
 		indices[l].x=vs_out_Indices[l].x;
 		adj[2]=texture(adjTex,indices[l]).xyz;
 
 		indices[l].y=vs_out_Indices[l].y;
-		indices[l].x+=indexStride.x;
+		indices[l].x+=rowStride;
 		adj[3]=texture(adjTex,indices[l]).xyz;
 
-		indices[l].y+=indexStride.y;
-		indices[l].x+=indexStride.x;
+		indices[l].y+=columnStride;
+		indices[l].x+=rowStride;
 		adj[4]=texture(adjTex,indices[l]).xyz;
 
 		indices[l].x=vs_out_Indices[l].x;
@@ -89,10 +86,10 @@ void main()
 		for(int i=0;i<6;i++)
 		{
 			vec3 tmp=adj[i]-gl_in[l].gl_Position.xyz;
-			etmp=max(etmp,abs(dot(gs_out_normal,normalize(tmp))));
+			etmp=max(etmp,abs(dot(normalize(gs_out_normal),normalize(tmp))));
 		}
 
-		gs_out_alphaCurvature==clamp(1.0-b*etmp,0.0,1.0);
+		gs_out_alphaCurvature=clamp(1.0-b*etmp,0.0,1.0);
 
 		/////////////////////////////POSITIONS////////////////////////////////////////
 		gs_out_worldPos=gl_in[l].gl_Position;;

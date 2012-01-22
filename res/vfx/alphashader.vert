@@ -2,7 +2,6 @@
 
 uniform sampler2D adjTex;
 uniform float currentColumn;
-uniform float maxColumns;
 
 in vec2 in_Indices;
 
@@ -11,7 +10,7 @@ out float vs_out_alphaTime;
 
 void main()
 {
-	vec3 Pos=texture(adjTex,in_Indices).xyz;
+	vec3 Pos=texture(adjTex,in_Indices.xy).xyz;
 	gl_Position=vec4(Pos,1);
 
 	vs_out_Indices=in_Indices;

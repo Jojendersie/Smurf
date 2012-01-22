@@ -26,12 +26,12 @@ void main()
 	//tmp=invProjectionView*vec4(tmp.xyzw);
 	//tmp.xyz/tmp.w;
 
-	vec3 viewRay=normalize(gs_out_worldPos.xyz-eyePos);
+	vec3 viewRay=gs_out_worldPos.xyz-eyePos;
 
-	float gamma=dot(gs_out_normal,viewRay);///(sqrt(dot(gs_out_normal,gs_out_normal))*sqrt(dot(viewRay,viewRay)));
+	float gamma=dot(gs_out_normal,viewRay)/(length(gs_out_normal)*length(viewRay));///(sqrt(dot(gs_out_normal,gs_out_normal))*sqrt(dot(viewRay,viewRay)));
 
 	float alphaDensity=clamp(k/(gs_out_area*gamma),0.0,1.0);
 	float alphaFade=clamp(1.0-gs_out_alphaTime,0.0,1.0);
 
-	fs_out_Color=vec4(fragColor,gs_out_alphaCurvature/*alphaDensity*alphaFade*gs_out_alphaShape*gs_out_alphaCurvature*/);
+	fs_out_Color=vec4(fragColor,alphaDensity*alphaFade*gs_out_alphaShape*gs_out_alphaCurvature);
 }

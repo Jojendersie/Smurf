@@ -54,9 +54,9 @@ namespace Globals {
 	const unsigned short RENDER_ANTIALIASING_LEVEL = 4;
 	const unsigned short RENDER_FRAMERATE_MAX = 120;
 	const unsigned short RENDER_SMURF_COLUMS = 1000;
-	const unsigned short RENDER_SMURF_ROWS = 5;
-	const float RENDER_SMURF_STEPSIZE = 0.05f;
-	const bool RENDER_CPU_CMOKE = true;
+	const unsigned short RENDER_SMURF_ROWS = 50;
+	const float RENDER_SMURF_STEPSIZE = 0.5f;
+	const bool RENDER_CPU_CMOKE = false;
 	const bool RENDER_FULLSCREEN = false;
 	const bool RENDER_VSYNC = true;
 
@@ -84,13 +84,13 @@ namespace Globals {
 
 	// Smoke Properties
 	////////////////////////////////////////////////////////////////////////////////
-	const unsigned int SMOKE_PARTICLE_NUMBER=100;
-	const float SMOKE_PRISM_THICKNESS=0.002f;
-	const float SMOKE_DENSTY_CONSTANT=0.5f;
-	const float SMOKE_SHAPE_CONSTANT=3.0f;
+	const unsigned int SMOKE_PARTICLE_NUMBER=10;
+	const float SMOKE_PRISM_THICKNESS=0.0001f;
+	const float SMOKE_DENSITY_CONSTANT=0.5f;
+	const float SMOKE_SHAPE_CONSTANT=5.0f;
 	const float SMOKE_CURVATURE_CONSTANT=2.0f;
 	const float SMOKE_COLOR[]={0.1f,0.1f,0.9f};
-	const float SMOKE_DENSITY_CONSTANT_K=SMOKE_PARTICLE_NUMBER*SMOKE_DENSTY_CONSTANT*SMOKE_PRISM_THICKNESS;
+	const float SMOKE_DENSITY_CONSTANT_K=SMOKE_PARTICLE_NUMBER*SMOKE_DENSITY_CONSTANT*SMOKE_PRISM_THICKNESS;
 }
 
 
