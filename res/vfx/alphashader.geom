@@ -1,11 +1,14 @@
 
 #version 330
+#define maxv 3
 
 layout(triangles) in;
-layout(triangle_strip, max_vertices = 3) out;
+layout(triangle_strip, max_vertices = maxv) out;
 
 #define ROOT3 1.7320508075689
 
+uniform mat4 ProjectionView;
+uniform vec3 eyePos;
 uniform float b;
 uniform float shapeStrength;
 uniform float maxColumns;
@@ -15,28 +18,23 @@ uniform sampler2D adjTex;
 in vec2[] vs_out_Indices;
 in float[] vs_out_alphaTime;
 
-out vec3 gs_out_normal;
-out float[] gs_out_alphaTime;//not 'flat' because of interpolation between the time of diffrent vertices for a smoother transparency in the fragemnt shader
-out float gs_out_alphaCurvature[3];
-flat out float gs_out_alphaShape;
-flat out float gs_out_area;
+smooth out vec4 gs_out_worldPos;
+smooth out vec3 gs_out_normal;
+out float gs_out_alphaTime;
+smooth out float gs_out_alphaCurvature;
+out float gs_out_alphaShape;
+out float gs_out_area;
 
 void main()
-{
-	gl_Position=gl_in[0].gl_Position;
-	EmitVertex();
-	gl_Position=gl_in[1].gl_Position;
-	EmitVertex();
-	gl_Position=gl_in[2].gl_Position;
-	EmitVertex();
-	EndPrimitive();
+{	
+	//////////////////////NORMAL/////////////////////////////////////////////
+	vec3 normaltmp;
+	normaltmp=cross(gl_in[0].gl_Position.xyz,gl_in[1].gl_Position.xyz);
+	normaltmp=normaltmp/sqrt(dot(normaltmp,normaltmp));
+	if(dot(gl_in[0].gl_Position.xyz-eyePos,normaltmp)<0)
+		normaltmp*=-1;
 
-	gs_out_normal=cross(gl_in[0].gl_Position.xyz,gl_in[1].gl_Position.xyz);
-
-	gs_out_alphaTime[0]=vs_out_alphaTime[0];//durchreichen zum fragmentshader
-	gs_out_alphaTime[1]=vs_out_alphaTime[1];
-	gs_out_alphaTime[2]=vs_out_alphaTime[2];
-
+	////////////////////////AREA////////////////////////////
 	float l[3],s;
 	l[0]=sqrt(dot(gl_in[0].gl_Position,gl_in[0].gl_Position));
 	l[1]=sqrt(dot(gl_in[1].gl_Position,gl_in[1].gl_Position));
@@ -44,30 +42,40 @@ void main()
 
 	s=(l[0]+l[1]+l[2])*0.5;
 
-	float gs_out_area=sqrt(s*(s-l[0])*(s-l[1])*(s-l[2]));
+	float areatmp=sqrt(s*(s-l[0])*(s-l[1])*(s-l[2]));
 
+	///////////////ALPHASHAPE/////////////////////////////////
 	vec3 vtmp;
-	float d[3];
+	vec3 d;
 	vtmp=gl_in[2].gl_Position.xyz-gl_in[1].gl_Position.xyz;
-	d[0]=dot(vtmp,vtmp);
+	d.x=sqrt(dot(vtmp,vtmp));
 	
 	vtmp=gl_in[0].gl_Position.xyz-gl_in[2].gl_Position.xyz;
-	d[1]=dot(vtmp,vtmp);
+	d.y=sqrt(dot(vtmp,vtmp));
 
 	vtmp=gl_in[1].gl_Position.xyz-gl_in[0].gl_Position.xyz;
-	d[2]=dot(vtmp,vtmp);
+	d.z=sqrt(dot(vtmp,vtmp));
 
-	float dmax=sqrt(max(d[0],max(d[1],d[2])));
+	float dmax=max(d.x*d.y,max(d.y*d.z,d.z*d.x));
 
-	gs_out_alphaShape=clamp(pow((4.0*gs_out_area)/(ROOT3*dmax),shapeStrength),0.0,1.0);
+	float shapetmp=clamp(pow((4.0*gs_out_area)/(ROOT3*dmax),shapeStrength),0.0,1.0);
 
+
+	///////////////////////////ALPHACURVATURE//////////////////////////////////////
 	vec3 adj[6];
 	vec2 indices[3];
 	vec2 indexStride;
 	indexStride.x=1.0/maxRows;
 	indexStride.y=1.0/maxColumns;
-	for(int l=0;l<3;l++)
+	for(int l=0;l<maxv;l++)
 	{
+		//////////////SET THE OUTPUT VALUES FOR EVERY VERTEX AGAIN//////////////
+		gs_out_normal=normaltmp;
+		gs_out_alphaTime=vs_out_alphaTime[l];
+		gs_out_alphaShape=shapetmp;
+		gs_out_area=areatmp;
+		///////////////////////////////////////////////////////////////////////
+
 		indices[l]=vs_out_Indices[l];
 
 		indices[l].x-=indexStride.x;
@@ -104,6 +112,15 @@ void main()
 		}
 
 		vec3 tmp=adj[j]-gl_in[l].gl_Position.xyz;
-		gs_out_alphaCurvature[l]=clamp(1.0-b*abs(dot(gs_out_normal,tmp/sqrt(dot(tmp,tmp)))),0.0,1.0);
+		gs_out_alphaCurvature==clamp(1.0-b*abs(dot(gs_out_normal,tmp/sqrt(dot(tmp,tmp)))),0.0,1.0);
+
+		/////////////////////////////POSITIONS////////////////////////////////////////
+		gs_out_worldPos=ProjectionView*gl_in[l].gl_Position;
+		//gs_out_worldPos[l].xyz/gs_out_worldPos[l].w;
+		gl_Position=ProjectionView*gl_in[l].gl_Position;
+
+		EmitVertex();
 	}
+
+	EndPrimitive();
 }

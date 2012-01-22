@@ -79,8 +79,6 @@ private:
 	GLGraphics* graphics;
 	GLint texLoc;
 	CudaManager cudamanager;
-	GLShader* vertexmapShader;
-	GLShader* testShader;
 	GLShader* flatShader;
 	GLShader* alphaShader;
 	SFCamera* camera;

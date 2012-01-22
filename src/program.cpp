@@ -76,7 +76,6 @@ Program::~Program() {
 	delete flatShader;
 	delete alphaShader;
 	delete graphics;
-	delete testShader;
 }
 
 
@@ -160,17 +159,10 @@ void Program::Initialize() {
 	flatShader->CreateAdvancedUniforms(1,"ProjectionView");
 
 	alphaShader = new GLShader(graphics);
-	//alphaShader->CreateShaderProgram("res/vfx/alphashader.vert", "res/vfx/alphashader.frag", "res/vfx/alphashader.geom",2,GLGraphics::ASLOT_POSITION,"in_Pos",GLGraphics::ASLOT_TEXCOORD0,"in_Indices");
-	//alphaShader->CreateAdvancedUniforms(10,"b","ProjectionView","currentColumn","shapeStrength","invProjectionView","eyePos","k","maxColumns","maxRows","fragColor");
-	//texLoc = glGetUniformLocation(alphaShader->GetShaderProgramm(),"adjTex");
-	//glUseProgram(alphaShader->GetShaderProgramm());
-	//glUniform1i(texLoc, 0);
-
-	testShader = new GLShader(graphics);
-	testShader->CreateShaderProgram("res/vfx/test.vert", "res/vfx/test.frag", "res/vfx/test.geom",1,GLGraphics::ASLOT_POSITION,"in_Indices");
-	testShader->CreateAdvancedUniforms(11,"b","ProjectionView","currentColumn","shapeStrength","invProjectionView","eyePos","k","maxColumns","maxRows","viewPort","fragColor");
-	texLoc = glGetUniformLocation(testShader->GetShaderProgramm(),"adjTex");
-	testShader->Use();
+	alphaShader->CreateShaderProgram("res/vfx/test.vert", "res/vfx/test.frag", "res/vfx/test.geom",1,GLGraphics::ASLOT_POSITION,"in_Indices");
+	alphaShader->CreateAdvancedUniforms(11,"b","ProjectionView","currentColumn","shapeStrength","invProjectionView","eyePos","k","maxColumns","maxRows","viewPort","fragColor");
+	texLoc = glGetUniformLocation(alphaShader->GetShaderProgramm(),"adjTex");
+	alphaShader->Use();
 	glUniform1i(texLoc, 0);
 
 	//int numColums=m_pSmokeSurface->GetNumColums();
@@ -260,12 +252,12 @@ void Program::Draw() {
 	float tmp=pix[4*3+0];
 	glBindTexture(GL_TEXTURE_2D,0);*/
 
-	//glActiveTexture(GL_TEXTURE0);
-	/*glBindTexture(GL_TEXTURE_2D,m_pSmokeSurface->GetVertexMap());
+	glBindTexture(GL_TEXTURE_2D,m_pSmokeSurface->GetVertexMap());
 	alphaShader->Use();
-	float fCurrentColumn = ((m_pSmokeSurface->GetLastReleasedColumn()+m_uiFrameCount%Globals::PROGRAM_FRAMES_PER_RELEASE)%m_pSmokeSurface->GetNumColums())/m_pSmokeSurface->GetNumColums();
+	float fCurrentColumn = float(cudamanager.GetLastReleasedColumn()%cudamanager.GetNumColumns()+float(m_uiFrameCount%Globals::PROGRAM_FRAMES_PER_RELEASE)/Globals::PROGRAM_FRAMES_PER_RELEASE)/cudamanager.GetNumColumns();
 	float fmaxColumns=m_pSmokeSurface->GetNumColums();
 	float fmaxRows=m_pSmokeSurface->GetNumRows();
+	glm::vec2 viewPort = glm::vec2(Globals::RENDER_VIEWPORT_WIDTH,Globals::RENDER_VIEWPORT_HEIGHT);
 	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 0,&Globals::SMOKE_CURVATURE_CONSTANT);
 	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_MATRIX4,1,&(camera->GetProjection()*camera->GetView())[0][0]);
 	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 2,&fCurrentColumn);
@@ -275,30 +267,13 @@ void Program::Draw() {
 	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 6,&Globals::SMOKE_DENSITY_CONSTANT_K);
 	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 7,&fmaxColumns);
 	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 8,&fmaxRows);
-	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_VECTOR3,9,Globals::SMOKE_COLOR);*/
-
-	glBindTexture(GL_TEXTURE_2D,m_pSmokeSurface->GetVertexMap());
-	testShader->Use();
-	float fCurrentColumn = float(cudamanager.GetLastReleasedColumn()%cudamanager.GetNumColumns()+float(m_uiFrameCount%Globals::PROGRAM_FRAMES_PER_RELEASE)/Globals::PROGRAM_FRAMES_PER_RELEASE)/cudamanager.GetNumColumns();
-	float fmaxColumns=m_pSmokeSurface->GetNumColums();
-	float fmaxRows=m_pSmokeSurface->GetNumRows();
-	glm::vec2 viewPort = glm::vec2(Globals::RENDER_VIEWPORT_WIDTH,Globals::RENDER_VIEWPORT_HEIGHT);
-	testShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 0,&Globals::SMOKE_CURVATURE_CONSTANT);
-	testShader->SetAdvancedUniform(GLShader::AUTYPE_MATRIX4,1,&(camera->GetProjection()*camera->GetView())[0][0]);
-	testShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 2,&fCurrentColumn);
-	testShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 3,&Globals::SMOKE_SHAPE_CONSTANT);
-	testShader->SetAdvancedUniform(GLShader::AUTYPE_MATRIX4,4,&(camera->GetProjection()*camera->GetView())._inverse()[0][0]);
-	testShader->SetAdvancedUniform(GLShader::AUTYPE_VECTOR3,5,&camera->GetPosition()[0]);
-	testShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 6,&Globals::SMOKE_DENSITY_CONSTANT_K);
-	testShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 7,&fmaxColumns);
-	testShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 8,&fmaxRows);
-	testShader->SetAdvancedUniform(GLShader::AUTYPE_VECTOR2, 9,&viewPort[0]);
-	testShader->SetAdvancedUniform(GLShader::AUTYPE_VECTOR3,10,Globals::SMOKE_COLOR);
+	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_VECTOR2, 9,&viewPort[0]);
+	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_VECTOR3,10,Globals::SMOKE_COLOR);
 
 	//Drawing geometry here
 	m_pSmokeSurface->Render();
 	
-	testShader->UseNoShaderProgram();
+	alphaShader->UseNoShaderProgram();
 	glBindTexture(GL_TEXTURE_2D,0);
 	//alphaShader->UseNoShaderProgram();
 
