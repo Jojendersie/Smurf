@@ -602,7 +602,7 @@ SolidSurface::SolidSurface(AmiraMesh* _pMesh, int _iTriangles)
 finishcreation:
 	// Go through all vertices and normalize the normals
 	for(int i=0; i<uiVertex; ++i)
-		pVertexData[i].vNormal = glm::normalize( pVertexData[i].vNormal );
+		pVertexData[i].vNormal = glm::normalize( pVertexData[i].vNormal );//glm::vec3(rand(), rand(), rand()) );//pVertexData[i].vNormal );
 
 	// Save for statistic and rendercall
 	m_iNumIndices = uiIndex;
@@ -618,7 +618,8 @@ finishcreation:
 	// Insert data and usage declaration
 	glVertexAttribPointer(GLGraphics::ASLOT_POSITION, 3, GL_FLOAT, GL_FALSE, sizeof(SolidVertex), 0);
 	glVertexAttribPointer(GLGraphics::ASLOT_NORMAL, 3, GL_FLOAT, GL_FALSE, sizeof(SolidVertex), (GLvoid*)(3 * sizeof(float)));
-	glEnableVertexAttribArray(0);
+	glEnableVertexAttribArray(GLGraphics::ASLOT_POSITION);
+	glEnableVertexAttribArray(GLGraphics::ASLOT_NORMAL);
 	// Insert triangulation
 	glGenBuffers(1, &m_uiIBO);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_uiIBO);

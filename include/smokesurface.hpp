@@ -65,7 +65,7 @@ public:
 	~SmokeSurface();
 
 	// Set the buffers and make the rendercall for the geometry
-	void Render();
+	void Render(bool _b);
 
 	// Sets the next column to the seed line and increase the number of columns
 	void ReleaseNextColumn();
@@ -77,13 +77,15 @@ public:
 	void IntegrateCPU(AmiraMesh* _pMesh, float _fStepSize, int _iMethod);
 
 	int GetVBO();
-	int GetNumColums();
+	int GetNumColumns();
 	int GetNumRows();
 	int GetNumVertices();
 	PositionVertex *GetPoints() {return m_pPositionMap;}
 	GLuint GetVertexMap()		{return m_uiVertexMap;}
 	GLuint GetPBO()				{return m_uiPBO;}
 	int GetLastReleasedColumn()	{return m_iNumReleasedColumns;}
+	glm::vec3 GetLineStart()	{return m_vStart;}
+	glm::vec3 GetLineEnd()		{return m_vEnd;}
 
 	// TODO @Martin see programm.cpp m_bInvalidSeedLine
 	// Dynamic movement of the seedline

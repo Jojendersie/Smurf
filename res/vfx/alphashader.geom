@@ -64,7 +64,7 @@ void main()
 		indices[l].x-=rowStride;
 		adj[0]=texture(adjTex,indices[l]).xyz;
 
-		indices[l].y-=columnStride;
+		indices[l].y+=columnStride;
 		adj[1]=texture(adjTex,indices[l]).xyz;
 
 		indices[l].x=vs_out_Indices[l].x;
@@ -74,7 +74,7 @@ void main()
 		indices[l].x+=rowStride;
 		adj[3]=texture(adjTex,indices[l]).xyz;
 
-		indices[l].y+=columnStride;
+		indices[l].y-=columnStride;
 		indices[l].x+=rowStride;
 		adj[4]=texture(adjTex,indices[l]).xyz;
 

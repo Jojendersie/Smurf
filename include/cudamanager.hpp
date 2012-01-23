@@ -29,21 +29,24 @@
 #include <glm/glm.hpp>
 #include <GL/glew.h>
 #include <cuda_gl_interop.h>
+class AmiraMesh;
+class SmokeSurface;
 
 class CudaManager
 {
 public:
-	CudaManager();
+	CudaManager(AmiraMesh *_VectorField);
 	~CudaManager();
 
-	void AllocateMemory(uint3 vSizeVectorField, unsigned int uiSizeVertices);
+	void AllocateMemory(unsigned int uiSizeVertices);
 
-	void SetVectorField(const float *VectorField, glm::vec3 bbMax, glm::vec3 bbMin);
+	void SetVectorField();
 	void RegisterVertices(GLuint *pbo, unsigned int columns, unsigned int rows);
 
 	void Integrate(float stepsize, unsigned int bitmask);
-	void ReleaseNextColumn();
+	void ReleaseNextColumn(SmokeSurface* _Surface);
 
+	void Reset(SmokeSurface* _Surface);
 	void Clear();
 
 	unsigned int GetLastReleasedColumn(){return releasedColumns;}
@@ -52,12 +55,6 @@ public:
 
 	void RandomInit(float *a, unsigned int uiSize);
 	void PrintResult(float *result, unsigned int uiSize);
-
-	static const int	INTEGRATION_FILTER_POINT	= 0x00000001;
-	static const int	INTEGRATION_FILTER_LINEAR	= 0x00000010;
-	static const int	INTEGRATION_RANDOM			= 0x00001000;
-	static const int	INTEGRATION_EULER			= 0x00010000;
-	static const int	INTEGRATION_MODEULER		= 0x00100000;
 
 private:
 
@@ -73,9 +70,10 @@ private:
 	
 	cudaGraphicsResource *posRes;
 	float *m_fDeviceVectorField;
-	uint3 m_vSizeField;
-	float3 bbMin,bbMax;
-	float3 posGridOff;
+//	uint3 m_vSizeField;
+//	float3 posGridOff;
+
+	AmiraMesh* m_pVectorField;
 
 	cudaDeviceProp cudaProp;
 	int device;

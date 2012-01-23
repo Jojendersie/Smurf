@@ -29,8 +29,8 @@ uniform mat4 ProjectionView;
 
 out vec4 out_Color;
 
-in vec3 gs_out_normal;
-in vec3 gs_out_worldPos;
+in vec3 out_vs_normal;
+in vec3 out_vs_worldPos;
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -43,10 +43,10 @@ void main() {
 	vec3 lightPos=vec3(3,5,-1);
 	float kAmbient=0.6f,kDiffuse=0.4f,kSpecular=0.8f,specPower=30.0,LightPower=10.8;;
 
-	vec3 rayView=normalize(gs_out_worldPos-eyePos);
-	vec3 rayLight=normalize(gs_out_worldPos-lightPos);
-	float diffuse=clamp(dot(rayLight,gs_out_normal),0,1);
-	float shine=clamp(dot(max(reflect(rayLight,gs_out_normal),0),rayView),0,1);
+	vec3 rayView=normalize(out_vs_worldPos-eyePos);
+	vec3 rayLight=normalize(out_vs_worldPos-lightPos);
+	float diffuse=clamp(dot(rayLight,out_vs_normal),0,1);
+	float shine=clamp(dot(max(reflect(rayLight,out_vs_normal),0),rayView),0,1);
 
 	float phongShade=max(diffuse*kDiffuse+pow(shine,specPower)*kSpecular*LightPower,0)+kAmbient;
 

@@ -28,17 +28,21 @@
 #include <stdio.h>
 #include <cuda_runtime.h>
 #include "cudamanager.hpp"
+#include "amloader.hpp"
+#include "smokesurface.hpp"
 
 extern "C" void integrateVectorFieldGPU(float* fVectorField, float3 *posptr, unsigned int uiElementSize, unsigned int uiGridSize, 
 										  unsigned int uiBlockSize, uint3 sizeField, uint3 rnd, float3 bbMin, float3 posgridOff, int resetcolumn, int rows, float stepsize, unsigned int bitmask);
 
 extern "C" void resetOldColumn(float3* posptr, float3 bbMin, float3 bbMax, int columns, int rows, int resetColumn);
 
- CudaManager::CudaManager()
+ CudaManager::CudaManager(AmiraMesh *_VectorField)
 {
 	m_fDeviceVectorField=NULL;
 	posRes=0;
 	releasedColumns=0;
+
+	m_pVectorField = _VectorField;
 
 	memset(&cudaProp,0,sizeof(cudaDeviceProp));
 	HandleError(cudaChooseDevice(&device,&cudaProp));
@@ -60,34 +64,22 @@ void CudaManager::HandleError(cudaError_t cuError)
 	}
 }
 
-void CudaManager::AllocateMemory(uint3 vSizeVectorField, unsigned int uiSizeVertices)
+void CudaManager::AllocateMemory(unsigned int uiSizeVertices)
 {
-	m_vSizeField=vSizeVectorField;
 	m_uiElementSize=uiSizeVertices;
 	m_uiBlockSize=256;
 	m_uiGridSize=static_cast<unsigned int>(ceil(static_cast<float>(m_uiElementSize)/static_cast<float>(m_uiBlockSize)));
 
-	size_t size = static_cast<size_t>(m_vSizeField.x * m_vSizeField.y * m_vSizeField.z * 3 * sizeof(float));
+	//size_t size = static_cast<size_t>(m_vSizeField.x * m_vSizeField.y * m_vSizeField.z * 3 * sizeof(float));
+	size_t size = static_cast<size_t>(m_pVectorField->GetSizeX() * m_pVectorField->GetSizeY() * m_pVectorField->GetSizeZ() * 3 * sizeof(float));
 	cudaMalloc(&m_fDeviceVectorField,size);
 }
 
-void CudaManager::SetVectorField(const float *VectorField, glm::vec3 bbMax, glm::vec3 bbMin)
+void CudaManager::SetVectorField()
 {
-	size_t size = static_cast<size_t>(m_vSizeField.x * m_vSizeField.y * m_vSizeField.z * 3 * sizeof(float));
-
-	posGridOff.x=m_vSizeField.x/(bbMax.x-bbMin.x);
-	posGridOff.y=m_vSizeField.y/(bbMax.y-bbMin.y);
-	posGridOff.z=m_vSizeField.z/(bbMax.z-bbMin.z);
-
-	this->bbMin.x=bbMin.x;
-	this->bbMin.y=bbMin.y;
-	this->bbMin.z=bbMin.z;
-
-	this->bbMax.x=bbMax.x;
-	this->bbMax.y=bbMax.y;
-	this->bbMax.z=bbMax.z;
-
-	cudaMemcpy(m_fDeviceVectorField,VectorField,size,cudaMemcpyHostToDevice);
+	//size_t size = static_cast<size_t>(m_vSizeField.x * m_vSizeField.y * m_vSizeField.z * 3 * sizeof(float));
+	size_t size = static_cast<size_t>(m_pVectorField->GetSizeX() * m_pVectorField->GetSizeY() * m_pVectorField->GetSizeZ() * 3 * sizeof(float));
+	cudaMemcpy(m_fDeviceVectorField,m_pVectorField->GetData(),size,cudaMemcpyHostToDevice);
 }
 
 void CudaManager::RegisterVertices(GLuint *pbo, unsigned int columns, unsigned int rows)
@@ -101,6 +93,13 @@ void CudaManager::RegisterVertices(GLuint *pbo, unsigned int columns, unsigned i
 
 	this->columns=columns;
 	this->rows=rows;
+}
+
+void CudaManager::Reset(SmokeSurface* _Surface)
+{
+	releasedColumns = columns;
+	/*for(int i=0; i<columns; ++i)
+		ReleaseNextColumn(_Surface);*/
 }
 
 void CudaManager::Clear()
@@ -118,7 +117,7 @@ void CudaManager::Clear()
 	}
 }
 
-void CudaManager::ReleaseNextColumn()
+void CudaManager::ReleaseNextColumn(SmokeSurface* _Surface)
 {
 	float *devPosptr=NULL;
 	size_t posSize;
@@ -129,7 +128,7 @@ void CudaManager::ReleaseNextColumn()
 		HandleError(cudaGraphicsMapResources(1,&posRes));
 		HandleError(cudaGraphicsResourceGetMappedPointer((void**)&devPosptr,&posSize,posRes));
 
-		resetOldColumn((float3*)devPosptr,bbMax,bbMin,columns,rows,resetColumn);
+		resetOldColumn((float3*)devPosptr,*(float3*)&_Surface->GetLineStart(),*(float3*)&_Surface->GetLineEnd(),columns,rows,resetColumn);
 
 		HandleError(cudaGraphicsUnmapResources(1,&posRes));
 	}
@@ -150,7 +149,11 @@ void CudaManager::Integrate(float stepsize, unsigned int bitmask)
 	HandleError(cudaGraphicsMapResources(1,&posRes));
 	HandleError(cudaGraphicsResourceGetMappedPointer((void**)&devPosptr,&posSize,posRes));
 
-	integrateVectorFieldGPU(m_fDeviceVectorField,(float3*)devPosptr,m_uiElementSize,m_uiGridSize,m_uiBlockSize,m_vSizeField,rnd,bbMin,posGridOff,releasedColumns,rows,stepsize,bitmask);
+	uint3 vSizeField;
+	vSizeField.x = m_pVectorField->GetSizeX();
+	vSizeField.y = m_pVectorField->GetSizeY();
+	vSizeField.z = m_pVectorField->GetSizeZ();
+	integrateVectorFieldGPU(m_fDeviceVectorField,(float3*)devPosptr,m_uiElementSize,m_uiGridSize,m_uiBlockSize,vSizeField,rnd,*(float3*)&m_pVectorField->GetBoundingBoxMin(),*(float3*)&m_pVectorField->GetPosToGridVector(),releasedColumns,rows,stepsize,bitmask);
 
 	HandleError(cudaGraphicsUnmapResources(1,&posRes));
 }

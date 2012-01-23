@@ -53,12 +53,13 @@ namespace Globals {
 	const unsigned short RENDER_BUFFER_STENCIL = 8;
 	const unsigned short RENDER_ANTIALIASING_LEVEL = 4;
 	const unsigned short RENDER_FRAMERATE_MAX = 120;
-	const unsigned short RENDER_SMURF_COLUMS = 10000;
-	const unsigned short RENDER_SMURF_ROWS = 256;
+	const unsigned short RENDER_SMURF_COLUMS = 128;
+	const unsigned short RENDER_SMURF_ROWS = 128;
 	const float RENDER_SMURF_STEPSIZE = 7.5f;
 	const bool RENDER_CPU_SMOKE = false;
 	const bool RENDER_FULLSCREEN = false;
 	const bool RENDER_VSYNC = true;
+	const bool RENDER_POINTS = false;
 
 	// Camera Defaults
 	////////////////////////////////////////////////////////////////////////////////
@@ -81,16 +82,29 @@ namespace Globals {
 	const sf::Keyboard::Key INPUT_CAM_BACK = sf::Keyboard::S;
 	const sf::Keyboard::Key INPUT_CAM_RIGHT = sf::Keyboard::D;
 	const sf::Mouse::Button INPUT_CAM_ROTATION = sf::Mouse::Left;
+	const sf::Keyboard::Key INPUT_CAM_RAY = sf::Keyboard::LShift;
 
 	// Smoke Properties
 	////////////////////////////////////////////////////////////////////////////////
 	const unsigned int SMOKE_PARTICLE_NUMBER=10;
 	const float SMOKE_PRISM_THICKNESS=0.0001f;
 	const float SMOKE_DENSITY_CONSTANT=0.5f;
-	const float SMOKE_SHAPE_CONSTANT=5.0f;
+	const float SMOKE_SHAPE_CONSTANT=2.0f;
 	const float SMOKE_CURVATURE_CONSTANT=1.0f;
 	const float SMOKE_COLOR[]={0.1f,0.1f,0.9f};
 	const float SMOKE_DENSITY_CONSTANT_K=SMOKE_PARTICLE_NUMBER*SMOKE_DENSITY_CONSTANT*SMOKE_PRISM_THICKNESS;
+
+	// Types of integration methods and filters.
+	////////////////////////////////////////////////////////////////////////////////
+	// Filter and Methods can be combined arbitary.
+	// INTEGRATION_FILTER_POINT | INTEGRATION_EULER is the fastest
+	// INTEGRATION_FILTER_LINEAR | INTEGRATION_MODEULER has the best results.
+
+	const static int	INTEGRATION_FILTER_POINT	= 0x0001;
+	const static int	INTEGRATION_FILTER_LINEAR	= 0x0010;
+	const static int	INTEGRATION_EULER			= 0x00010000;
+	const static int	INTEGRATION_MODEULER		= 0x00100000;
+	const static int	INTEGRATION_NOISE			= 0x00001000;
 }
 
 

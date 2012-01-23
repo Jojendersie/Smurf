@@ -2,6 +2,7 @@
 #include <cstring>
 #include <cassert>
 #include "amloader.hpp"
+#include "globals.hpp"
 
 // **************************************************************** //
 // Release all buffers
@@ -222,13 +223,13 @@ glm::vec3 AmiraMesh::Integrate(glm::vec3 _vPosition, float _fStepSize, int _iMet
 
 	// Trilinear sample
 	glm::vec3 vS;
-	vS = (_iMethod & INTEGRATION_FILTER_POINT)?Sample(vPos.x,vPos.y,vPos.z):SampleL(vPos.x,vPos.y,vPos.z);
+	vS = (_iMethod & Globals::INTEGRATION_FILTER_POINT)?Sample(vPos.x,vPos.y,vPos.z):SampleL(vPos.x,vPos.y,vPos.z);
 
-	if(_iMethod & INTEGRATION_NOISE)
+	if(_iMethod & Globals::INTEGRATION_NOISE)
 		vS += glm::vec3(rand()*MAXRNDINV, rand()*MAXRNDINV, rand()*MAXRNDINV);
 
 	// Calculate new position
-	if(_iMethod & INTEGRATION_EULER)
+	if(_iMethod & Globals::INTEGRATION_EULER)
 		return (vPos + _fStepSize*vS) / m_vPosToGrid + m_vBBMin;
 	else
 	{
@@ -239,7 +240,7 @@ glm::vec3 AmiraMesh::Integrate(glm::vec3 _vPosition, float _fStepSize, int _iMet
 
 		glm::vec3 vNewPos2 = vPos + _fStepSize*0.5f*vS;
 		// Resample and step again
-		vS = (_iMethod & INTEGRATION_FILTER_POINT) ?
+		vS = (_iMethod & Globals::INTEGRATION_FILTER_POINT) ?
 				  Sample(vNewPos2.x,vNewPos2.y,vNewPos2.z)
 				: SampleL(vNewPos2.x,vNewPos2.y,vNewPos2.z);
 
@@ -263,7 +264,7 @@ glm::vec3 AmiraMesh::Integrate(glm::vec3 _vPosition, float _fStepSize, int _iMet
 glm::vec3 AmiraMesh::RayCast(glm::vec3 _vPosition, glm::vec3 _vDirection)
 {
 	// Transform position to object space
-	_vPosition = (_vPosition - m_vBBMin) * m_vPosToGrid;
+	//_vPosition = (_vPosition - m_vBBMin) * m_vPosToGrid;
 
 	// Calculate entry point to the volume
 	// Clipping for each direction. That means, that we move the start point on
@@ -273,21 +274,28 @@ glm::vec3 AmiraMesh::RayCast(glm::vec3 _vPosition, glm::vec3 _vDirection)
 	// It is essential, that the projections are computed iteratively, because the
 	// coordinates are changing in between.
 	// Ray cast from left or right?
-	float fDistProjMax = ((_vPosition.x - m_vBBMax.x)/_vDirection.x);	// Search nearest plane
-	float fDistProjMin = ((_vPosition.x - m_vBBMin.x)/_vDirection.x);
+	float fDistProjMax = -((_vPosition.x - m_vBBMax.x)/_vDirection.x);	// Search nearest plane
+	float fDistProjMin = -((_vPosition.x - m_vBBMin.x)/_vDirection.x);
 	glm::vec3 vOut = _vPosition + ((fDistProjMin>fDistProjMax)?fDistProjMin:fDistProjMax)*_vDirection;
-	_vPosition += ((fDistProjMin<fDistProjMax)?fDistProjMin:fDistProjMax)*_vDirection;
+	if(_vPosition.x < m_vBBMin.x || m_vBBMax.x < _vPosition.x)
+		_vPosition += ((fDistProjMin<fDistProjMax)?fDistProjMin:fDistProjMax)*_vDirection;
 	// Ray cast from up or down?
-	fDistProjMax = ((_vPosition.y - m_vBBMax.y)/_vDirection.y);	// Y
-	fDistProjMin = ((_vPosition.y - m_vBBMin.y)/_vDirection.y);
+	fDistProjMax = -((_vPosition.y - m_vBBMax.y)/_vDirection.y);	// Y
+	fDistProjMin = -((_vPosition.y - m_vBBMin.y)/_vDirection.y);
 	vOut += ((fDistProjMin>fDistProjMax)?fDistProjMin:fDistProjMax)*_vDirection;
-	_vPosition += ((fDistProjMin<fDistProjMax)?fDistProjMin:fDistProjMax)*_vDirection;
+	if(_vPosition.y < m_vBBMin.y || m_vBBMax.y < _vPosition.y)
+		_vPosition += ((fDistProjMin<fDistProjMax)?fDistProjMin:fDistProjMax)*_vDirection;
 	// Ray cast from front or back?
-	fDistProjMax = ((_vPosition.z - m_vBBMax.z)/_vDirection.z);	// Z
-	fDistProjMin = ((_vPosition.z - m_vBBMin.z)/_vDirection.z);
+	fDistProjMax = -((_vPosition.z - m_vBBMax.z)/_vDirection.z);	// Z
+	fDistProjMin = -((_vPosition.z - m_vBBMin.z)/_vDirection.z);
 	vOut += ((fDistProjMin>fDistProjMax)?fDistProjMin:fDistProjMax)*_vDirection;
-	_vPosition += ((fDistProjMin<fDistProjMax)?fDistProjMin:fDistProjMax)*_vDirection;
+	if(_vPosition.z < m_vBBMin.z || m_vBBMax.z < _vPosition.z)
+		_vPosition += ((fDistProjMin<fDistProjMax)?fDistProjMin:fDistProjMax)*_vDirection;
 
+	// Transform positions to grid space
+	_vPosition = (_vPosition - m_vBBMin) * m_vPosToGrid;
+	vOut = (vOut - m_vBBMin) * m_vPosToGrid;
+	_vDirection = glm::normalize(_vDirection * m_vPosToGrid );
 	float fIntersectionLength = glm::length(vOut-_vPosition);
 
 	// Go linear through the volume
@@ -297,9 +305,10 @@ glm::vec3 AmiraMesh::RayCast(glm::vec3 _vPosition, glm::vec3 _vDirection)
 		glm::vec3 vSample = Sample(vCurrent.x, vCurrent.y, vCurrent.z);
 		// Current point in volume == solid?
 		if(abs(vSample.x)+abs(vSample.y)+abs(vSample.z) < 0.00001f)
-			return vCurrent;
+			// Transform back from grid space
+			return vCurrent/m_vPosToGrid + m_vBBMin;
 	}
 
 	// No point was found -> return middle position per default
-	return (vOut + _vPosition)*0.5f;
+	return ((vOut + _vPosition)*0.5f)/m_vPosToGrid + m_vBBMin;
 }

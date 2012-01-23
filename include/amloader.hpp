@@ -54,17 +54,6 @@ public:
 	// Output: Success or not
 	bool Load(char* _pcFileName);
 
-	// Types of integration methods and filters.
-	// Filter and Methods can be combined arbitary.
-	// INTEGRATION_FILTER_POINT | INTEGRATION_EULER is the fastest
-	// INTEGRATION_FILTER_LINEAR | INTEGRATION_MODEULER has the best results.
-
-	const static int	INTEGRATION_FILTER_POINT	= 0x0001;
-	const static int	INTEGRATION_FILTER_LINEAR	= 0x0010;
-	const static int	INTEGRATION_EULER			= 0x00010000;
-	const static int	INTEGRATION_MODEULER		= 0x00100000;
-	const static int	INTEGRATION_NOISE			= 0x80000000;
-
 	// Integrate one step over the vector field to determine new position
 	// Input:	_vPosition - old position
 	//			_fStepSize - the size of the integration step; smaller then m_fBBX/m_iSizeX recomended
@@ -81,6 +70,7 @@ public:
 	// Getter
 	glm::vec3 GetBoundingBoxMin()	{return m_vBBMin;}
 	glm::vec3 GetBoundingBoxMax()	{return m_vBBMax;}
+	glm::vec3 GetPosToGridVector()	{return m_vPosToGrid;}
 	bool IsLoaded()					{return m_pvBuffer!=0;}
 	int GetSizeX()					{return m_iSizeX;}
 	int GetSizeY()					{return m_iSizeY;}

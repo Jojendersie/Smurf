@@ -31,8 +31,10 @@
 
 uniform mat4 ProjectionView;
 in vec4 in_Position;
+in vec3 in_Normal;
 
 out vec3 out_vs_worldPos;
+out vec3 out_vs_normal;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Functions
@@ -44,6 +46,7 @@ void main() {
 	//gl_Position = projection * view * model * in_Position;
 
 	out_vs_worldPos=in_Position.xyz;
+	out_vs_normal = in_Normal;
 
 	gl_Position =ProjectionView* in_Position;
 }

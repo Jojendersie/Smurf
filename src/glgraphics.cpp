@@ -197,10 +197,11 @@ void GLGraphics::InitializeGraphics() {
 	// enable Z-buffer read and write
 	glEnable(GL_DEPTH_TEST);
 	glDepthMask(GL_TRUE);
+	glDepthFunc(GL_GREATER);
 
 	// set color, depth and stencil buffer clear value
 	glClearColor(1.f, 1.f, 1.f, 0.f);
-	glClearDepth(1.f);
+	glClearDepth(0.f);
 	glClearStencil(0);
 
 	//filled polygons GL_LINE for wireframe

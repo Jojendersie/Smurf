@@ -2,6 +2,8 @@
 
 uniform sampler2D adjTex;
 uniform float currentColumn;
+uniform float maxColumns;
+uniform float columnStride;
 
 in vec2 in_Indices;
 
@@ -17,8 +19,10 @@ void main()
 
 
 	////////////////////////////ALPHATIME////////////////////////////////////////
-	if(in_Indices.y>currentColumn)
-		vs_out_alphaTime=in_Indices.y-currentColumn;//maxColumns-in_Indices.y+currentColumn+1/maxColumns;
+	if(in_Indices.y+columnStride>currentColumn)
+		//vs_out_alphaTime=in_Indices.y-currentColumn;
+		
+		vs_out_alphaTime=1-in_Indices.y+currentColumn;
 	else
 		vs_out_alphaTime=currentColumn-in_Indices.y;
 }

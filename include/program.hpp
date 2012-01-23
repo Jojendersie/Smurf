@@ -70,6 +70,7 @@ private:
 	void Update();
 	void Draw();
 	void HandleBasicEvents();
+	void RayCast();
 
 	// Variables
 	////////////////////////////////////////////////////////////////////////////////
@@ -79,10 +80,14 @@ private:
 	static unsigned long long timeTotal;
 	GLGraphics* graphics;
 	GLint texLoc;
-	CudaManager cudamanager;
+	GLuint smokeFBO;
+	GLuint colorTex;
+	GLuint depthTex;
+	CudaManager* cudamanager;
 	GLShader* flatShader;
 	GLShader* alphaShader;
 	GLShader* testShader;
+	GLShader* renderQuadShader;
 	SFCamera* camera;
 	GLuint m_uiFrameCount;
 	AmiraMesh m_VectorField;
@@ -92,6 +97,7 @@ private:
 	bool m_bNoisyIntegration;
 	bool m_bUseLinearFilter;
 	bool m_bUseAdvancedEuler;
+	bool m_bMouseActive;
 	clock_t m_timeStart,m_timeIntegrate,m_timeRender,m_normalizer;
 
 	// TODO @Martin

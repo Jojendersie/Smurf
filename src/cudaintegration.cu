@@ -130,9 +130,8 @@ extern "C" void integrateVectorFieldGPU(float* fVectorField, float3 *posptr, uns
 
 __global__ void ResetColumn(float3* posptr, float3 bbMin, float3 bbMax, int rows, int resetColumn)
 {
-
-	for(int i=0;i<rows;i++)
-		posptr[resetColumn*rows+i]=lerp(bbMax,bbMin,i/float(rows-1));
+	const int index=threadIdx.x;
+	posptr[resetColumn*rows+index]=lerp(bbMin,bbMax,index/float(rows-1));
 }
 
 extern "C" void resetOldColumn(float3* posptr, float3 bbMin, float3 bbMax, int columns, int rows, int resetColumn)

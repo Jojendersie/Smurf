@@ -25,10 +25,10 @@ SmokeSurface::SmokeSurface(int _iNumCols, int _iNumRows, glm::vec3 _vStart, glm:
 		for(int j=0; j<_iNumRows; ++j)
 		{
 			
-			pGridVertices[i*_iNumRows+j].fColumn = i/(float)(_iNumCols);
-			pGridVertices[i*_iNumRows+j].fRow = j/(float)(_iNumRows);
-			float tmp=*reinterpret_cast<float*>(pGridVertices+(i*_iNumRows+j));
-			tmp=*(reinterpret_cast<float*>(pGridVertices+(i*_iNumRows+j))+1);
+			pGridVertices[i*_iNumRows+j].fColumn = i/(float)(_iNumCols-1);
+			pGridVertices[i*_iNumRows+j].fRow = j/(float)(_iNumRows-1);
+	//		float tmp=*reinterpret_cast<float*>(pGridVertices+(i*_iNumRows+j));
+	//		tmp=*(reinterpret_cast<float*>(pGridVertices+(i*_iNumRows+j))+1);
 			m_pPositionMap[i*_iNumRows+j].vPosition = glm::mix(_vStart, _vEnd, j/(float)(_iNumRows-1));
 		}
 
@@ -133,12 +133,14 @@ SmokeSurface::~SmokeSurface()
 
 // **************************************************************** //
 // Set the buffers and make the rendercall for the geometry
-void SmokeSurface::Render()
+void SmokeSurface::Render(bool _b)
 {
 	glBindVertexArray(m_uiVAO);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,m_uiIBO);
-	//glDrawArrays(GL_POINTS, 0, m_iNumVertices);
-	glDrawElements(GL_TRIANGLES, m_iNumIndices, GL_UNSIGNED_INT, (GLvoid*)0);
+	if(_b)//Globals::RENDER_POINTS)
+		glDrawArrays(GL_POINTS, 0, m_iNumVertices);
+	else
+		glDrawElements(GL_TRIANGLES, m_iNumIndices, GL_UNSIGNED_INT, (GLvoid*)0);
 }
 
 // **************************************************************** //
@@ -174,6 +176,7 @@ void SmokeSurface::IntegrateCPU(AmiraMesh* _pMesh, float _fStepSize, int _iMetho
 	int iNumCols = glm::min(m_iNumCols, m_iNumReleasedColumns);
 
 	for(int i=0; i<iNumCols; ++i)
+		if(i!=m_iNumReleasedColumns%m_iNumCols)
 		for(int j=0; j<m_iNumRows; ++j)
 		{
 			// Integrate now this vertex one step
@@ -196,7 +199,7 @@ int SmokeSurface::GetVBO()
 	return m_uiVBO;
 }
 
-int SmokeSurface::GetNumColums()
+int SmokeSurface::GetNumColumns()
 {
 	return m_iNumCols;
 }
@@ -215,6 +218,7 @@ int SmokeSurface::GetNumVertices()
 // Reset all vertices to the seedline
 void SmokeSurface::Reset()
 {
+	m_iNumReleasedColumns = 0;
 	for(int i=0; i<m_iNumCols; ++i)
 		for(int j=0; j<m_iNumRows; ++j)
 			m_pPositionMap[i*m_iNumRows+j].vPosition = glm::mix(m_vStart, m_vEnd, j/(float)(m_iNumRows-1));
