@@ -19,7 +19,7 @@ flat in vec2[] vs_out_Indices;
 in float[] vs_out_alphaTime;
 
 out vec4 gs_out_worldPos;
-out vec3 gs_out_normal;
+flat out vec3 gs_out_normal;
 out float gs_out_alphaTime;
 out float gs_out_alphaCurvature;
 out float gs_out_alphaShape;

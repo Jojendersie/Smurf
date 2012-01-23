@@ -24,11 +24,8 @@ SmokeSurface::SmokeSurface(int _iNumCols, int _iNumRows, glm::vec3 _vStart, glm:
 	for(int i=0; i<_iNumCols; ++i)
 		for(int j=0; j<_iNumRows; ++j)
 		{
-			
-			pGridVertices[i*_iNumRows+j].fColumn = i/(float)(_iNumCols-1);
 			pGridVertices[i*_iNumRows+j].fRow = j/(float)(_iNumRows-1);
-	//		float tmp=*reinterpret_cast<float*>(pGridVertices+(i*_iNumRows+j));
-	//		tmp=*(reinterpret_cast<float*>(pGridVertices+(i*_iNumRows+j))+1);
+			pGridVertices[i*_iNumRows+j].fColumn = i/(float)(_iNumCols-1);
 			m_pPositionMap[i*_iNumRows+j].vPosition = glm::mix(_vStart, _vEnd, j/(float)(_iNumRows-1));
 		}
 

@@ -324,11 +324,11 @@ void Program::Draw() {
 
 	//flatShader->UseNoShaderProgram();
 
-	/*glBindTexture(GL_TEXTURE_2D,m_pSmokeSurface->GetVertexMap());
-	float *pix = new float[60000];
-	glGetTexImage(GL_TEXTURE_2D,0,GL_RGB,GL_FLOAT,pix);
-	float tmp=pix[4*3+0];
-	glBindTexture(GL_TEXTURE_2D,0);*/
+	//glBindTexture(GL_TEXTURE_2D,m_pSmokeSurface->GetVertexMap());
+	//float *pix = new float[60000];
+	//glGetTexImage(GL_TEXTURE_2D,0,GL_RGB,GL_FLOAT,pix);
+	//float tmp=pix[4*3+1];
+	//glBindTexture(GL_TEXTURE_2D,0);
 
 	if(!m_bInvalidSeedLine)
 	{
