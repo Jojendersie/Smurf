@@ -7,7 +7,7 @@ uniform vec3 fragColor;
 uniform vec2 viewPort;
 
 in vec4 gs_out_worldPos;
-in vec3 gs_out_normal;
+flat in vec3 gs_out_normal;
 in float gs_out_alphaTime;
 in float gs_out_alphaCurvature;
 in float gs_out_alphaShape;

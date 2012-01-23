@@ -222,8 +222,8 @@ void Program::Update() {
 	}
 	else
 	{
-		//cudamanager.Integrate(Globals::RENDER_SMURF_STEPSIZE,CudaManager::INTEGRATION_MODEULER|CudaManager::INTEGRATION_FILTER_POINT);
-		cudamanager.Integrate(0.5f,CudaManager::INTEGRATION_MODEULER|CudaManager::INTEGRATION_FILTER_LINEAR|CudaManager::INTEGRATION_RANDOM);
+		cudamanager.Integrate(Globals::RENDER_SMURF_STEPSIZE,CudaManager::INTEGRATION_MODEULER|CudaManager::INTEGRATION_FILTER_POINT);
+		//cudamanager.Integrate(0.5f,CudaManager::INTEGRATION_MODEULER|CudaManager::INTEGRATION_FILTER_LINEAR|CudaManager::INTEGRATION_RANDOM);
 	}
 	m_timeIntegrate+=clock()-m_timeStart;
 	std::cout << "Time to integrate: " << double(m_timeIntegrate)/m_normalizer << "ms" <<std::endl;
@@ -279,11 +279,11 @@ void Program::Draw() {
 
 	//flatShader->UseNoShaderProgram();
 
-	/*glBindTexture(GL_TEXTURE_2D,m_pSmokeSurface->GetVertexMap());
-	float *pix = new float[60000];
-	glGetTexImage(GL_TEXTURE_2D,0,GL_RGB,GL_FLOAT,pix);
-	float tmp=pix[4*3+0];
-	glBindTexture(GL_TEXTURE_2D,0);*/
+	//glBindTexture(GL_TEXTURE_2D,m_pSmokeSurface->GetVertexMap());
+	//float *pix = new float[60000];
+	//glGetTexImage(GL_TEXTURE_2D,0,GL_RGB,GL_FLOAT,pix);
+	//float tmp=pix[4*3+1];
+	//glBindTexture(GL_TEXTURE_2D,0);
 
 	glBindTexture(GL_TEXTURE_2D,m_pSmokeSurface->GetVertexMap());
 	alphaShader->Use();
