@@ -24,7 +24,6 @@
 // Preprocessor Directives and Namespaces
 ////////////////////////////////////////////////////////////////////////////////
 
-
 #include <iostream>
 #include <GL/glew.h>
 #include "globals.hpp"
@@ -46,6 +45,8 @@ Program::Program() {
 	m_bUseLinearFilter = false;
 	m_bUseAdvancedEuler = true;
 	m_uiFrameCount = 0;
+	m_normalizer=0;
+	m_timeIntegrate=m_timeRender=0;
 	// set a valid video mode
 	sf::VideoMode mode(Globals::RENDER_VIEWPORT_WIDTH, Globals::RENDER_VIEWPORT_HEIGHT, Globals::RENDER_COLOR_DEPTH);
 	if (!mode.IsValid())
@@ -177,15 +178,18 @@ void Program::Initialize() {
 	m_pSmokeSurface = new SmokeSurface(Globals::RENDER_SMURF_COLUMS, Globals::RENDER_SMURF_ROWS, m_VectorField.GetBoundingBoxMax(), m_VectorField.GetBoundingBoxMin());
 	m_pSolidSurface = new SolidSurface(&m_VectorField, 1000);
 
-	uint3 size;
-	size.x=m_VectorField.GetSizeX();
-	size.y=m_VectorField.GetSizeY();
-	size.z=m_VectorField.GetSizeZ();
+	if(!Globals::RENDER_CPU_SMOKE)
+	{
+		uint3 size;
+		size.x=m_VectorField.GetSizeX();
+		size.y=m_VectorField.GetSizeY();
+		size.z=m_VectorField.GetSizeZ();
 
-	cudamanager.AllocateMemory(size,m_pSmokeSurface->GetNumVertices());
-	cudamanager.SetVectorField(m_VectorField.GetData(),m_VectorField.GetBoundingBoxMax(),m_VectorField.GetBoundingBoxMin());
-	GLuint tmpPBO=m_pSmokeSurface->GetPBO();
-	cudamanager.RegisterVertices(&tmpPBO,Globals::RENDER_SMURF_COLUMS,Globals::RENDER_SMURF_ROWS);
+		cudamanager.AllocateMemory(size,m_pSmokeSurface->GetNumVertices());
+		cudamanager.SetVectorField(m_VectorField.GetData(),m_VectorField.GetBoundingBoxMax(),m_VectorField.GetBoundingBoxMin());
+		GLuint tmpPBO=m_pSmokeSurface->GetPBO();
+		cudamanager.RegisterVertices(&tmpPBO,Globals::RENDER_SMURF_COLUMS,Globals::RENDER_SMURF_ROWS);
+	}
 }
 
 
@@ -198,17 +202,18 @@ void Program::Update() {
 	timeTotal += timeCurrent;
 
 	// all update code goes here
+	m_normalizer++;
 	camera->Update();
-
+	m_timeStart=clock();
 	if(m_uiFrameCount++ % Globals::PROGRAM_FRAMES_PER_RELEASE == 0)
 	{
-		if(Globals::RENDER_CPU_CMOKE) 
+		if(Globals::RENDER_CPU_SMOKE) 
 			m_pSmokeSurface->ReleaseNextColumn();
 		else
 			cudamanager.ReleaseNextColumn();
 	}
 
-	if(Globals::RENDER_CPU_CMOKE)
+	if(Globals::RENDER_CPU_SMOKE)
 	{
 		m_pSmokeSurface->IntegrateCPU(&m_VectorField, Globals::RENDER_SMURF_STEPSIZE,
 			  (m_bUseAdvancedEuler	?AmiraMesh::INTEGRATION_MODEULER		: AmiraMesh::INTEGRATION_EULER)
@@ -220,6 +225,8 @@ void Program::Update() {
 		//cudamanager.Integrate(Globals::RENDER_SMURF_STEPSIZE,CudaManager::INTEGRATION_MODEULER|CudaManager::INTEGRATION_FILTER_POINT);
 		cudamanager.Integrate(0.5f,CudaManager::INTEGRATION_MODEULER|CudaManager::INTEGRATION_FILTER_LINEAR|CudaManager::INTEGRATION_RANDOM);
 	}
+	m_timeIntegrate+=clock()-m_timeStart;
+	std::cout << "Time to integrate: " << double(m_timeIntegrate)/m_normalizer << "ms" <<std::endl;
 
 	if(m_bCloseRequest)
 		cudamanager.Clear();
@@ -231,8 +238,22 @@ void Program::Draw() {
 
 	// all draw code goes here
 	// set Camera
-
-	if(!Globals::RENDER_CPU_CMOKE)
+	m_timeStart=clock();
+	if(Globals::RENDER_CPU_SMOKE)
+	{
+		glBindTexture(GL_TEXTURE_2D, m_pSmokeSurface->GetVertexMap());
+		glTexImage2D(GL_TEXTURE_2D,	// Target
+			0,						// Mip-Level
+			GL_RGB32F,				// Internal format
+			m_pSmokeSurface->GetNumRows(),// Width
+			m_pSmokeSurface->GetNumColums(),// Height
+			0,						// Border
+			GL_RGB,					// Format
+			GL_FLOAT,				// Type
+			m_pSmokeSurface->GetPoints());// Data
+		glBindTexture(GL_TEXTURE_2D, 0);
+	}
+	else
 	{
 		glBindBuffer(GL_PIXEL_UNPACK_BUFFER,m_pSmokeSurface->GetPBO());
 		glBindTexture(GL_TEXTURE_2D,m_pSmokeSurface->GetVertexMap());
@@ -265,7 +286,7 @@ void Program::Draw() {
 	glBindTexture(GL_TEXTURE_2D,0);*/
 
 	glBindTexture(GL_TEXTURE_2D,m_pSmokeSurface->GetVertexMap());
-	//alphaShader->Use();
+	alphaShader->Use();
 	float fCurrentColumn = float(cudamanager.GetLastReleasedColumn()%cudamanager.GetNumColumns()+float(m_uiFrameCount%Globals::PROGRAM_FRAMES_PER_RELEASE)/Globals::PROGRAM_FRAMES_PER_RELEASE)/cudamanager.GetNumColumns();
 	float fColumnStride=1.0f/m_pSmokeSurface->GetNumColums();
 	float fRowStride=1.0f/m_pSmokeSurface->GetNumRows();
@@ -282,7 +303,7 @@ void Program::Draw() {
 	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_VECTOR2,9,&viewPort[0]);
 	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_VECTOR3,10,Globals::SMOKE_COLOR);
 
-	testShader->Use();
+	//testShader->Use();
 	testShader->SetAdvancedUniform(GLShader::AUTYPE_MATRIX4,0,&(camera->GetProjection()*camera->GetView())[0][0]);
 
 	//Drawing geometry here
@@ -290,6 +311,10 @@ void Program::Draw() {
 	
 	alphaShader->UseNoShaderProgram();
 	glBindTexture(GL_TEXTURE_2D,0);
+
+	m_timeRender+=clock()-m_timeStart;
+
+	std::cout << "Time to render: " << double(m_timeRender)/m_normalizer << "ms" << std::endl;
 
 	//const GLenum ErrorValue = glGetError();
 	//int tmp=0;

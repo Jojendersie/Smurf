@@ -33,5 +33,5 @@ void main()
 	float alphaDensity=clamp(k/(gs_out_area*gamma),0.0,1.0);
 	float alphaFade=clamp(1.0-gs_out_alphaTime,0.0,1.0);
 
-	fs_out_Color=vec4(fragColor,alphaDensity*alphaFade*gs_out_alphaShape*gs_out_alphaCurvature);
+	fs_out_Color=vec4(fragColor,alphaDensity*gs_out_alphaShape*alphaFade*gs_out_alphaCurvature/*alphaDensity*alphaFade*gs_out_alphaShape*gs_out_alphaCurvature*/);
 }

@@ -1,6 +1,7 @@
 #include <cassert>
 #include <GL/glew.h>
 #include <cstdlib>
+#include "globals.hpp"
 #include "smokesurface.hpp"
 #include "glgraphics.hpp"
 
@@ -75,31 +76,34 @@ SmokeSurface::SmokeSurface(int _iNumCols, int _iNumRows, glm::vec3 _vStart, glm:
 //	free(pVertices);	//? dynamic buffers? TODO benchmarktest with just uploading and or double vbo,s
 	free(pIndices);
 
-	//Create a pbo for a performant access through CUDA and copying the modified vertices to a texture completely on the GPU.
-	glGenBuffers(1,&m_uiPBO);
-	glBindBuffer(GL_PIXEL_UNPACK_BUFFER,m_uiPBO);
-	glBufferData(GL_PIXEL_UNPACK_BUFFER,m_iNumRows*m_iNumCols*sizeof(float)*3,reinterpret_cast<float*>(m_pPositionMap),GL_STATIC_COPY);
+	//if(!Globals::RENDER_CPU_SMOKE)
+	{
+		//Create a pbo for a performant access through CUDA and copying the modified vertices to a texture completely on the GPU.
+		glGenBuffers(1,&m_uiPBO);
+		glBindBuffer(GL_PIXEL_UNPACK_BUFFER,m_uiPBO);
+		glBufferData(GL_PIXEL_UNPACK_BUFFER,m_iNumRows*m_iNumCols*sizeof(float)*3,reinterpret_cast<float*>(m_pPositionMap),GL_STATIC_COPY);
 
-	// Vertex Map
-	// Create a texture buffer object
-	glGenTextures(1, &m_uiVertexMap);
-	glBindTexture(GL_TEXTURE_2D,m_uiVertexMap);
-	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_MIRRORED_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_MIRRORED_REPEAT);
+		// Vertex Map
+		// Create a texture buffer object
+		glGenTextures(1, &m_uiVertexMap);
+		glBindTexture(GL_TEXTURE_2D,m_uiVertexMap);
+		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_MIRRORED_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_MIRRORED_REPEAT);
 
-	glTexImage2D(GL_TEXTURE_2D,	// Target
-		0,						// Mip-Level
-		GL_RGB32F,				// Internal format
-		m_iNumRows,				// Width
-		m_iNumCols,				// Height
-		0,						// Border
-		GL_RGB,					// Format
-		GL_FLOAT,				// Type
-		NULL);					// Data
-	glBindTexture(GL_TEXTURE_2D,0);
-	glBindBuffer(GL_PIXEL_UNPACK_BUFFER,0);
+		glTexImage2D(GL_TEXTURE_2D,	// Target
+			0,						// Mip-Level
+			GL_RGB32F,				// Internal format
+			m_iNumRows,				// Width
+			m_iNumCols,				// Height
+			0,						// Border
+			GL_RGB,					// Format
+			GL_FLOAT,				// Type
+			NULL);					// Data
+		glBindTexture(GL_TEXTURE_2D,0);
+		glBindBuffer(GL_PIXEL_UNPACK_BUFFER,0);
+	}
 }
 	
 // **************************************************************** //
@@ -134,7 +138,7 @@ void SmokeSurface::Render()
 	glBindVertexArray(m_uiVAO);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,m_uiIBO);
 	//glDrawArrays(GL_POINTS, 0, m_iNumVertices);
-	glDrawElements(GL_POINTS, m_iNumIndices, GL_UNSIGNED_INT, (GLvoid*)0);
+	glDrawElements(GL_TRIANGLES, m_iNumIndices, GL_UNSIGNED_INT, (GLvoid*)0);
 }
 
 // **************************************************************** //
@@ -181,17 +185,6 @@ void SmokeSurface::IntegrateCPU(AmiraMesh* _pMesh, float _fStepSize, int _iMetho
 
 	// Upoad as vertexmap
 	glGetError();	// Clear errors
-
-	glBindTexture(GL_TEXTURE_2D, m_uiVertexMap);
-	glTexImage2D(GL_TEXTURE_2D,	// Target
-		0,						// Mip-Level
-		GL_RGB32F,				// Internal format
-		m_iNumRows,				// Width
-		m_iNumCols,				// Height
-		0,						// Border
-		GL_RGB,					// Format
-		GL_FLOAT,				// Type
-		m_pPositionMap);		// Data
 
 	const GLenum ErrorValue = glGetError();
 	if(ErrorValue != GL_NO_ERROR) 

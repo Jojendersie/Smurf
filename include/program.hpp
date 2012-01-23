@@ -28,6 +28,7 @@
 #ifndef PROGRAM_HPP_
 #define PROGRAM_HPP_
 
+#include <time.h>
 #include <SFML/Window.hpp>
 #include "glgraphics.hpp"
 #include "glshader.hpp"
@@ -91,6 +92,7 @@ private:
 	bool m_bNoisyIntegration;
 	bool m_bUseLinearFilter;
 	bool m_bUseAdvancedEuler;
+	clock_t m_timeStart,m_timeIntegrate,m_timeRender,m_normalizer;
 
 	// TODO @Martin
 	// If you click once (the moment where m_bInvalidSeedLine==false) -> {m_pSmokeSurface->SetSeedLineStart(m_VectorField.RayCast(...)); m_bInvalidSeedLine=true;}

@@ -80,6 +80,7 @@ public:
 	int GetNumColums();
 	int GetNumRows();
 	int GetNumVertices();
+	PositionVertex *GetPoints() {return m_pPositionMap;}
 	GLuint GetVertexMap()		{return m_uiVertexMap;}
 	GLuint GetPBO()				{return m_uiPBO;}
 	int GetLastReleasedColumn()	{return m_iNumReleasedColumns;}

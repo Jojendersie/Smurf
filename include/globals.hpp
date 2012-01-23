@@ -56,7 +56,7 @@ namespace Globals {
 	const unsigned short RENDER_SMURF_COLUMS = 10000;
 	const unsigned short RENDER_SMURF_ROWS = 256;
 	const float RENDER_SMURF_STEPSIZE = 7.5f;
-	const bool RENDER_CPU_CMOKE = false;
+	const bool RENDER_CPU_SMOKE = false;
 	const bool RENDER_FULLSCREEN = false;
 	const bool RENDER_VSYNC = true;
 
