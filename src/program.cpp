@@ -157,19 +157,40 @@ void Program::Initialize() {
 
 	glGenTextures(1,&colorTex);
 	glBindTexture(GL_TEXTURE_2D,colorTex);
+	glTexImage2D(GL_TEXTURE_2D,0,GL_RGB8,Globals::RENDER_VIEWPORT_WIDTH,Globals::RENDER_VIEWPORT_HEIGHT,0,GL_RGBA,GL_UNSIGNED_BYTE,NULL);
 	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
-	glTexImage2D(GL_TEXTURE_2D,0,GL_RGB8,Globals::RENDER_VIEWPORT_WIDTH,Globals::RENDER_VIEWPORT_HEIGHT,0,GL_RGB,GL_FLOAT,0);
 
 	glGenTextures(1,&depthTex);
 	glBindTexture(GL_TEXTURE_2D,depthTex);
+	glTexImage2D(GL_TEXTURE_2D,0,GL_DEPTH_COMPONENT24,Globals::RENDER_VIEWPORT_WIDTH,Globals::RENDER_VIEWPORT_HEIGHT,0,GL_DEPTH_COMPONENT,GL_UNSIGNED_BYTE,NULL);
 	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
 
-
 	glGenFramebuffers(1,&smokeFBO);
 	glBindBuffer(GL_FRAMEBUFFER,smokeFBO);
-	glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,colorTex,0);
+	glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,colorTex,0);
+	//glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER,GL_DEPTH_ATTACHMENT,GL_TEXTURE_2D,depthTex,0);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D,colorTex);
+
+	//glActiveTexture(GL_TEXTURE1);
+	//glBindTexture(GL_TEXTURE_2D,depthTex);
+
+	// check framebuffer status
+	GLenum status = glCheckFramebufferStatus (GL_FRAMEBUFFER);
+	switch (status)
+	{
+	case GL_FRAMEBUFFER_COMPLETE:
+		std::cout << "FBO complete" << std::endl;
+		break;
+	case GL_FRAMEBUFFER_UNSUPPORTED:
+		std::cout << "FBO configuration unsupported" << std::endl;
+	default:
+		std::cout << "FBO programmer error" << std::endl;
+	}
+
 	glBindBuffer(GL_FRAMEBUFFER,0);
 
 	// load test shader
@@ -183,20 +204,20 @@ void Program::Initialize() {
 	alphaShader->CreateAdvancedUniforms(12,"b","ProjectionView","currentColumn","shapeStrength","invProjectionView","eyePos","k","columnStride","rowStride","viewPort","fragColor", "maxColumns");
 	texLoc = glGetUniformLocation(alphaShader->GetShaderProgramm(),"adjTex");
 	alphaShader->Use();
-	glUniform1i(texLoc, 0);
+	glUniform1i(texLoc, 3);
 
 	testShader = new GLShader(graphics);
 	testShader->CreateShaderProgram("res/vfx/test.vert", "res/vfx/test.frag", 0,1,GLGraphics::ASLOT_POSITION,"in_Indices");
 	testShader->CreateAdvancedUniforms(1,"ProjectionView");
 	texLoc = glGetUniformLocation(testShader->GetShaderProgramm(),"adjTex");
 	testShader->Use();
-	glUniform1i(texLoc, 0);
+	glUniform1i(texLoc, 3);
 
 	renderQuadShader = new GLShader(graphics);
 	renderQuadShader->CreateShaderProgram("res/vfx/renderQuad.vert", "res/vfx/renderQuad.frag", 0,2,GLGraphics::ASLOT_POSITION,"in_Pos", GLGraphics::ASLOT_TEXCOORD0,"in_TexCoords");
 	texLoc= glGetUniformLocation(renderQuadShader->GetShaderProgramm(),"texSampler");
 	renderQuadShader->Use();
-	glUniform1i(texLoc,0);
+	glUniform1i(texLoc,3);
 
 	// load vector field
 	m_VectorField.Load("res\\data\\BubbleChamber_11x11x10_T0.am");
@@ -280,9 +301,9 @@ void Program::Draw() {
 	// smokequad -> backbuffer
 	//		mit blendformel lerp(Sb.rgb, Sb.a*RGB, Sb.a)
 
-	glBindFramebuffer(GL_FRAMEBUFFER,smokeFBO);
-	// all draw code goes here
-	// set Camera
+	//glBindFramebuffer(GL_DRAW_FRAMEBUFFER,smokeFBO);
+
+
 	m_timeStart=clock();
 	if(Globals::RENDER_CPU_SMOKE)
 	{
@@ -323,12 +344,6 @@ void Program::Draw() {
 	m_pSolidSurface->Render();
 
 	//flatShader->UseNoShaderProgram();
-
-	//glBindTexture(GL_TEXTURE_2D,m_pSmokeSurface->GetVertexMap());
-	//float *pix = new float[60000];
-	//glGetTexImage(GL_TEXTURE_2D,0,GL_RGB,GL_FLOAT,pix);
-	//float tmp=pix[4*3+1];
-	//glBindTexture(GL_TEXTURE_2D,0);
 
 	if(!m_bInvalidSeedLine)
 	{
@@ -388,24 +403,44 @@ void Program::Draw() {
 	//	tmp++;
 	//tmp=GL_INVALID_VALUE&GL_INVALID_VALUE;
 	//glFlush();
-	glBindFramebuffer(GL_FRAMEBUFFER,0);
 
-	glBindTexture(GL_TEXTURE_2D,colorTex);
-	renderQuadShader->Use();
-	glClear(GL_COLOR_BUFFER_BIT);
-	glBegin(GL_QUADS);
-	{
-		glTexCoord2f(0,0);
-		glVertex3f(-1,-1,0);
-		glTexCoord2f(0,1);
-		glVertex3f(-1,1,0);
-		glTexCoord2f(1,1);
-		glVertex3f(1,1,0);
-		glTexCoord2f(1,0);
-		glVertex3f(1,-1,0);
-	}
-	glEnd();
-	glBindTexture(GL_TEXTURE_2D,0);
+	//glBindFramebuffer(GL_DRAW_FRAMEBUFFER,0);
+
+	//glBindTexture(GL_TEXTURE_2D,colorTex);
+	//unsigned char *pix = new unsigned char[Globals::RENDER_VIEWPORT_WIDTH*Globals::RENDER_VIEWPORT_HEIGHT*sizeof(unsigned char)*4];
+	//glGetTexImage(GL_TEXTURE_2D,0,GL_RGBA,GL_UNSIGNED_BYTE,pix);
+	//unsigned char tmp=0;
+	//for(int i=0;i!=Globals::RENDER_VIEWPORT_WIDTH*Globals::RENDER_VIEWPORT_HEIGHT*sizeof(unsigned char)*4;i++)
+	//{
+	//	if(pix[i]!=0 && pix[i]!=255)
+	//		tmp=pix[i];
+	//}
+	//glBindTexture(GL_TEXTURE_2D,0);
+
+	//glActiveTexture(GL_TEXTURE0);
+	//glBindTexture(GL_TEXTURE_2D,colorTex);
+
+	//renderQuadShader->Use();
+	//glClearColor(0,1,0,1);
+	//glClear(GL_COLOR_BUFFER_BIT);
+	//glDisable(GL_DEPTH_TEST);
+	//glEnable(GL_TEXTURE_2D);
+
+	//glBegin(GL_QUADS);
+	//{
+	//	glTexCoord2f(0,0);
+	//	glVertex2f(-1,-1);
+	//	glTexCoord2f(1,0);
+	//	glVertex2f(1,-1);
+	//	glTexCoord2f(1,1);
+	//	glVertex2f(1,1);
+	//	glTexCoord2f(0,1);
+	//	glVertex2f(-1,1);
+	//}       
+	//glEnd();
+	
+	//glDisable(GL_TEXTURE_2D);
+	//glEnable(GL_DEPTH_TEST);
 }
 
 
@@ -465,7 +500,8 @@ void Program::RayCast()
 		m_pSmokeSurface->SetSeedLineEnd(vRes);
 		if(Globals::RENDER_CPU_SMOKE)
 			m_pSmokeSurface->Reset();
-		cudamanager->Reset(m_pSmokeSurface);
+		else
+			cudamanager->Reset(m_pSmokeSurface);
 		m_bInvalidSeedLine = false;
 	}
 }

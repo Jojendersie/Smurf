@@ -41,7 +41,7 @@ in vec3 out_vs_worldPos;
 ////////////////////////////////////////////////////////////////////////////////
 void main() {
 	vec3 lightPos=vec3(3,5,-1);
-	float kAmbient=0.6f,kDiffuse=0.4f,kSpecular=0.8f,specPower=30.0,LightPower=10.8;;
+	float kAmbient=0.6f,kDiffuse=0.4f,kSpecular=0.8f,specPower=10.0,LightPower=5.8;;
 
 	vec3 rayView=normalize(out_vs_worldPos-eyePos);
 	vec3 rayLight=normalize(out_vs_worldPos-lightPos);

@@ -8,7 +8,7 @@ uniform sampler2D texSampler;
 
 out vec4 out_Color;
 
-in vec2 texCoords;
+in vec2 out_vs_texCoords;
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -19,5 +19,5 @@ in vec2 texCoords;
 ////////////////////////////////////////////////////////////////////////////////
 void main() {
 
-	out_Color = vec4(texture(texSampler,texCoords).rgb,1);
+	out_Color = vec4(texture(texSampler,out_vs_texCoords).rgb,1);
 }

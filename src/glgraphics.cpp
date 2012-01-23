@@ -200,7 +200,7 @@ void GLGraphics::InitializeGraphics() {
 	glDepthFunc(GL_GREATER);
 
 	// set color, depth and stencil buffer clear value
-	glClearColor(1.f, 1.f, 1.f, 0.f);
+	glClearColor(0.f, 0.f, 0.f, 0.f);
 	glClearDepth(0.f);
 	glClearStencil(0);
 
@@ -208,8 +208,10 @@ void GLGraphics::InitializeGraphics() {
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 	//enable alphablending
+	//glEnable(GL_ALPHA_TEST);
 	glEnable(GL_BLEND);
-	glBlendFunc(GL_ONE,GL_ONE_MINUS_SRC_ALPHA);
+	//glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+	glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 }
 
 

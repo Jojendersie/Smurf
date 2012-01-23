@@ -98,8 +98,8 @@ void CudaManager::RegisterVertices(GLuint *pbo, unsigned int columns, unsigned i
 void CudaManager::Reset(SmokeSurface* _Surface)
 {
 	releasedColumns = columns;
-	/*for(int i=0; i<columns; ++i)
-		ReleaseNextColumn(_Surface);*/
+	for(int i=0; i<columns; ++i)
+		ReleaseNextColumn(_Surface);
 }
 
 void CudaManager::Clear()

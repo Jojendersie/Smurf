@@ -9,7 +9,7 @@
 in vec3 in_Pos;
 in vec2 in_TexCoords;
 
-out vec2 texCoords;
+out vec2 out_vs_texCoords;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Functions
@@ -19,6 +19,6 @@ out vec2 texCoords;
 ////////////////////////////////////////////////////////////////////////////////
 void main() {
 	//gl_Position = projection * view * model * in_Position;
-	texCoords=in_TexCoords;
+	out_vs_texCoords=in_TexCoords;
 	gl_Position = vec4(in_Pos,1);
 }
