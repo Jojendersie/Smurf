@@ -175,8 +175,8 @@ void Program::Initialize() {
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D,colorTex);
 
-	//glActiveTexture(GL_TEXTURE1);
-	//glBindTexture(GL_TEXTURE_2D,depthTex);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D,depthTex);
 
 	// check framebuffer status
 	GLenum status = glCheckFramebufferStatus (GL_FRAMEBUFFER);
@@ -216,7 +216,7 @@ void Program::Initialize() {
 	renderQuadShader->CreateShaderProgram("res/vfx/renderQuad.vert", "res/vfx/renderQuad.frag", 0,2,GLGraphics::ASLOT_POSITION,"in_Pos", GLGraphics::ASLOT_TEXCOORD0,"in_TexCoords");
 	texLoc= glGetUniformLocation(renderQuadShader->GetShaderProgramm(),"texSampler");
 	renderQuadShader->Use();
-	glUniform1i(texLoc,3);
+	glUniform1i(texLoc,0);
 
 	// load vector field
 	m_VectorField.Load("res\\data\\BubbleChamber_11x11x10_T0.am");
@@ -295,8 +295,8 @@ void Program::Draw() {
 	// smokequad -> backbuffer
 	//		mit blendformel lerp(Sb.rgb, Sb.a*RGB, Sb.a)
 
-	//glBindFramebuffer(GL_DRAW_FRAMEBUFFER,smokeFBO);
 
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER,smokeFBO);
 
 	m_timeStart=clock();
 	if(Globals::RENDER_CPU_SMOKE)
@@ -398,7 +398,7 @@ void Program::Draw() {
 	//tmp=GL_INVALID_VALUE&GL_INVALID_VALUE;
 	//glFlush();
 
-	//glBindFramebuffer(GL_DRAW_FRAMEBUFFER,0);
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER,0);
 
 	//glBindTexture(GL_TEXTURE_2D,colorTex);
 	//unsigned char *pix = new unsigned char[Globals::RENDER_VIEWPORT_WIDTH*Globals::RENDER_VIEWPORT_HEIGHT*sizeof(unsigned char)*4];
@@ -414,26 +414,24 @@ void Program::Draw() {
 	//glActiveTexture(GL_TEXTURE0);
 	//glBindTexture(GL_TEXTURE_2D,colorTex);
 
-	//renderQuadShader->Use();
-	//glClearColor(0,1,0,1);
-	//glClear(GL_COLOR_BUFFER_BIT);
+	renderQuadShader->Use();
+	glClearColor(0,1,0,1);
+	glClear(GL_COLOR_BUFFER_BIT);
 	//glDisable(GL_DEPTH_TEST);
-	//glEnable(GL_TEXTURE_2D);
 
-	//glBegin(GL_QUADS);
-	//{
-	//	glTexCoord2f(0,0);
-	//	glVertex2f(-1,-1);
-	//	glTexCoord2f(1,0);
-	//	glVertex2f(1,-1);
-	//	glTexCoord2f(1,1);
-	//	glVertex2f(1,1);
-	//	glTexCoord2f(0,1);
-	//	glVertex2f(-1,1);
-	//}       
-	//glEnd();
-	
-	//glDisable(GL_TEXTURE_2D);
+	glBegin(GL_QUADS);
+	{
+		glTexCoord2f(0,0);
+		glVertex2f(-1,-1);
+		glTexCoord2f(1,0);
+		glVertex2f(1,-1);
+		glTexCoord2f(1,1);
+		glVertex2f(1,1);
+		glTexCoord2f(0,1);
+		glVertex2f(-1,1);
+	}       
+	glEnd();
+
 	//glEnable(GL_DEPTH_TEST);
 }
 
