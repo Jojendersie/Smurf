@@ -195,7 +195,6 @@ void Program::Initialize() {
 
 	// load test shader
 	flatShader = new GLShader(graphics);
-	// "res/vfx/flat_geom.glsl"
 	flatShader->CreateShaderProgram("res/vfx/flat_vert.glsl", "res/vfx/flat_frag.glsl", 0, 2, GLGraphics::ASLOT_POSITION, "in_Position",GLGraphics::ASLOT_NORMAL, "in_Normal");
 	flatShader->CreateAdvancedUniforms(1,"ProjectionView");
 
@@ -270,15 +269,10 @@ void Program::Update() {
 								   | (m_bNoisyIntegration	?Globals::INTEGRATION_NOISE			: 0);
 
 		if(Globals::RENDER_CPU_SMOKE)
-		{
-			m_pSmokeSurface->IntegrateCPU(&m_VectorField, Globals::RENDER_SMURF_STEPSIZE,
-				  uiRenderFlags);
-		}
+			m_pSmokeSurface->IntegrateCPU(&m_VectorField, Globals::RENDER_SMURF_STEPSIZE,uiRenderFlags);
 		else
-		{
-			//cudamanager.Integrate(Globals::RENDER_SMURF_STEPSIZE,CudaManager::INTEGRATION_MODEULER|CudaManager::INTEGRATION_FILTER_POINT);
 			cudamanager->Integrate(0.5f,uiRenderFlags);
-		}
+
 		m_timeIntegrate+=clock()-m_timeStart;
 		std::cout << "Time to integrate: " << double(m_timeIntegrate)/m_normalizer << "ms" <<std::endl;
 

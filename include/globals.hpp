@@ -42,7 +42,7 @@ namespace Globals {
 	const short PROGRAM_VERSION_REVISION = 0;
 	const short PROGRAM_VERSION_BUILD = 0;
 	const bool PROGRAM_OPEN_CENTERED = true;
-	const unsigned short PROGRAM_FRAMES_PER_RELEASE = 5;
+	const unsigned short PROGRAM_FRAMES_PER_RELEASE = 2;
 
 	// Render Globals
 	////////////////////////////////////////////////////////////////////////////////
@@ -54,9 +54,9 @@ namespace Globals {
 	const unsigned short RENDER_ANTIALIASING_LEVEL = 4;
 	const unsigned short RENDER_FRAMERATE_MAX = 120;
 	const unsigned short RENDER_SMURF_COLUMS = 2000;
-	const unsigned short RENDER_SMURF_ROWS = 256;
+	const unsigned short RENDER_SMURF_ROWS = 50;
 	const float RENDER_SMURF_STEPSIZE = 7.5f;
-	const bool RENDER_CPU_SMOKE = true;
+	const bool RENDER_CPU_SMOKE = false;
 	const bool RENDER_FULLSCREEN = false;
 	const bool RENDER_VSYNC = true;
 	const bool RENDER_POINTS = false;

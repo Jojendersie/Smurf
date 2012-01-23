@@ -200,7 +200,7 @@ void GLGraphics::InitializeGraphics() {
 	glDepthFunc(GL_GREATER);
 
 	// set color, depth and stencil buffer clear value
-	glClearColor(0.f, 0.f, 0.f, 0.f);
+	glClearColor(1.f, 1.f, 1.f, 0.f);
 	glClearDepth(0.f);
 	glClearStencil(0);
 
