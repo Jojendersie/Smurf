@@ -471,6 +471,10 @@ struct SolidVertex {
 // Sample the vector field and estimate solid or not
 bool IsSolid(AmiraMesh* _pMesh, int _x, int _y, int _z)
 {
+	// Outside of the vector field is no mesh
+	if(_x<0 || _y<0 || _z<0 || _x>=_pMesh->GetSizeX() || _y>=_pMesh->GetSizeY() || _z>=_pMesh->GetSizeZ())
+		return false;
+	// Otherwise sample
 	int iDataIndex = ((_z*_pMesh->GetSizeY()+_y)*_pMesh->GetSizeX()+_x)*3;
 	return (abs(_pMesh->GetData()[iDataIndex])
 		+ abs(_pMesh->GetData()[iDataIndex+1])
@@ -485,7 +489,7 @@ SolidSurface::SolidSurface(AmiraMesh* _pMesh, int _iTriangles)
 	// Create Buffers for the estimated number of triangles
 	SolidVertex*  pVertexData = (SolidVertex*)malloc(sizeof(SolidVertex) * _iTriangles * 3);	// Upload only necessary vertices at the end, but worst case is every triangle has its own vertices (not possible - closed surface - worst case==valence 3?)
 	unsigned int* pIndexData = (unsigned int*)malloc(sizeof(unsigned int) * _iTriangles * 3);
-	int iBufferSize = sizeof(unsigned int) * (_pMesh->GetSizeX() * _pMesh->GetSizeY() - 1);
+	int iBufferSize = sizeof(unsigned int) * ((_pMesh->GetSizeX()+2) * (_pMesh->GetSizeY()+2) - 1);//sizeof(unsigned int) * (_pMesh->GetSizeX() * _pMesh->GetSizeY() - 1);
 	unsigned int* pIndexOffsetsZ1 = (unsigned int*)malloc(iBufferSize);
 	unsigned int* pIndexOffsetsZ0 = (unsigned int*)malloc(iBufferSize);
 	memset(pIndexOffsetsZ1, 0, iBufferSize);
@@ -497,25 +501,33 @@ SolidSurface::SolidSurface(AmiraMesh* _pMesh, int _iTriangles)
 
 	// Traverse the amira mesh and create triangles with marching cubes.
 	// There is one cube less than data points in each direction.
-	for(int z=0;z<_pMesh->GetSizeZ()-1;++z)
+	for(int z=0;z<_pMesh->GetSizeZ()+1;++z)
 	{
-		for(int y=0;y<_pMesh->GetSizeY()-1;++y)
+		for(int y=0;y<_pMesh->GetSizeY()+1;++y)
 		{
-			for(int x=0;x<_pMesh->GetSizeX()-1;++x)
+			for(int x=0;x<_pMesh->GetSizeX()+1;++x)
 			{
 				// Create case-code
 				unsigned int uiCase;
-				uiCase  = IsSolid(_pMesh, x  , y+1, z+1);
+				uiCase  = IsSolid(_pMesh, x-1, y  , z  );
+				uiCase |= IsSolid(_pMesh, x  , y  , z  )<<1;
+				uiCase |= IsSolid(_pMesh, x  , y  , z-1)<<2;
+				uiCase |= IsSolid(_pMesh, x-1, y  , z-1)<<3;
+				uiCase |= IsSolid(_pMesh, x-1, y-1, z  )<<4;
+				uiCase |= IsSolid(_pMesh, x  , y-1, z  )<<5;
+				uiCase |= IsSolid(_pMesh, x  , y-1, z-1)<<6;
+				uiCase |= IsSolid(_pMesh, x-1, y-1, z-1)<<7;
+/*				uiCase  = IsSolid(_pMesh, x  , y+1, z+1);
 				uiCase |= IsSolid(_pMesh, x+1, y+1, z+1)<<1;
 				uiCase |= IsSolid(_pMesh, x+1, y+1, z  )<<2;
 				uiCase |= IsSolid(_pMesh, x  , y+1, z  )<<3;
 				uiCase |= IsSolid(_pMesh, x  , y  , z+1)<<4;
 				uiCase |= IsSolid(_pMesh, x+1, y  , z+1)<<5;
 				uiCase |= IsSolid(_pMesh, x+1, y  , z  )<<6;
-				uiCase |= IsSolid(_pMesh, x  , y  , z  )<<7;
+				uiCase |= IsSolid(_pMesh, x  , y  , z  )<<7;*/
 
 				// Save current index offset and case in neighborhood table (for later boxes)
-				pIndexOffsetsZ0[y*_pMesh->GetSizeX()+x] = (uiCase<<24) | uiVertex;
+				pIndexOffsetsZ0[y*(_pMesh->GetSizeX()+1)+x] = (uiCase<<24) | uiVertex;
 				unsigned int uiV = uiVertex;
 
 				// Lookup on which edges a split-vertex is generated
@@ -532,9 +544,9 @@ SolidSurface::SolidSurface(AmiraMesh* _pMesh, int _iTriangles)
 					if(iEdges & (1<<i))
 					{
 						// Calculate position exact in the middle (cell)
-						pVertexData[uiVertex].vPosition.x = (x+0.5f)/(_pMesh->GetSizeX()-2);
-						pVertexData[uiVertex].vPosition.y = (y+0.5f)/(_pMesh->GetSizeY()-2);
-						pVertexData[uiVertex].vPosition.z = (z+0.5f)/(_pMesh->GetSizeZ()-2);
+						pVertexData[uiVertex].vPosition.x = (x+0.0f)/(_pMesh->GetSizeX());
+						pVertexData[uiVertex].vPosition.y = (y-0.0f)/(_pMesh->GetSizeY());
+						pVertexData[uiVertex].vPosition.z = (z+0.0f)/(_pMesh->GetSizeZ());
 						// Calculate offset to the edge
 						pVertexData[uiVertex].vPosition += g_vEdgeOffsets[i]*vCellSize;
 						pVertexData[uiVertex].vPosition *= vDimension;
@@ -566,7 +578,7 @@ SolidSurface::SolidSurface(AmiraMesh* _pMesh, int _iTriangles)
 						if(cGotoY && cGotoX) cNeighborEdge = g_acNeighborPriority[cCurrentEdgeIndex][0];
 
 						// Extract base index and case from neighbor cell(, can be the cell itself too).
-						unsigned int uiVal = cGotoZ?pIndexOffsetsZ1[(y-cGotoY)*_pMesh->GetSizeX()+x-cGotoX] : pIndexOffsetsZ0[(y-cGotoY)*_pMesh->GetSizeX()+x-cGotoX];
+						unsigned int uiVal = cGotoZ?pIndexOffsetsZ1[(y-cGotoY)*(_pMesh->GetSizeX()+1)+x-cGotoX] : pIndexOffsetsZ0[(y-cGotoY)*(_pMesh->GetSizeX()+1)+x-cGotoX];
 						unsigned int uiNC = uiVal>>24;
 						// Lookup the edge-vertex creations and exculde prior ones
 						uiNC = g_acEdges[uiNC] & ((x>cGotoX)?g_uiVertexCreationMaskX:0xfff) & ((y>cGotoY)?g_uiVertexCreationMaskY:0xfff) & ((z>cGotoZ)?g_uiVertexCreationMaskZ:0xfff);

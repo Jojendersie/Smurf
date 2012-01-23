@@ -276,39 +276,38 @@ glm::vec3 AmiraMesh::RayCast(glm::vec3 _vPosition, glm::vec3 _vDirection)
 	// Ray cast from left or right?
 	float fDistProjMax = -((_vPosition.x - m_vBBMax.x)/_vDirection.x);	// Search nearest plane
 	float fDistProjMin = -((_vPosition.x - m_vBBMin.x)/_vDirection.x);
-	glm::vec3 vOut = _vPosition + ((fDistProjMin>fDistProjMax)?fDistProjMin:fDistProjMax)*_vDirection;
 	if(_vPosition.x < m_vBBMin.x || m_vBBMax.x < _vPosition.x)
 		_vPosition += ((fDistProjMin<fDistProjMax)?fDistProjMin:fDistProjMax)*_vDirection;
 	// Ray cast from up or down?
 	fDistProjMax = -((_vPosition.y - m_vBBMax.y)/_vDirection.y);	// Y
 	fDistProjMin = -((_vPosition.y - m_vBBMin.y)/_vDirection.y);
-	vOut += ((fDistProjMin>fDistProjMax)?fDistProjMin:fDistProjMax)*_vDirection;
 	if(_vPosition.y < m_vBBMin.y || m_vBBMax.y < _vPosition.y)
 		_vPosition += ((fDistProjMin<fDistProjMax)?fDistProjMin:fDistProjMax)*_vDirection;
 	// Ray cast from front or back?
 	fDistProjMax = -((_vPosition.z - m_vBBMax.z)/_vDirection.z);	// Z
 	fDistProjMin = -((_vPosition.z - m_vBBMin.z)/_vDirection.z);
-	vOut += ((fDistProjMin>fDistProjMax)?fDistProjMin:fDistProjMax)*_vDirection;
 	if(_vPosition.z < m_vBBMin.z || m_vBBMax.z < _vPosition.z)
 		_vPosition += ((fDistProjMin<fDistProjMax)?fDistProjMin:fDistProjMax)*_vDirection;
 
 	// Transform positions to grid space
 	_vPosition = (_vPosition - m_vBBMin) * m_vPosToGrid;
-	vOut = (vOut - m_vBBMin) * m_vPosToGrid;
+//	vOut = (vOut - m_vBBMin) * m_vPosToGrid;
 	_vDirection = glm::normalize(_vDirection * m_vPosToGrid );
-	float fIntersectionLength = glm::length(vOut-_vPosition);
+//	float fIntersectionLength = glm::length(vOut-_vPosition);
 
 	// Go linear through the volume
-	for(float i=0; i<fIntersectionLength; i+=1.0f)
+	//for(float i=0; i<fIntersectionLength; i+=1.0f)
+	glm::vec3 vCurrent = _vPosition;
+	while(vCurrent.x<GetSizeX() && vCurrent.y<GetSizeY() && vCurrent.z<GetSizeZ())
 	{
-		glm::vec3 vCurrent = _vPosition + _vDirection*i;
 		glm::vec3 vSample = Sample(vCurrent.x, vCurrent.y, vCurrent.z);
 		// Current point in volume == solid?
 		if(abs(vSample.x)+abs(vSample.y)+abs(vSample.z) < 0.00001f)
 			// Transform back from grid space
-			return vCurrent/m_vPosToGrid + m_vBBMin;
+			return (vCurrent-_vDirection)/m_vPosToGrid + m_vBBMin;
+		vCurrent += _vDirection;
 	}
 
 	// No point was found -> return middle position per default
-	return ((vOut + _vPosition)*0.5f)/m_vPosToGrid + m_vBBMin;
+	return ((vCurrent + _vPosition)*0.5f)/m_vPosToGrid + m_vBBMin;
 }

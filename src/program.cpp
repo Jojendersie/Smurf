@@ -201,7 +201,7 @@ void Program::Initialize() {
 	// load vector field
 	m_VectorField.Load("res\\data\\BubbleChamber_11x11x10_T0.am");
 	m_pSmokeSurface = new SmokeSurface(Globals::RENDER_SMURF_COLUMS, Globals::RENDER_SMURF_ROWS, m_VectorField.GetBoundingBoxMax(), m_VectorField.GetBoundingBoxMin());
-	m_pSolidSurface = new SolidSurface(&m_VectorField, 1000);
+	m_pSolidSurface = new SolidSurface(&m_VectorField, 10000);
 
 	cudamanager = new CudaManager(&m_VectorField);
 
