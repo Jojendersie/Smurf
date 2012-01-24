@@ -118,7 +118,7 @@ bool AmiraMesh::Load(char* _pcFileName)
 		if(!bLittleEndian)
 		{
 			unsigned char* pData = (unsigned char*)m_pvBuffer;
-			for(int i=0;i<NumToRead*3;++i)
+			for(unsigned int i=0;i<NumToRead*3;++i)
 			{
 				ToggleEndian(pData);
 				pData += 4;

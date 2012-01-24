@@ -54,6 +54,8 @@ class SmokeSurface
 	glm::vec3		m_vStart;
 	glm::vec3		m_vEnd;
 	PositionVertex*	m_pPositionMap;
+	bool			m_bInvalidSeedLine;
+
 public:
 	// Create one surface cylinder at a specified seedline.
 	// Input:	_iNumCols, _iNumRows - detail of the surface
@@ -86,11 +88,12 @@ public:
 	int GetLastReleasedColumn()	{return m_iNumReleasedColumns;}
 	glm::vec3 GetLineStart()	{return m_vStart;}
 	glm::vec3 GetLineEnd()		{return m_vEnd;}
+	bool IsInvalide()			{return m_bInvalidSeedLine;}
 
 	// TODO @Martin see programm.cpp m_bInvalidSeedLine
 	// Dynamic movement of the seedline
-	void SetSeedLineStart(const glm::vec3& _v)		{m_vStart = _v;}
-	void SetSeedLineEnd(const glm::vec3& _v)		{m_vEnd = _v;}
+	void SetSeedLineStart(const glm::vec3& _v)		{m_vStart = _v; m_bInvalidSeedLine=true;}
+	void SetSeedLineEnd(const glm::vec3& _v)		{m_vEnd = _v; m_bInvalidSeedLine=false;}
 
 	// Reset all vertices to the seedline
 	void Reset();

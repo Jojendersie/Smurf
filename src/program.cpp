@@ -42,12 +42,12 @@ Program::Program() {
 	m_bStopProgram = false;
 	m_bCloseRequest = false;
 	m_bNoisyIntegration = false;
-	m_bInvalidSeedLine = false;
 	m_bUseLinearFilter = false;
 	m_bUseAdvancedEuler = true;
 	m_bMouseActive = false;
 	m_uiFrameCount = 0;
 	m_normalizer=0;
+	m_uiEditSeedLine = 0;
 	m_timeIntegrate=m_timeRender=0;
 	// set a valid video mode
 	sf::VideoMode mode(Globals::RENDER_VIEWPORT_WIDTH, Globals::RENDER_VIEWPORT_HEIGHT, Globals::RENDER_COLOR_DEPTH);
@@ -222,17 +222,23 @@ void Program::Initialize() {
 	// load vector field
 	m_VectorField.Load("res\\data\\BubbleChamber_11x11x10_T0.am");
 	//m_VectorField.Load("res\\data\\SquareCylinder_192x64x48_T4048.am");
-	m_pSmokeSurface = new SmokeSurface(Globals::RENDER_SMURF_COLUMS, Globals::RENDER_SMURF_ROWS, m_VectorField.GetBoundingBoxMax(), m_VectorField.GetBoundingBoxMin());
 	m_pSolidSurface = new SolidSurface(&m_VectorField, 10000);
 
-	cudamanager = new CudaManager(&m_VectorField);
+	for(int i=0;i<Globals::PROGRAM_NUM_SEEDLINES;++i)
+	{
+		m_pSmokeSurface[i] = new SmokeSurface(Globals::RENDER_SMURF_COLUMS, Globals::RENDER_SMURF_ROWS, m_VectorField.GetBoundingBoxMax(), m_VectorField.GetBoundingBoxMin());
+		cudamanager[i] = new CudaManager(&m_VectorField);
+	}
 
 	if(!Globals::RENDER_CPU_SMOKE)
 	{
-		cudamanager->AllocateMemory(m_pSmokeSurface->GetNumVertices());
-		cudamanager->SetVectorField();
-		GLuint tmpPBO=m_pSmokeSurface->GetPBO();
-		cudamanager->RegisterVertices(&tmpPBO,Globals::RENDER_SMURF_COLUMS,Globals::RENDER_SMURF_ROWS);
+		for(int i=0; i<Globals::PROGRAM_NUM_SEEDLINES; ++i)
+		{
+			cudamanager[i]->AllocateMemory(m_pSmokeSurface[i]->GetNumVertices());
+			cudamanager[i]->SetVectorField();
+			GLuint tmpPBO=m_pSmokeSurface[i]->GetPBO();
+			cudamanager[i]->RegisterVertices(&tmpPBO,Globals::RENDER_SMURF_COLUMS,Globals::RENDER_SMURF_ROWS);
+		}
 	}
 }
 
@@ -247,33 +253,38 @@ void Program::Update() {
 
 	// all update code goes here
 	// Update camera unless the user will set need seed points
-	if (sf::Keyboard::IsKeyPressed(Globals::INPUT_CAM_RAY) && sf::Mouse::IsButtonPressed(Globals::INPUT_CAM_ROTATION) && !m_bMouseActive) {
+	if (sf::Mouse::IsButtonPressed(Globals::INPUT_CAM_RAY) && !m_bMouseActive) {
 		m_bMouseActive = true;
 		RayCast();
 	} else {
-		if(!sf::Mouse::IsButtonPressed(Globals::INPUT_CAM_ROTATION)) m_bMouseActive = false;
+		if(!sf::Mouse::IsButtonPressed(Globals::INPUT_CAM_RAY)) m_bMouseActive = false;
 		camera->Update();
 	}
+	// Switch between seed lines
+	for(unsigned int i=0;i<Globals::PROGRAM_NUM_SEEDLINES;++i)
+		if(sf::Keyboard::IsKeyPressed(sf::Keyboard::Key( sf::Keyboard::Num1+i)))
+			m_uiEditSeedLine = i;
+
 	m_normalizer++;
 	m_timeStart=clock();
 
-	if(!m_bInvalidSeedLine)
+	for(int i=0; i<Globals::PROGRAM_NUM_SEEDLINES; ++i) if(!m_pSmokeSurface[i]->IsInvalide())
 	{
 		if(m_uiFrameCount++ % Globals::PROGRAM_FRAMES_PER_RELEASE == 0)
 		{
 			if(Globals::RENDER_CPU_SMOKE) 
-				m_pSmokeSurface->ReleaseNextColumn();
+				m_pSmokeSurface[i]->ReleaseNextColumn();
 			else
-				cudamanager->ReleaseNextColumn(m_pSmokeSurface);
+				cudamanager[i]->ReleaseNextColumn(m_pSmokeSurface[i]);
 		}
 		unsigned int uiRenderFlags = (m_bUseAdvancedEuler	?Globals::INTEGRATION_MODEULER		: Globals::INTEGRATION_EULER)
 								   | (m_bUseLinearFilter	?Globals::INTEGRATION_FILTER_LINEAR	: Globals::INTEGRATION_FILTER_POINT)
 								   | (m_bNoisyIntegration	?Globals::INTEGRATION_NOISE			: 0);
 
 		if(Globals::RENDER_CPU_SMOKE)
-			m_pSmokeSurface->IntegrateCPU(&m_VectorField, Globals::RENDER_SMURF_STEPSIZE,uiRenderFlags);
+			m_pSmokeSurface[i]->IntegrateCPU(&m_VectorField, Globals::RENDER_SMURF_STEPSIZE,uiRenderFlags);
 		else
-			cudamanager->Integrate(Globals::RENDER_SMURF_STEPSIZE,uiRenderFlags);
+			cudamanager[i]->Integrate(Globals::RENDER_SMURF_STEPSIZE,uiRenderFlags);
 
 		if(!m_bStopProgram)
 		{
@@ -282,89 +293,79 @@ void Program::Update() {
 		}
 
 		if(m_bCloseRequest)
-			cudamanager->Clear();
+			cudamanager[i]->Clear();
 	}
 }
 
 
 ////////////////////////////////////////////////////////////////////////////////
 void Program::Draw() {
-	// TODO:
-	// clear (black)
-	// Solid mit Zwrite
-	// bind Framebuffer
-	// clear (black)
-	// additive blending
-	// ztest only (no writing)
-	// render smoke
-	// smokequad -> backbuffer
-	//		mit blendformel lerp(Sb.rgb, Sb.a*RGB, Sb.a)
-
-
 	//glBindFramebuffer(GL_DRAW_FRAMEBUFFER,smokeFBO);
 
 	m_timeStart=clock();
-	if(Globals::RENDER_CPU_SMOKE)
-	{
-		glBindTexture(GL_TEXTURE_2D, m_pSmokeSurface->GetVertexMap());
-		glTexImage2D(GL_TEXTURE_2D,	// Target
-			0,						// Mip-Level
-			GL_RGB32F,				// Internal format
-			m_pSmokeSurface->GetNumRows(),// Width
-			m_pSmokeSurface->GetNumColumns(),// Height
-			0,						// Border
-			GL_RGB,					// Format
-			GL_FLOAT,				// Type
-			m_pSmokeSurface->GetPoints());// Data
-		glBindTexture(GL_TEXTURE_2D, 0);
-	}
-	else
-	{
-		glBindBuffer(GL_PIXEL_UNPACK_BUFFER,m_pSmokeSurface->GetPBO());
-		glBindTexture(GL_TEXTURE_2D,m_pSmokeSurface->GetVertexMap());
-			glTexImage2D(GL_TEXTURE_2D,	// Target
-			0,						// Mip-Level
-			GL_RGB32F,				// Internal format
-			m_pSmokeSurface->GetNumRows(),	// Width
-			m_pSmokeSurface->GetNumColumns(),// Height
-			0,						// Border
-			GL_RGB,					// Format
-			GL_FLOAT,				// Type
-			NULL);					// Data
-		glBindTexture(GL_TEXTURE_2D,0);
-		glBindBuffer(GL_PIXEL_UNPACK_BUFFER,0);	
-	}
-
 	graphics->ClearBuffers();
 
 	flatShader->Use();
 	flatShader->SetAdvancedUniform(GLShader::AUTYPE_MATRIX4,0,&(camera->GetProjection()*camera->GetView())[0][0]);
-
+	//glBindBuffer(GL_PIXEL_UNPACK_BUFFER,0);
 	m_pSolidSurface->Render();
+
+	glBlendFunc(GL_ONE,GL_ONE);
+	glDepthMask(GL_FALSE);
+	for(int i=0;i<Globals::PROGRAM_NUM_SEEDLINES;++i) if(!m_pSmokeSurface[i]->IsInvalide())
+	{
+		if(Globals::RENDER_CPU_SMOKE)
+		{
+			glBindTexture(GL_TEXTURE_2D, m_pSmokeSurface[i]->GetVertexMap());
+			glTexImage2D(GL_TEXTURE_2D,	// Target
+				0,						// Mip-Level
+				GL_RGB32F,				// Internal format
+				m_pSmokeSurface[i]->GetNumRows(),// Width
+				m_pSmokeSurface[i]->GetNumColumns(),// Height
+				0,						// Border
+				GL_RGB,					// Format
+				GL_FLOAT,				// Type
+				m_pSmokeSurface[i]->GetPoints());// Data
+			glBindTexture(GL_TEXTURE_2D, 0);
+		}
+		else
+		{
+			glBindBuffer(GL_PIXEL_UNPACK_BUFFER,m_pSmokeSurface[i]->GetPBO());
+			glBindTexture(GL_TEXTURE_2D,m_pSmokeSurface[i]->GetVertexMap());
+				glTexImage2D(GL_TEXTURE_2D,	// Target
+				0,						// Mip-Level
+				GL_RGB32F,				// Internal format
+				m_pSmokeSurface[i]->GetNumRows(),	// Width
+				m_pSmokeSurface[i]->GetNumColumns(),// Height
+				0,						// Border
+				GL_RGB,					// Format
+				GL_FLOAT,				// Type
+				NULL);					// Data
+			glBindTexture(GL_TEXTURE_2D,0);
+			glBindBuffer(GL_PIXEL_UNPACK_BUFFER,0);	
+		}
 
 	//flatShader->UseNoShaderProgram();
 
-	if(!m_bInvalidSeedLine)
-	{
-		glBindTexture(GL_TEXTURE_2D,m_pSmokeSurface->GetVertexMap());
+		glBindTexture(GL_TEXTURE_2D,m_pSmokeSurface[i]->GetVertexMap());
 		if(!Globals::RENDER_POINTS) alphaShader->Use();
 		float fCurrentColumn;
 		if(Globals::RENDER_CPU_SMOKE)
 		{
 			fCurrentColumn = float(m_uiFrameCount%Globals::PROGRAM_FRAMES_PER_RELEASE)/Globals::PROGRAM_FRAMES_PER_RELEASE;
-			fCurrentColumn = float((m_pSmokeSurface->GetLastReleasedColumn()%m_pSmokeSurface->GetNumColumns())+fCurrentColumn);
-			fCurrentColumn /= m_pSmokeSurface->GetNumColumns();
-			m_bStopProgram=m_pSmokeSurface->GetNumColumns()<=m_pSmokeSurface->GetLastReleasedColumn();
+			fCurrentColumn = float((m_pSmokeSurface[i]->GetLastReleasedColumn()%m_pSmokeSurface[i]->GetNumColumns())+fCurrentColumn);
+			fCurrentColumn /= m_pSmokeSurface[i]->GetNumColumns();
+			m_bStopProgram=m_pSmokeSurface[i]->GetNumColumns()<=m_pSmokeSurface[i]->GetLastReleasedColumn();
 		} else
 		{
 			fCurrentColumn = float(m_uiFrameCount%Globals::PROGRAM_FRAMES_PER_RELEASE)/Globals::PROGRAM_FRAMES_PER_RELEASE;
-			fCurrentColumn = float((cudamanager->GetLastReleasedColumn()%cudamanager->GetNumColumns())+fCurrentColumn);
-			fCurrentColumn /= cudamanager->GetNumColumns();
-			m_bStopProgram=cudamanager->GetNumColumns()<=cudamanager->GetLastReleasedColumn();
+			fCurrentColumn = float((cudamanager[i]->GetLastReleasedColumn()%cudamanager[i]->GetNumColumns())+fCurrentColumn);
+			fCurrentColumn /= cudamanager[i]->GetNumColumns();
+			m_bStopProgram=cudamanager[i]->GetNumColumns()<=cudamanager[i]->GetLastReleasedColumn();
 		}
-		float fColumnStride=1.0f/m_pSmokeSurface->GetNumColumns();
-		float fRowStride=1.0f/m_pSmokeSurface->GetNumRows();
-		float fMaxColumns = m_pSmokeSurface->GetNumColumns();
+		float fColumnStride=1.0f/m_pSmokeSurface[i]->GetNumColumns();
+		float fRowStride=1.0f/m_pSmokeSurface[i]->GetNumRows();
+		float fMaxColumns = float(m_pSmokeSurface[i]->GetNumColumns());
 		glm::vec2 viewPort = glm::vec2(Globals::RENDER_VIEWPORT_WIDTH,Globals::RENDER_VIEWPORT_HEIGHT);
 		alphaShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 0,&Globals::SMOKE_CURVATURE_CONSTANT);
 		alphaShader->SetAdvancedUniform(GLShader::AUTYPE_MATRIX4,1,&(camera->GetProjection()*camera->GetView())[0][0]);
@@ -385,11 +386,7 @@ void Program::Draw() {
 		}
 
 		//Drawing geometry here
-		glBlendFunc(GL_ONE,GL_ONE);
-		glDepthMask(GL_FALSE);
-		m_pSmokeSurface->Render(Globals::RENDER_POINTS);
-		glBlendFunc(GL_ONE,GL_ZERO);
-		glDepthMask(GL_TRUE);
+		m_pSmokeSurface[i]->Render(Globals::RENDER_POINTS);
 		//testShader->Use();
 		//testShader->SetAdvancedUniform(GLShader::AUTYPE_MATRIX4,0,&(camera->GetProjection()*camera->GetView())[0][0]);
 		//m_pSmokeSurface->Render(true);
@@ -397,6 +394,8 @@ void Program::Draw() {
 		alphaShader->UseNoShaderProgram();
 		glBindTexture(GL_TEXTURE_2D,0);
 	}
+	glBlendFunc(GL_ONE,GL_ZERO);
+	glDepthMask(GL_TRUE);
 
 	if(!m_bStopProgram)
 	{
@@ -497,16 +496,14 @@ void Program::RayCast()
 	glm::vec3 vRes = m_VectorField.RayCast(camera->GetPosition(), glm::normalize(vNear));
 
 	// Insert
-	if(!m_bInvalidSeedLine)	{
-		m_pSmokeSurface->SetSeedLineStart(vRes);
-		m_bInvalidSeedLine=true;
+	if(!m_pSmokeSurface[m_uiEditSeedLine]->IsInvalide())	{
+		m_pSmokeSurface[m_uiEditSeedLine]->SetSeedLineStart(vRes);
 	} else {
-		m_pSmokeSurface->SetSeedLineEnd(vRes);
+		m_pSmokeSurface[m_uiEditSeedLine]->SetSeedLineEnd(vRes);
 		if(Globals::RENDER_CPU_SMOKE)
-			m_pSmokeSurface->Reset();
+			m_pSmokeSurface[m_uiEditSeedLine]->Reset();
 		else
-			cudamanager->Reset(m_pSmokeSurface);
-		m_bInvalidSeedLine = false;
+			cudamanager[m_uiEditSeedLine]->Reset(m_pSmokeSurface[m_uiEditSeedLine]);
 	}
 }
 

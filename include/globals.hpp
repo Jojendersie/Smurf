@@ -43,6 +43,7 @@ namespace Globals {
 	const short PROGRAM_VERSION_BUILD = 0;
 	const bool PROGRAM_OPEN_CENTERED = true;
 	const unsigned short PROGRAM_FRAMES_PER_RELEASE = 1;
+	const unsigned short PROGRAM_NUM_SEEDLINES = 3;
 
 	// Render Globals
 	////////////////////////////////////////////////////////////////////////////////
@@ -72,7 +73,7 @@ namespace Globals {
 	const float CAM_ZNEAR = 0.1f;
 	const float CAM_ZFAR = 1000.f;
 	const float CAM_SENSITIVITY = 50.f;
-	const float CAM_VELOCITY = 0.6f;
+	const float CAM_VELOCITY = 0.4f;
 
 	// Input Settings
 	////////////////////////////////////////////////////////////////////////////////
@@ -82,7 +83,7 @@ namespace Globals {
 	const sf::Keyboard::Key INPUT_CAM_BACK = sf::Keyboard::S;
 	const sf::Keyboard::Key INPUT_CAM_RIGHT = sf::Keyboard::D;
 	const sf::Mouse::Button INPUT_CAM_ROTATION = sf::Mouse::Left;
-	const sf::Keyboard::Key INPUT_CAM_RAY = sf::Keyboard::LShift;
+	const sf::Mouse::Button INPUT_CAM_RAY = sf::Mouse::Right;
 
 	// Smoke Properties
 	////////////////////////////////////////////////////////////////////////////////

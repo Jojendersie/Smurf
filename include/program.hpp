@@ -83,7 +83,7 @@ private:
 	GLuint smokeFBO;
 	GLuint colorTex;
 	GLuint depthTex;
-	CudaManager* cudamanager;
+	CudaManager* cudamanager[Globals::PROGRAM_NUM_SEEDLINES];
 	GLShader* flatShader;
 	GLShader* alphaShader;
 	GLShader* testShader;
@@ -91,8 +91,9 @@ private:
 	SFCamera* camera;
 	GLuint m_uiFrameCount;
 	AmiraMesh m_VectorField;
-	SmokeSurface* m_pSmokeSurface;
+	SmokeSurface* m_pSmokeSurface[Globals::PROGRAM_NUM_SEEDLINES];
 	SolidSurface* m_pSolidSurface;
+	unsigned int m_uiEditSeedLine;
 	bool m_bCloseRequest;
 	bool m_bNoisyIntegration;
 	bool m_bUseLinearFilter;
@@ -100,11 +101,6 @@ private:
 	bool m_bMouseActive;
 	clock_t m_timeStart,m_timeIntegrate,m_timeRender,m_normalizer;
 	bool m_bStopProgram;
-
-	// TODO @Martin
-	// If you click once (the moment where m_bInvalidSeedLine==false) -> {m_pSmokeSurface->SetSeedLineStart(m_VectorField.RayCast(...)); m_bInvalidSeedLine=true;}
-	// If clicked second time (m_bInvalidSeedLine==true) -> {m_pSmokeSurface->SetSeedLineEnd(m_VectorField.RayCast(...)); m_pSmokeSurface->Reset(); m_bInvalidSeedLine = false;}
-	bool m_bInvalidSeedLine;
 };
 
 

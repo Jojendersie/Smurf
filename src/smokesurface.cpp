@@ -15,6 +15,7 @@ SmokeSurface::SmokeSurface(int _iNumCols, int _iNumRows, glm::vec3 _vStart, glm:
 	m_vStart = _vStart;
 	m_vEnd = _vEnd;
 	m_iNumReleasedColumns = 0;
+	m_bInvalidSeedLine = false;
 
 	// Create data
 	m_iNumVertices = _iNumCols*_iNumRows;
