@@ -53,6 +53,8 @@ bool AmiraMesh::Load(char* _pcFileName)
         return false;
     }
 
+	bool bLittleEndian = strstr(acBuffer, "LITTLE-ENDIAN");
+
 	// Find the Lattice definition, i.e., the dimensions of the uniform grid
 	if(3!=sscanf(FindAndJump(acBuffer, "define Lattice"), "%d %d %d\n", &m_iSizeX, &m_iSizeY, &m_iSizeZ))
 	{
@@ -113,11 +115,14 @@ bool AmiraMesh::Load(char* _pcFileName)
         }
 
 		// Our data have big endian representation!
-		unsigned char* pData = (unsigned char*)m_pvBuffer;
-		for(int i=0;i<NumToRead*3;++i)
+		if(!bLittleEndian)
 		{
-			ToggleEndian(pData);
-			pData += 4;
+			unsigned char* pData = (unsigned char*)m_pvBuffer;
+			for(int i=0;i<NumToRead*3;++i)
+			{
+				ToggleEndian(pData);
+				pData += 4;
+			}
 		}
 
 /*/Test: Print all data values
@@ -190,7 +195,7 @@ glm::vec3 AmiraMesh::SampleL(float x, float y, float z)
 		x -= ix;	y -= iy;	z -= iz;
 
 	// Edge handling
-	if((ix>=m_iSizeX) || (iy>=m_iSizeY) || (iz>=m_iSizeZ) || (ix<0) || (iy<0) || (iz<0))
+	if((ix>=1+m_iSizeX) || (iy>=1+m_iSizeY) || (iz>=1+m_iSizeZ) || (ix<0) || (iy<0) || (iz<0))
 		return glm::vec3(0.0f);
 
 	// Load the 8 vectors (s{X}{Y}{Z}{vector component})
@@ -211,6 +216,7 @@ glm::vec3 AmiraMesh::SampleL(float x, float y, float z)
 }
 
 const float MAXRNDINV = 0.000003051850948f;	// 0.00003051850948f
+const float RNDMID = 0.05f;
 // **************************************************************** //
 // Integrate one step over the vector field to determine new position
 // Input:	_vPosition - old position
@@ -226,7 +232,7 @@ glm::vec3 AmiraMesh::Integrate(glm::vec3 _vPosition, float _fStepSize, int _iMet
 	vS = (_iMethod & Globals::INTEGRATION_FILTER_POINT)?Sample(vPos.x,vPos.y,vPos.z):SampleL(vPos.x,vPos.y,vPos.z);
 
 	if(_iMethod & Globals::INTEGRATION_NOISE)
-		vS += glm::vec3(rand()*MAXRNDINV, rand()*MAXRNDINV, rand()*MAXRNDINV);
+		vS += glm::vec3(rand()*MAXRNDINV-RNDMID, rand()*MAXRNDINV-RNDMID, rand()*MAXRNDINV-RNDMID);
 
 	// Calculate new position
 	if(_iMethod & Globals::INTEGRATION_EULER)

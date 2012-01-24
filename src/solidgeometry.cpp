@@ -479,7 +479,7 @@ bool IsSolid(AmiraMesh* _pMesh, int _x, int _y, int _z)
 	return (abs(_pMesh->GetData()[iDataIndex])
 		+ abs(_pMesh->GetData()[iDataIndex+1])
 		+ abs(_pMesh->GetData()[iDataIndex+2]))
-			<= 0.000001f;
+			<= 0.00000f;
 }
 
 // **************************************************************** //

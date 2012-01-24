@@ -221,6 +221,7 @@ void Program::Initialize() {
 
 	// load vector field
 	m_VectorField.Load("res\\data\\BubbleChamber_11x11x10_T0.am");
+	//m_VectorField.Load("res\\data\\SquareCylinder_192x64x48_T4048.am");
 	m_pSmokeSurface = new SmokeSurface(Globals::RENDER_SMURF_COLUMS, Globals::RENDER_SMURF_ROWS, m_VectorField.GetBoundingBoxMax(), m_VectorField.GetBoundingBoxMin());
 	m_pSolidSurface = new SolidSurface(&m_VectorField, 10000);
 
@@ -384,8 +385,11 @@ void Program::Draw() {
 		}
 
 		//Drawing geometry here
-		
+		glBlendFunc(GL_ONE,GL_ONE);
+		glDepthMask(GL_FALSE);
 		m_pSmokeSurface->Render(Globals::RENDER_POINTS);
+		glBlendFunc(GL_ONE,GL_ZERO);
+		glDepthMask(GL_TRUE);
 		//testShader->Use();
 		//testShader->SetAdvancedUniform(GLShader::AUTYPE_MATRIX4,0,&(camera->GetProjection()*camera->GetView())[0][0]);
 		//m_pSmokeSurface->Render(true);
@@ -492,7 +496,6 @@ void Program::RayCast()
 	// Search the new point
 	glm::vec3 vRes = m_VectorField.RayCast(camera->GetPosition(), glm::normalize(vNear));
 
-	printf("Huhhuh\n");
 	// Insert
 	if(!m_bInvalidSeedLine)	{
 		m_pSmokeSurface->SetSeedLineStart(vRes);

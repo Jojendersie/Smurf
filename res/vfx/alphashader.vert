@@ -19,7 +19,7 @@ void main()
 
 
 	////////////////////////////ALPHATIME////////////////////////////////////////
-	if(in_Indices.y+columnStride>currentColumn)
+	if(in_Indices.y+columnStride*2>currentColumn)
 		vs_out_alphaTime=1-in_Indices.y+currentColumn;
 	else
 		vs_out_alphaTime=currentColumn-in_Indices.y;

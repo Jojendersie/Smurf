@@ -31,10 +31,11 @@ void main()
 	float gamma=dot(gs_out_normal,viewRay)/(length(gs_out_normal)*length(viewRay));///(sqrt(dot(gs_out_normal,gs_out_normal))*sqrt(dot(viewRay,viewRay)));
 
 	float alphaDensity=clamp(k/(gs_out_area*gamma),0.0,1.0);
-	float alphaFade=1.0-gs_out_alphaTime;//clamp(1.0-gs_out_alphaTime,0.0,1.0);
+	float alphaFade=clamp(1.0-gs_out_alphaTime,0.0,1.0);//1.0-gs_out_alphaTime;//
+	float alphaArea=0.0008f/pow(gs_out_area, 0.4f);
 
 	//if(gs_out_alphaShape<=0.5f)
 		//discard;
 
-	fs_out_Color=vec4(fragColor,alphaDensity*alphaFade*gs_out_alphaShape*gs_out_alphaCurvature);
+	fs_out_Color=vec4(alphaDensity*alphaFade*gs_out_alphaShape*gs_out_alphaCurvature*alphaArea);//alphaDensity*alphaFade*gs_out_alphaShape*gs_out_alphaCurvature
 }

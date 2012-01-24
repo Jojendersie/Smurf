@@ -82,8 +82,8 @@ __device__ float3 SampleL(float3 Vector, const float *Vector_Field, uint3 Size)
 				lerp(lerp(s[1],s[5],Vector.x),lerp(s[3],s[7],Vector.x),Vector.y),Vector.z);	
 }
 
-#define MAXRANDINV 0.00003051850948f
-#define MINIMIZE 0.00001f
+#define MAXRANDINV 0.00000000002328306437f
+#define RNDMID 0.028f
 
 __global__ void IntegrateVectorField(float *Vector_Field, float3 *posptr, unsigned int ElementSize, uint3 Size, uint3 rand, float3 bbMin,
 									float3 posGridOffset, int resetcolumn, int rows, float stepsize, unsigned int bitmask)
@@ -105,7 +105,7 @@ __global__ void IntegrateVectorField(float *Vector_Field, float3 *posptr, unsign
 		rnd.y=random(index+rand.x,(clVs.x+clVs.y+clVs.z)*1000+rand.y);
 		rnd.z=random(index+rand.x,(clVs.x+clVs.y+clVs.z)*1000+rand.y);
 
-		clVs+=make_float3(((rand.z+rnd.x)*MAXRANDINV)*MINIMIZE,((rand.z+rnd.x)*MAXRANDINV)*MINIMIZE,((rand.z+rnd.x)*MAXRANDINV)*MINIMIZE);
+		clVs+=make_float3(((rand.z+rnd.x)*MAXRANDINV-RNDMID),((rand.z+rnd.x)*MAXRANDINV-RNDMID),((rand.z+rnd.x)*MAXRANDINV-RNDMID));
 	}
 
 	if(bitmask & 0x00010000)

@@ -42,7 +42,7 @@ namespace Globals {
 	const short PROGRAM_VERSION_REVISION = 0;
 	const short PROGRAM_VERSION_BUILD = 0;
 	const bool PROGRAM_OPEN_CENTERED = true;
-	const unsigned short PROGRAM_FRAMES_PER_RELEASE = 5;
+	const unsigned short PROGRAM_FRAMES_PER_RELEASE = 1;
 
 	// Render Globals
 	////////////////////////////////////////////////////////////////////////////////
@@ -53,9 +53,9 @@ namespace Globals {
 	const unsigned short RENDER_BUFFER_STENCIL = 8;
 	const unsigned short RENDER_ANTIALIASING_LEVEL = 4;
 	const unsigned short RENDER_FRAMERATE_MAX = 120;
-	const unsigned short RENDER_SMURF_COLUMS = 20;
-	const unsigned short RENDER_SMURF_ROWS = 100;
-	const float RENDER_SMURF_STEPSIZE = 7.5f;
+	const unsigned short RENDER_SMURF_COLUMS = 400;
+	const unsigned short RENDER_SMURF_ROWS = 50;
+	const float RENDER_SMURF_STEPSIZE = 3.75f;
 	const bool RENDER_CPU_SMOKE = false;
 	const bool RENDER_FULLSCREEN = false;
 	const bool RENDER_VSYNC = true;
@@ -72,7 +72,7 @@ namespace Globals {
 	const float CAM_ZNEAR = 0.1f;
 	const float CAM_ZFAR = 1000.f;
 	const float CAM_SENSITIVITY = 50.f;
-	const float CAM_VELOCITY = 0.3f;
+	const float CAM_VELOCITY = 0.6f;
 
 	// Input Settings
 	////////////////////////////////////////////////////////////////////////////////
@@ -89,9 +89,9 @@ namespace Globals {
 	const unsigned int SMOKE_PARTICLE_NUMBER=10;
 	const float SMOKE_PRISM_THICKNESS=0.0001f;
 	const float SMOKE_DENSITY_CONSTANT=0.5f;
-	const float SMOKE_SHAPE_CONSTANT=4.0f;
+	const float SMOKE_SHAPE_CONSTANT=1.5f;
 	const float SMOKE_CURVATURE_CONSTANT=1.0f;
-	const float SMOKE_COLOR[]={0.1f,0.1f,0.9f};
+	const float SMOKE_COLOR[]={0.51f,0.51f,0.51f};
 	const float SMOKE_DENSITY_CONSTANT_K=SMOKE_PARTICLE_NUMBER*SMOKE_DENSITY_CONSTANT*SMOKE_PRISM_THICKNESS;
 
 	// Types of integration methods and filters.

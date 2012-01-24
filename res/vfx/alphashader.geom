@@ -6,6 +6,7 @@ layout(triangles) in;
 layout(triangle_strip, max_vertices = maxv) out;
 
 #define ROOT3 1.7320508075689
+#define FOUR_DIV_ROOT3 2.309401077
 
 uniform mat4 ProjectionView;
 uniform vec3 eyePos;
@@ -37,23 +38,20 @@ void main()
 			gs_out_normal*=-1;
 
 		////////////////////////AREA////////////////////////////
-		float lengths[3],s;
-		lengths[0]=length(gl_in[0].gl_Position.xyz);
-		lengths[1]=length(gl_in[1].gl_Position.xyz);
-		lengths[2]=length(gl_in[2].gl_Position.xyz);
-
-		s=(lengths[0]+lengths[1]+lengths[2])*0.5;
-
-		gs_out_area=sqrt(s*(s-lengths[0])*(s-lengths[1])*(s-lengths[2]));
-
-		///////////////ALPHASHAPE/////////////////////////////////
+		float s;
 		vec3 d;
 		d.x=length(gl_in[2].gl_Position.xyz-gl_in[1].gl_Position.xyz);
 		d.y=length(gl_in[0].gl_Position.xyz-gl_in[2].gl_Position.xyz);
 		d.z=length(gl_in[1].gl_Position.xyz-gl_in[0].gl_Position.xyz);
+
+		s=(d.x+d.y+d.z)*0.5;
+
+		gs_out_area=sqrt(s*(s-d.x)*(s-d.y)*(s-d.z));
+
+		///////////////ALPHASHAPE/////////////////////////////////
 		float dmax=max(d.x*d.y,max(d.y*d.z,d.z*d.x));
 
-		gs_out_alphaShape=clamp(pow((4.0*gs_out_area)/(ROOT3*dmax),shapeStrength),0.0,1.0);
+		gs_out_alphaShape=clamp(pow((FOUR_DIV_ROOT3*gs_out_area)/dmax,shapeStrength),0.0,1.0);
 
 		/////////////////////////////ALPHATIME////////////////////////////////////////
 		gs_out_alphaTime=vs_out_alphaTime[l];
