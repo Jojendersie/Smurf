@@ -17,11 +17,11 @@ out vec4 fs_out_Color;
 
 void main()
 {
-	//vec2 ndc = (gl_FragCoord.xy/viewPort.xy-0.5)*2.0;
-	//vec4 worldPos=vec4(ndc,gl_FragCoord.z,1.0)/gl_FragCoord.w;
-	//worldPos=invProjectionView*worldPos;
+	vec2 ndc = (gl_FragCoord.xy/viewPort.xy-0.5)*2.0;
+	vec4 worldPos=vec4(ndc,gl_FragCoord.z,1.0)/gl_FragCoord.w;
+	worldPos=invProjectionView*worldPos;
 
-	vec4 tmp=vec4(gs_out_worldPos.xyz,1);
+	//vec4 tmp=vec4(gs_out_worldPos.xyz,1);
 	//vec4 tmp=gs_out_worldPos;
 	//tmp=invProjectionView*vec4(tmp.xyzw);
 	//tmp.xyz/tmp.w;
@@ -37,5 +37,5 @@ void main()
 	//if(gs_out_alphaShape<=0.5f)
 		//discard;
 
-	fs_out_Color=vec4(alphaDensity*alphaFade*gs_out_alphaShape*gs_out_alphaCurvature*alphaArea);//alphaDensity*alphaFade*gs_out_alphaShape*gs_out_alphaCurvature
+	fs_out_Color=vec4(alphaDensity*alphaFade*gs_out_alphaShape*gs_out_alphaCurvature*alphaArea);//alphaDensity*alphaFade*gs_out_alphaShape*gs_out_alphaCurvature*alphaArea
 }

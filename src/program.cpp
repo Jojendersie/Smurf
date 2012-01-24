@@ -45,6 +45,7 @@ Program::Program() {
 	m_bUseLinearFilter = false;
 	m_bUseAdvancedEuler = true;
 	m_bMouseActive = false;
+	m_bUseCPUIntegration=false;
 	m_uiFrameCount = 0;
 	m_normalizer=0;
 	m_uiEditSeedLine = 0;
@@ -230,7 +231,7 @@ void Program::Initialize() {
 		cudamanager[i] = new CudaManager(&m_VectorField);
 	}
 
-	if(!Globals::RENDER_CPU_SMOKE)
+	//if(!m_bUseCPUIntegration) //because we can switch between CPU and GPU integration we need the memory to be initialised wether we set it to true or false at the start
 	{
 		for(int i=0; i<Globals::PROGRAM_NUM_SEEDLINES; ++i)
 		{
@@ -265,6 +266,11 @@ void Program::Update() {
 		if(sf::Keyboard::IsKeyPressed(sf::Keyboard::Key( sf::Keyboard::Num1+i)))
 			m_uiEditSeedLine = i;
 
+	if(m_bUseCPUIntegration)
+		std::cout<<"CPU-Integration"<<std::endl;
+	else
+		std::cout<<"GPU-Integration"<<std::endl;
+
 	m_normalizer++;
 	m_timeStart=clock();
 
@@ -272,7 +278,7 @@ void Program::Update() {
 	{
 		if(m_uiFrameCount++ % Globals::PROGRAM_FRAMES_PER_RELEASE == 0)
 		{
-			if(Globals::RENDER_CPU_SMOKE) 
+			if(m_bUseCPUIntegration) 
 				m_pSmokeSurface[i]->ReleaseNextColumn();
 			else
 				cudamanager[i]->ReleaseNextColumn(m_pSmokeSurface[i]);
@@ -281,7 +287,7 @@ void Program::Update() {
 								   | (m_bUseLinearFilter	?Globals::INTEGRATION_FILTER_LINEAR	: Globals::INTEGRATION_FILTER_POINT)
 								   | (m_bNoisyIntegration	?Globals::INTEGRATION_NOISE			: 0);
 
-		if(Globals::RENDER_CPU_SMOKE)
+		if(m_bUseCPUIntegration)
 			m_pSmokeSurface[i]->IntegrateCPU(&m_VectorField, Globals::RENDER_SMURF_STEPSIZE,uiRenderFlags);
 		else
 			cudamanager[i]->Integrate(Globals::RENDER_SMURF_STEPSIZE,uiRenderFlags);
@@ -314,7 +320,7 @@ void Program::Draw() {
 	glDepthMask(GL_FALSE);
 	for(int i=0;i<Globals::PROGRAM_NUM_SEEDLINES;++i) if(!m_pSmokeSurface[i]->IsInvalide())
 	{
-		if(Globals::RENDER_CPU_SMOKE)
+		if(m_bUseCPUIntegration)
 		{
 			glBindTexture(GL_TEXTURE_2D, m_pSmokeSurface[i]->GetVertexMap());
 			glTexImage2D(GL_TEXTURE_2D,	// Target
@@ -350,7 +356,7 @@ void Program::Draw() {
 		glBindTexture(GL_TEXTURE_2D,m_pSmokeSurface[i]->GetVertexMap());
 		if(!Globals::RENDER_POINTS) alphaShader->Use();
 		float fCurrentColumn;
-		if(Globals::RENDER_CPU_SMOKE)
+		if(m_bUseCPUIntegration)
 		{
 			fCurrentColumn = float(m_uiFrameCount%Globals::PROGRAM_FRAMES_PER_RELEASE)/Globals::PROGRAM_FRAMES_PER_RELEASE;
 			fCurrentColumn = float((m_pSmokeSurface[i]->GetLastReleasedColumn()%m_pSmokeSurface[i]->GetNumColumns())+fCurrentColumn);
@@ -473,6 +479,9 @@ void Program::HandleBasicEvents() {
 		if ((event.Type == sf::Event::KeyPressed) && (event.Key.Code == sf::Keyboard::I))
 			m_bUseAdvancedEuler = !m_bUseAdvancedEuler;
 
+		if((event.Type == sf::Event::KeyPressed) && (event.Key.Code == sf::Keyboard::R))
+			m_bUseCPUIntegration = !m_bUseCPUIntegration;
+
 		// adjust OpenGL viewport after window resizing
 		if (event.Type == sf::Event::Resized)
 			graphics->AdjustViewport(event.Size.Width, event.Size.Height);
@@ -500,9 +509,9 @@ void Program::RayCast()
 		m_pSmokeSurface[m_uiEditSeedLine]->SetSeedLineStart(vRes);
 	} else {
 		m_pSmokeSurface[m_uiEditSeedLine]->SetSeedLineEnd(vRes);
-		if(Globals::RENDER_CPU_SMOKE)
+		//if(m_bUseCPUIntegration)
 			m_pSmokeSurface[m_uiEditSeedLine]->Reset();
-		else
+		//else
 			cudamanager[m_uiEditSeedLine]->Reset(m_pSmokeSurface[m_uiEditSeedLine]);
 	}
 }

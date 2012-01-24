@@ -55,9 +55,8 @@ namespace Globals {
 	const unsigned short RENDER_ANTIALIASING_LEVEL = 4;
 	const unsigned short RENDER_FRAMERATE_MAX = 120;
 	const unsigned short RENDER_SMURF_COLUMS = 400;
-	const unsigned short RENDER_SMURF_ROWS = 50;
+	const unsigned short RENDER_SMURF_ROWS = 100;
 	const float RENDER_SMURF_STEPSIZE = 3.75f;
-	const bool RENDER_CPU_SMOKE = false;
 	const bool RENDER_FULLSCREEN = false;
 	const bool RENDER_VSYNC = true;
 	const bool RENDER_POINTS = false;
@@ -88,8 +87,8 @@ namespace Globals {
 	// Smoke Properties
 	////////////////////////////////////////////////////////////////////////////////
 	const unsigned int SMOKE_PARTICLE_NUMBER=10;
-	const float SMOKE_PRISM_THICKNESS=0.0001f;
-	const float SMOKE_DENSITY_CONSTANT=0.5f;
+	const float SMOKE_PRISM_THICKNESS=0.000001f;
+	const float SMOKE_DENSITY_CONSTANT=0.05f;
 	const float SMOKE_SHAPE_CONSTANT=1.5f;
 	const float SMOKE_CURVATURE_CONSTANT=1.0f;
 	const float SMOKE_COLOR[]={0.51f,0.51f,0.51f};
