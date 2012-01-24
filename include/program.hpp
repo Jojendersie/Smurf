@@ -99,6 +99,7 @@ private:
 	bool m_bUseAdvancedEuler;
 	bool m_bMouseActive;
 	clock_t m_timeStart,m_timeIntegrate,m_timeRender,m_normalizer;
+	bool m_bStopProgram;
 
 	// TODO @Martin
 	// If you click once (the moment where m_bInvalidSeedLine==false) -> {m_pSmokeSurface->SetSeedLineStart(m_VectorField.RayCast(...)); m_bInvalidSeedLine=true;}

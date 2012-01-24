@@ -82,10 +82,11 @@ __device__ float3 SampleL(float3 Vector, const float *Vector_Field, uint3 Size)
 				lerp(lerp(s[1],s[5],Vector.x),lerp(s[3],s[7],Vector.x),Vector.y),Vector.z);	
 }
 
-#define MAXRANDINV 0.000003051850948f
-#define MINIMIZE 0.0001f
+#define MAXRANDINV 0.00003051850948f
+#define MINIMIZE 0.00001f
 
-__global__ void IntegrateVectorField(float *Vector_Field, float3 *posptr, unsigned int ElementSize, uint3 Size, uint3 rand, float3 bbMin, float3 posGridOffset, int resetcolumn, int rows, float stepsize, unsigned int bitmask)
+__global__ void IntegrateVectorField(float *Vector_Field, float3 *posptr, unsigned int ElementSize, uint3 Size, uint3 rand, float3 bbMin,
+									float3 posGridOffset, int resetcolumn, int rows, float stepsize, unsigned int bitmask)
 {
 	const int index=blockDim.x*blockIdx.x+threadIdx.x;
 	if(index>ElementSize || rows*resetcolumn<index)

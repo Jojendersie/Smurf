@@ -39,6 +39,7 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 Program::Program() {
+	m_bStopProgram = false;
 	m_bCloseRequest = false;
 	m_bNoisyIntegration = false;
 	m_bInvalidSeedLine = false;
@@ -271,10 +272,13 @@ void Program::Update() {
 		if(Globals::RENDER_CPU_SMOKE)
 			m_pSmokeSurface->IntegrateCPU(&m_VectorField, Globals::RENDER_SMURF_STEPSIZE,uiRenderFlags);
 		else
-			cudamanager->Integrate(0.5f,uiRenderFlags);
+			cudamanager->Integrate(Globals::RENDER_SMURF_STEPSIZE,uiRenderFlags);
 
-		m_timeIntegrate+=clock()-m_timeStart;
-		std::cout << "Time to integrate: " << double(m_timeIntegrate)/m_normalizer << "ms" <<std::endl;
+		if(!m_bStopProgram)
+		{
+			m_timeIntegrate+=clock()-m_timeStart;
+			std::cout << "Time to integrate: " << double(m_timeIntegrate)/m_normalizer << "ms" <<std::endl;
+		}
 
 		if(m_bCloseRequest)
 			cudamanager->Clear();
@@ -296,7 +300,7 @@ void Program::Draw() {
 	//		mit blendformel lerp(Sb.rgb, Sb.a*RGB, Sb.a)
 
 
-	glBindFramebuffer(GL_DRAW_FRAMEBUFFER,smokeFBO);
+	//glBindFramebuffer(GL_DRAW_FRAMEBUFFER,smokeFBO);
 
 	m_timeStart=clock();
 	if(Globals::RENDER_CPU_SMOKE)
@@ -342,18 +346,20 @@ void Program::Draw() {
 	if(!m_bInvalidSeedLine)
 	{
 		glBindTexture(GL_TEXTURE_2D,m_pSmokeSurface->GetVertexMap());
-		alphaShader->Use();
+		if(!Globals::RENDER_POINTS) alphaShader->Use();
 		float fCurrentColumn;
 		if(Globals::RENDER_CPU_SMOKE)
 		{
 			fCurrentColumn = float(m_uiFrameCount%Globals::PROGRAM_FRAMES_PER_RELEASE)/Globals::PROGRAM_FRAMES_PER_RELEASE;
 			fCurrentColumn = float((m_pSmokeSurface->GetLastReleasedColumn()%m_pSmokeSurface->GetNumColumns())+fCurrentColumn);
 			fCurrentColumn /= m_pSmokeSurface->GetNumColumns();
+			m_bStopProgram=m_pSmokeSurface->GetNumColumns()<=m_pSmokeSurface->GetLastReleasedColumn();
 		} else
 		{
 			fCurrentColumn = float(m_uiFrameCount%Globals::PROGRAM_FRAMES_PER_RELEASE)/Globals::PROGRAM_FRAMES_PER_RELEASE;
 			fCurrentColumn = float((cudamanager->GetLastReleasedColumn()%cudamanager->GetNumColumns())+fCurrentColumn);
 			fCurrentColumn /= cudamanager->GetNumColumns();
+			m_bStopProgram=cudamanager->GetNumColumns()<=cudamanager->GetLastReleasedColumn();
 		}
 		float fColumnStride=1.0f/m_pSmokeSurface->GetNumColumns();
 		float fRowStride=1.0f/m_pSmokeSurface->GetNumRows();
@@ -378,18 +384,21 @@ void Program::Draw() {
 		}
 
 		//Drawing geometry here
-		m_pSmokeSurface->Render(false);
-		testShader->Use();
-		testShader->SetAdvancedUniform(GLShader::AUTYPE_MATRIX4,0,&(camera->GetProjection()*camera->GetView())[0][0]);
-		m_pSmokeSurface->Render(true);
+		
+		m_pSmokeSurface->Render(Globals::RENDER_POINTS);
+		//testShader->Use();
+		//testShader->SetAdvancedUniform(GLShader::AUTYPE_MATRIX4,0,&(camera->GetProjection()*camera->GetView())[0][0]);
+		//m_pSmokeSurface->Render(true);
 	
 		alphaShader->UseNoShaderProgram();
 		glBindTexture(GL_TEXTURE_2D,0);
 	}
 
-	m_timeRender+=clock()-m_timeStart;
-
-	std::cout << "Time to render: " << double(m_timeRender)/m_normalizer << "ms" << std::endl;
+	if(!m_bStopProgram)
+	{
+		m_timeRender+=clock()-m_timeStart;
+		std::cout << "Time to render: " << double(m_timeRender)/m_normalizer << "ms" << std::endl;
+	}
 
 	//const GLenum ErrorValue = glGetError();
 	//int tmp=0;
@@ -398,7 +407,7 @@ void Program::Draw() {
 	//tmp=GL_INVALID_VALUE&GL_INVALID_VALUE;
 	//glFlush();
 
-	glBindFramebuffer(GL_DRAW_FRAMEBUFFER,0);
+	//glBindFramebuffer(GL_DRAW_FRAMEBUFFER,0);
 
 	//glBindTexture(GL_TEXTURE_2D,colorTex);
 	//unsigned char *pix = new unsigned char[Globals::RENDER_VIEWPORT_WIDTH*Globals::RENDER_VIEWPORT_HEIGHT*sizeof(unsigned char)*4];
@@ -414,23 +423,23 @@ void Program::Draw() {
 	//glActiveTexture(GL_TEXTURE0);
 	//glBindTexture(GL_TEXTURE_2D,colorTex);
 
-	renderQuadShader->Use();
-	glClearColor(0,1,0,1);
-	glClear(GL_COLOR_BUFFER_BIT);
-	//glDisable(GL_DEPTH_TEST);
+	//renderQuadShader->Use();
+	//glClearColor(0,1,0,1);
+	//glClear(GL_COLOR_BUFFER_BIT);
+	////glDisable(GL_DEPTH_TEST);
 
-	glBegin(GL_QUADS);
-	{
-		glTexCoord2f(0,0);
-		glVertex2f(-1,-1);
-		glTexCoord2f(1,0);
-		glVertex2f(1,-1);
-		glTexCoord2f(1,1);
-		glVertex2f(1,1);
-		glTexCoord2f(0,1);
-		glVertex2f(-1,1);
-	}       
-	glEnd();
+	//glBegin(GL_QUADS);
+	//{
+	//	glTexCoord2f(0,0);
+	//	glVertex2f(-1,-1);
+	//	glTexCoord2f(1,0);
+	//	glVertex2f(1,-1);
+	//	glTexCoord2f(1,1);
+	//	glVertex2f(1,1);
+	//	glTexCoord2f(0,1);
+	//	glVertex2f(-1,1);
+	//}       
+	//glEnd();
 
 	//glEnable(GL_DEPTH_TEST);
 }

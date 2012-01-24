@@ -92,7 +92,7 @@ void main()
 		gs_out_alphaCurvature=clamp(1.0-b*etmp,0.0,1.0);
 
 		/////////////////////////////POSITIONS////////////////////////////////////////
-		gs_out_worldPos=gl_in[l].gl_Position;;
+		gs_out_worldPos=gl_in[l].gl_Position;
 		//gs_out_worldPos[l].xyz/=gs_out_worldPos[l].w;
 		gl_Position=ProjectionView*gl_in[l].gl_Position;
 

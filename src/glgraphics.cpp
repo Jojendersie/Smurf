@@ -205,7 +205,7 @@ void GLGraphics::InitializeGraphics() {
 	glClearStencil(0);
 
 	//filled polygons GL_LINE for wireframe
-	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINES);
 
 	//enable alphablending
 	//glEnable(GL_ALPHA_TEST);
