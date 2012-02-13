@@ -1,10 +1,15 @@
 #version 330
 
+uniform sampler2D depthTexture;
+uniform sampler2D opaqueTexture;
+
 uniform mat4 invProjectionView;
 uniform vec3 eyePos;
 uniform float k;//constant: height_of_the_prism*number_of_particles*constant
 uniform vec3 fragColor;
 uniform vec2 viewPort;
+uniform float renderPass;
+uniform vec2 areaConstants;
 
 in vec4 gs_out_worldPos;
 flat in vec3 gs_out_normal;
@@ -17,14 +22,16 @@ out vec4 fs_out_Color;
 
 void main()
 {
-	vec2 ndc = (gl_FragCoord.xy/viewPort.xy-0.5)*2.0;
-	vec4 worldPos=vec4(ndc,gl_FragCoord.z,1.0)/gl_FragCoord.w;
-	worldPos=invProjectionView*worldPos;
+	if((renderPass>0 && gl_FragCoord.z+0.0001>=texture(depthTexture,gl_FragCoord.xy/viewPort.xy).x) || gl_FragCoord.z-0.0001<=texture(opaqueTexture,gl_FragCoord.xy/viewPort.xy).x)
+		discard;
 
-	//vec4 tmp=vec4(gs_out_worldPos.xyz,1);
-	//vec4 tmp=gs_out_worldPos;
-	//tmp=invProjectionView*vec4(tmp.xyzw);
-	//tmp.xyz/tmp.w;
+	//vec2 ndc = (gl_FragCoord.xy/viewPort.xy-0.5)*2.0;
+	//vec4 worldPos=vec4(ndc,gl_FragCoord.z,1.0)/gl_FragCoord.w;
+	//worldPos=invProjectionView*worldPos;
+
+	vec4 worldPos;
+	worldPos=invProjectionView*gs_out_worldPos;
+	worldPos.xyz/worldPos.w;
 
 	vec3 viewRay=gs_out_worldPos.xyz-eyePos;
 
@@ -32,10 +39,7 @@ void main()
 
 	float alphaDensity=clamp(k/(gs_out_area*gamma),0.0,1.0);
 	float alphaFade=clamp(1.0-gs_out_alphaTime,0.0,1.0);//1.0-gs_out_alphaTime;//
-	float alphaArea=0.0008f/pow(gs_out_area, 0.4f);
+	float alphaArea=areaConstants.x/pow(gs_out_area, areaConstants.y);
 
-	//if(gs_out_alphaShape<=0.5f)
-		//discard;
-
-	fs_out_Color=vec4(alphaDensity*alphaFade*gs_out_alphaShape*gs_out_alphaCurvature*alphaArea);//alphaDensity*alphaFade*gs_out_alphaShape*gs_out_alphaCurvature*alphaArea
+	fs_out_Color=vec4(fragColor,alphaDensity*alphaFade*gs_out_alphaShape*gs_out_alphaCurvature*alphaArea);//alphaDensity*alphaFade*gs_out_alphaShape*gs_out_alphaCurvature*alphaArea
 }

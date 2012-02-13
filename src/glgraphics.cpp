@@ -202,16 +202,14 @@ void GLGraphics::InitializeGraphics() {
 	// set color, depth and stencil buffer clear value
 	glClearColor(0.f, 0.f, 0.f, 0.f);
 	glClearDepth(0.f);
-	glClearStencil(0);
+	//glClearStencil(0);
 
 	//filled polygons GL_LINE for wireframe
-	glPolygonMode(GL_FRONT_AND_BACK, GL_LINES);
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINES);
 
 	//enable alphablending
-	//glEnable(GL_ALPHA_TEST);
-	glEnable(GL_BLEND);
+	//glEnable(GL_BLEND);
 	//glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
-	//glBlendFunc(GL_ONE,GL_ONE);
 }
 
 

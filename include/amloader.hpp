@@ -52,7 +52,7 @@ public:
 
 	// Load the mesh from file
 	// Output: Success or not
-	bool Load(char* _pcFileName);
+	bool Load(const char* _pcFileName);
 
 	// Integrate one step over the vector field to determine new position
 	// Input:	_vPosition - old position

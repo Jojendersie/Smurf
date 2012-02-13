@@ -60,13 +60,13 @@ public:
 
 	// Public Methods
 	////////////////////////////////////////////////////////////////////////////////
-	void Run();
+	void Run(const char* _pcFile);
 	void Exit();
 
 private:
 	// Private Methods
 	////////////////////////////////////////////////////////////////////////////////
-	void Initialize();
+	void Initialize(const char* _pcFile);
 	void Update();
 	void Draw();
 	void HandleBasicEvents();
@@ -80,14 +80,10 @@ private:
 	static unsigned long long timeTotal;
 	GLGraphics* graphics;
 	GLint texLoc;
-	GLuint smokeFBO;
-	GLuint colorTex;
-	GLuint depthTex;
+	GLuint renderQuadVAO;
+	GLuint opaqueFBO, opaqueColor, opaqueDepth, smokeFBO[Globals::RENDER_DEPTH_PEELING_LAYER],colorTex[Globals::RENDER_DEPTH_PEELING_LAYER],depthTex[Globals::RENDER_DEPTH_PEELING_LAYER];
 	CudaManager* cudamanager[Globals::PROGRAM_NUM_SEEDLINES];
-	GLShader* flatShader;
-	GLShader* alphaShader;
-	GLShader* testShader;
-	GLShader* renderQuadShader;
+	GLShader *flatShader, *alphaShader, *renderQuadShader, *compositingShader;
 	SFCamera* camera;
 	GLuint m_uiFrameCount;
 	AmiraMesh m_VectorField;

@@ -47,7 +47,6 @@ public:
 	void ReleaseNextColumn(SmokeSurface* _Surface);
 
 	void Reset(SmokeSurface* _Surface);
-	void Clear();
 
 	unsigned int GetLastReleasedColumn(){return releasedColumns;}
 
@@ -70,13 +69,11 @@ private:
 	
 	cudaGraphicsResource *posRes;
 	float *m_fDeviceVectorField;
-//	uint3 m_vSizeField;
-//	float3 posGridOff;
 
 	AmiraMesh* m_pVectorField;
 
 	cudaDeviceProp cudaProp;
-	int device;
+	static int device;
 };
 
 

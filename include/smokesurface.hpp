@@ -67,7 +67,7 @@ public:
 	~SmokeSurface();
 
 	// Set the buffers and make the rendercall for the geometry
-	void Render(bool _b);
+	void Render();
 
 	// Sets the next column to the seed line and increase the number of columns
 	void ReleaseNextColumn();
@@ -90,15 +90,12 @@ public:
 	glm::vec3 GetLineEnd()		{return m_vEnd;}
 	bool IsInvalide()			{return m_bInvalidSeedLine;}
 
-	// TODO @Martin see programm.cpp m_bInvalidSeedLine
 	// Dynamic movement of the seedline
 	void SetSeedLineStart(const glm::vec3& _v)		{m_vStart = _v; m_bInvalidSeedLine=true;}
 	void SetSeedLineEnd(const glm::vec3& _v)		{m_vEnd = _v; m_bInvalidSeedLine=false;}
 
 	// Reset all vertices to the seedline
 	void Reset();
-
-	// IntegrateGPU(AmiraMesh* _pMesh)
 };
 
 #endif // SMOKESURFACE_HPP_

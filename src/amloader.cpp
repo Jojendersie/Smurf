@@ -34,7 +34,7 @@ void ToggleEndian(unsigned char* _pcData)
 // Load the mesh from file
 // Most things copied from http://www.mpi-inf.mpg.de/~weinkauf/notes/amiramesh.html
 // Output: Success or not
-bool AmiraMesh::Load(char* _pcFileName)
+bool AmiraMesh::Load(const char* _pcFileName)
 {
 	FILE* pFile;
 	pFile = fopen(_pcFileName, "rb");
@@ -53,7 +53,7 @@ bool AmiraMesh::Load(char* _pcFileName)
         return false;
     }
 
-	bool bLittleEndian = strstr(acBuffer, "LITTLE-ENDIAN");
+	bool bLittleEndian = strstr(acBuffer, "LITTLE-ENDIAN")!=NULL;
 
 	// Find the Lattice definition, i.e., the dimensions of the uniform grid
 	if(3!=sscanf(FindAndJump(acBuffer, "define Lattice"), "%d %d %d\n", &m_iSizeX, &m_iSizeY, &m_iSizeZ))

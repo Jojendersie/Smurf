@@ -28,6 +28,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 int main(int argc, char* argv[]) {
 	Program program;
-	program.Run();
+	char* pcFile = "res\\data\\BubbleChamber_11x11x10_T0.am";
+	if(argc>1) pcFile = argv[1];
+	program.Run(pcFile);
 	return EXIT_SUCCESS;
 }

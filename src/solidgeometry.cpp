@@ -610,10 +610,10 @@ SolidSurface::SolidSurface(AmiraMesh* _pMesh, int _iTriangles)
 		pIndexOffsetsZ0 = pIndexOffsetsZ1;
 		pIndexOffsetsZ1 = pTemp;
 	}
-
+	
 finishcreation:
 	// Go through all vertices and normalize the normals
-	for(int i=0; i<uiVertex; ++i)
+	for(unsigned int i=0; i<uiVertex; ++i)
 		pVertexData[i].vNormal = glm::normalize( pVertexData[i].vNormal );//glm::vec3(rand(), rand(), rand()) );//pVertexData[i].vNormal );
 
 	// Save for statistic and rendercall

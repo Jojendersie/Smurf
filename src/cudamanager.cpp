@@ -36,23 +36,41 @@ extern "C" void integrateVectorFieldGPU(float* fVectorField, float3 *posptr, uns
 
 extern "C" void resetOldColumn(float3* posptr, float3 bbMin, float3 bbMax, int columns, int rows, int resetColumn);
 
+int CudaManager::device=-1;
+
  CudaManager::CudaManager(AmiraMesh *_VectorField)
 {
+
 	m_fDeviceVectorField=NULL;
 	posRes=0;
 	releasedColumns=0;
 
 	m_pVectorField = _VectorField;
 
-	memset(&cudaProp,0,sizeof(cudaDeviceProp));
-	HandleError(cudaChooseDevice(&device,&cudaProp));
-	cudaProp.major=2.0;
-	cudaProp.minor=0.0;
-	HandleError(cudaGLSetGLDevice(device));
+	if(device==-1)
+	{
+		memset(&cudaProp,0,sizeof(cudaDeviceProp));
+		HandleError(cudaChooseDevice(&device,&cudaProp));
+		cudaProp.major=2;
+		cudaProp.minor=0;
+
+		HandleError(cudaGLSetGLDevice(device));
+	}
 }
 
 CudaManager::~CudaManager()
 {
+	if(posRes!=NULL)
+	{
+		HandleError(cudaGraphicsUnregisterResource(posRes));
+		posRes=NULL;
+	}
+
+	if(m_fDeviceVectorField!=NULL)
+	{
+		cudaFree(m_fDeviceVectorField);
+		m_fDeviceVectorField=NULL;
+	}
 }
 
 void CudaManager::HandleError(cudaError_t cuError)
@@ -98,23 +116,8 @@ void CudaManager::RegisterVertices(GLuint *pbo, unsigned int columns, unsigned i
 void CudaManager::Reset(SmokeSurface* _Surface)
 {
 	releasedColumns = columns;
-	for(int i=0; i<columns; ++i)
+	for(unsigned int i=0; i<columns; ++i)
 		ReleaseNextColumn(_Surface);
-}
-
-void CudaManager::Clear()
-{
-	if(posRes!=NULL)
-	{
-		HandleError(cudaGraphicsUnregisterResource(posRes));
-		posRes=NULL;
-	}
-
-	if(m_fDeviceVectorField!=NULL)
-	{
-		cudaFree(m_fDeviceVectorField);
-		m_fDeviceVectorField=NULL;
-	}
 }
 
 void CudaManager::ReleaseNextColumn(SmokeSurface* _Surface)
@@ -142,7 +145,7 @@ void CudaManager::Integrate(float stepsize, unsigned int bitmask)
 	size_t posSize;
 
 	uint3 rnd;
-	rnd.x=time(NULL);
+	rnd.x=(unsigned int)time(NULL);
 	rnd.y=releasedColumns;
 	rnd.z=rand();
 

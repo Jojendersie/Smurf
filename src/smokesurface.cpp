@@ -69,22 +69,16 @@ SmokeSurface::SmokeSurface(int _iNumCols, int _iNumRows, glm::vec3 _vStart, glm:
 
 	glBindVertexArray(0);
 	
-	// data is no loaded to GPU
+	// data is loaded to GPU now
 	free(pGridVertices);
-//	free(pVertices);	//? dynamic buffers? TODO benchmarktest with just uploading and or double vbo,s
 	free(pIndices);
 
-	//if(!Globals::RENDER_CPU_SMOKE)
-	{
-		//Create a pbo for a performant access through CUDA and copying the modified vertices to a texture completely on the GPU.
-		glGenBuffers(1,&m_uiPBO);
-		glBindBuffer(GL_PIXEL_UNPACK_BUFFER,m_uiPBO);
-		glBufferData(GL_PIXEL_UNPACK_BUFFER,m_iNumRows*m_iNumCols*sizeof(float)*3,reinterpret_cast<float*>(m_pPositionMap),GL_STATIC_COPY);
+	//Create a pbo for a performant access through CUDA and copying the modified vertices to a texture completely on the GPU.
+	glGenBuffers(1,&m_uiPBO);
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER,m_uiPBO);
+	glBufferData(GL_PIXEL_UNPACK_BUFFER,m_iNumRows*m_iNumCols*sizeof(float)*3,reinterpret_cast<float*>(m_pPositionMap),GL_STATIC_COPY);
 
-		// Vertex Map
-		// Create a texture buffer object
 		glGenTextures(1, &m_uiVertexMap);
-		glActiveTexture(GL_TEXTURE3);
 		glBindTexture(GL_TEXTURE_2D,m_uiVertexMap);
 		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
@@ -101,8 +95,11 @@ SmokeSurface::SmokeSurface(int _iNumCols, int _iNumRows, glm::vec3 _vStart, glm:
 			GL_FLOAT,				// Type
 			NULL);					// Data
 		glBindTexture(GL_TEXTURE_2D,0);
-		glBindBuffer(GL_PIXEL_UNPACK_BUFFER,0);
-	}
+
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER,0);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D,m_uiVertexMap);
 }
 	
 // **************************************************************** //
@@ -132,14 +129,12 @@ SmokeSurface::~SmokeSurface()
 
 // **************************************************************** //
 // Set the buffers and make the rendercall for the geometry
-void SmokeSurface::Render(bool _b)
+void SmokeSurface::Render()
 {
 	glBindVertexArray(m_uiVAO);
+	//glDrawArrays(GL_POINTS, 0, m_iNumVertices);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,m_uiIBO);
-	if(_b)//Globals::RENDER_POINTS)
-		glDrawArrays(GL_POINTS, 0, m_iNumVertices);
-	else
-		glDrawElements(GL_TRIANGLES, m_iNumIndices, GL_UNSIGNED_INT, (GLvoid*)0);
+	glDrawElements(GL_TRIANGLES, m_iNumIndices, GL_UNSIGNED_INT, (GLvoid*)0);
 }
 
 // **************************************************************** //
@@ -149,17 +144,9 @@ void SmokeSurface::ReleaseNextColumn()
 	// Set a base line (if in flow do nothing otherwise).
 	if(m_iNumReleasedColumns >= m_iNumCols)
 	{
-		// Lock dynamic buffer
-	/*	glBindBuffer(GL_ARRAY_BUFFER, m_uiVBO);
-		PositionVertex* pVertices = (PositionVertex*)glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE);
-		assert(pVertices);	// TODO real error output?*/
-
 		int i=m_iNumReleasedColumns%m_iNumCols;
 		for(int j=0; j<m_iNumRows; ++j)
 			m_pPositionMap[i*m_iNumRows+j].vPosition = glm::mix(m_vStart, m_vEnd, j/(float)(m_iNumRows-1));
-
-		// Unlock
-		//glUnmapBuffer(GL_ARRAY_BUFFER);
 	}
 	++m_iNumReleasedColumns;
 }
