@@ -208,8 +208,8 @@ void GLGraphics::InitializeGraphics() {
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINES);
 
 	//enable alphablending
-	//glEnable(GL_BLEND);
-	//glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+	if(!Globals::RENDER_DEPTH_PEELING)
+		glEnable(GL_BLEND);
 }
 
 

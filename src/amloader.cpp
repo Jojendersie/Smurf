@@ -1,8 +1,10 @@
 #include <cstdio>
 #include <cstring>
 #include <cassert>
+#include <iostream>
 #include "amloader.hpp"
 #include "globals.hpp"
+//#include <gl>
 
 // **************************************************************** //
 // Release all buffers
@@ -114,6 +116,7 @@ bool AmiraMesh::Load(const char* _pcFileName)
             return false;
         }
 
+
 		// Our data have big endian representation!
 		if(!bLittleEndian)
 		{
@@ -123,6 +126,23 @@ bool AmiraMesh::Load(const char* _pcFileName)
 				ToggleEndian(pData);
 				pData += 4;
 			}
+		}
+
+		// Calculate the length of all non solid vectors in respect to the cell size.
+		// This value is used to scale the integration step size.
+		{
+			m_fAverageVectorLength = 0.0f;
+			glm::vec3* pData = m_pvBuffer;
+			int iNumCounted = 0;
+			for(unsigned int i=0;i<NumToRead;++i)
+			{
+				float fLength = glm::length(*pData);
+				m_fAverageVectorLength += fLength;
+				if(fLength>0.0f) ++iNumCounted;
+				++pData;
+			}
+			m_fAverageVectorLength /= iNumCounted;
+			//float fCellSize = (m_vBBMax.x-m_vBBMin.x)/m_iSizeX;
 		}
 
 /*/Test: Print all data values
@@ -232,7 +252,7 @@ glm::vec3 AmiraMesh::Integrate(glm::vec3 _vPosition, float _fStepSize, int _iMet
 	vS = (_iMethod & Globals::INTEGRATION_FILTER_POINT)?Sample(vPos.x,vPos.y,vPos.z):SampleL(vPos.x,vPos.y,vPos.z);
 
 	if(_iMethod & Globals::INTEGRATION_NOISE)
-		vS += glm::vec3(rand()*MAXRNDINV-RNDMID, rand()*MAXRNDINV-RNDMID, rand()*MAXRNDINV-RNDMID);
+		vS += glm::vec3(rand()*MAXRNDINV-RNDMID, rand()*MAXRNDINV-RNDMID, rand()*MAXRNDINV-RNDMID)*50.0f*m_fAverageVectorLength;
 
 	// Calculate new position
 	if(_iMethod & Globals::INTEGRATION_EULER)

@@ -43,7 +43,7 @@ namespace Globals {
 	const short PROGRAM_VERSION_BUILD = 0;
 	const bool PROGRAM_OPEN_CENTERED = true;
 	const unsigned short PROGRAM_FRAMES_PER_RELEASE = 1;
-	const unsigned short PROGRAM_NUM_SEEDLINES = 1;//Number of Seedlines
+	const unsigned short PROGRAM_NUM_SEEDLINES = 1;//Number of Seedlines in [1,9]
 
 	// Render Globals
 	////////////////////////////////////////////////////////////////////////////////
@@ -53,11 +53,12 @@ namespace Globals {
 	const unsigned short RENDER_BUFFER_DEPTH = 24;
 	const unsigned short RENDER_BUFFER_STENCIL = 8;
 	const unsigned short RENDER_ANTIALIASING_LEVEL = 4;
+	const bool			 RENDER_DEPTH_PEELING = false;
 	const unsigned short RENDER_DEPTH_PEELING_LAYER = 8;//Peeling layer from 1 up to 8
 	const unsigned short RENDER_FRAMERATE_MAX = 120;
 	const unsigned short RENDER_SMURF_COLUMS = 800;
 	const unsigned short RENDER_SMURF_ROWS = 100;
-	const float RENDER_SMURF_STEPSIZE = 3.75f;
+	const float RENDER_SMURF_STEPSIZE = 0.075f;
 	const bool RENDER_FULLSCREEN = false;
 	const bool RENDER_VSYNC = true;
 
@@ -87,11 +88,11 @@ namespace Globals {
 	// Smoke Properties
 	////////////////////////////////////////////////////////////////////////////////
 	const unsigned int SMOKE_PARTICLE_NUMBER=5000;
-	const float SMOKE_AREA_CONSTANT_SMOOTH = 0.04f;
-	const float SMOKE_AREA_CONSTANT_SHARP = 0.18f;
+	const float SMOKE_AREA_CONSTANT_NORMALIZATION = 1.0f;
+	const float SMOKE_AREA_CONSTANT_SHARP = 5.0f;
 	const float SMOKE_PRISM_THICKNESS=0.1f;
-	const float SMOKE_DENSITY_CONSTANT=0.5f;
-	const float SMOKE_SHAPE_CONSTANT=2.0f;
+	const float SMOKE_DENSITY_CONSTANT=0.8f;
+	const float SMOKE_SHAPE_CONSTANT=1.5f;
 	const float SMOKE_CURVATURE_CONSTANT=1.0f;
 	const float SMOKE_COLOR[]={0.5f,0.5f,0.5f};
 	const float SMOKE_DENSITY_CONSTANT_K=SMOKE_PARTICLE_NUMBER*SMOKE_DENSITY_CONSTANT*SMOKE_PRISM_THICKNESS;

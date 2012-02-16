@@ -86,7 +86,7 @@ __device__ float3 SampleL(float3 Vector, const float *Vector_Field, uint3 Size)
 #define RNDMID 0.028f
 
 __global__ void IntegrateVectorField(float *Vector_Field, float3 *posptr, unsigned int ElementSize, uint3 Size, uint3 rand, float3 bbMin,
-									float3 posGridOffset, int resetcolumn, int rows, float stepsize, unsigned int bitmask)
+									float3 posGridOffset, int resetcolumn, int rows, float stepsize, unsigned int bitmask, float avgVecLength)
 {
 	const int index=blockDim.x*blockIdx.x+threadIdx.x;
 	if(index>ElementSize || rows*resetcolumn<index)
@@ -105,7 +105,7 @@ __global__ void IntegrateVectorField(float *Vector_Field, float3 *posptr, unsign
 		rnd.y=random(index+rand.x,(clVs.x+clVs.y+clVs.z)*1000+rand.y);
 		rnd.z=random(index+rand.x,(clVs.x+clVs.y+clVs.z)*1000+rand.y);
 
-		clVs+=make_float3(((rand.z+rnd.x)*MAXRANDINV-RNDMID),((rand.z+rnd.x)*MAXRANDINV-RNDMID),((rand.z+rnd.x)*MAXRANDINV-RNDMID));
+		clVs+= avgVecLength * make_float3(((rand.z+rnd.x)*MAXRANDINV-RNDMID),((rand.z+rnd.x)*MAXRANDINV-RNDMID),((rand.z+rnd.x)*MAXRANDINV-RNDMID));
 	}
 
 	if(bitmask & 0x00010000)
@@ -123,9 +123,9 @@ __global__ void IntegrateVectorField(float *Vector_Field, float3 *posptr, unsign
 }
 
 extern "C" void integrateVectorFieldGPU(float* fVectorField, float3 *posptr, unsigned int uiElementSize, unsigned int uiGridSize, 
-										unsigned int uiBlockSize, uint3 sizeField, uint3 rnd, float3 bbMin, float3 posGridOff, int resetcolumn, int rows, float stepsize, unsigned int bitmask)
+										unsigned int uiBlockSize, uint3 sizeField, uint3 rnd, float3 bbMin, float3 posGridOff, int resetcolumn, int rows, float stepsize, unsigned int bitmask, float avgVecSize)
 {
-	IntegrateVectorField<<<uiGridSize,uiBlockSize>>>(fVectorField, posptr,uiElementSize,sizeField,rnd,bbMin,posGridOff,resetcolumn,rows,stepsize,bitmask);
+	IntegrateVectorField<<<uiGridSize,uiBlockSize>>>(fVectorField, posptr,uiElementSize,sizeField,rnd,bbMin,posGridOff,resetcolumn,rows,stepsize,bitmask, avgVecSize);
 }
 
 

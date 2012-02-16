@@ -35,6 +35,7 @@ class AmiraMesh
 {
 private:
 	int			m_iSizeX, m_iSizeY, m_iSizeZ;			// Resolution of the vector field in each direction
+	float		m_fAverageVectorLength;
 //	int			m_iVectorComponents;					// Number of dimensions in one vector (have to be 3 in this application)
 	glm::vec3	m_vBBMin, m_vBBMax;						// Bounding box ("Real"-World-Size of the vector field
 	glm::vec3	m_vPosToGrid;							// Precalculated factor m_iSize/(m_vBBMax-m_vBBMin) to translate positions to grid positions faster
@@ -75,6 +76,7 @@ public:
 	int GetSizeX()					{return m_iSizeX;}
 	int GetSizeY()					{return m_iSizeY;}
 	int GetSizeZ()					{return m_iSizeZ;}
+	float GetAverageVectorLength()	{return m_fAverageVectorLength;}
 
 	// Allow user acces to read the data (namly to store it on GPU)
 	const float* GetData()			{return (float*)m_pvBuffer;}

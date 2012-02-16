@@ -361,10 +361,11 @@ void Program::Update() {
 								   | (m_bUseLinearFilter	?Globals::INTEGRATION_FILTER_LINEAR	: Globals::INTEGRATION_FILTER_POINT)
 								   | (m_bNoisyIntegration	?Globals::INTEGRATION_NOISE			: 0);
 
+		float fNormalizedStepSize = Globals::RENDER_SMURF_STEPSIZE/m_VectorField.GetAverageVectorLength();
 		if(m_bUseCPUIntegration)
-			m_pSmokeSurface[i]->IntegrateCPU(&m_VectorField, Globals::RENDER_SMURF_STEPSIZE,uiRenderFlags);
+			m_pSmokeSurface[i]->IntegrateCPU(&m_VectorField, fNormalizedStepSize, uiRenderFlags);
 		else
-			cudamanager[i]->Integrate(Globals::RENDER_SMURF_STEPSIZE,uiRenderFlags);
+			cudamanager[i]->Integrate(fNormalizedStepSize, uiRenderFlags);
 
 		if(!m_bStopProgram)
 		{
@@ -389,6 +390,12 @@ void Program::Draw() {
 	flatShader->SetAdvancedUniform(GLShader::AUTYPE_VECTOR3,1,&(camera->GetPosition())[0]);
 	m_pSolidSurface->Render();
 
+	if(!Globals::RENDER_DEPTH_PEELING)
+	{
+		glBlendFunc(GL_ONE,GL_ONE);
+		glDepthMask(GL_FALSE);
+	}
+
 	//transparent rendering
 	alphaShader->Use();
 
@@ -402,7 +409,13 @@ void Program::Draw() {
 	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 0,&Globals::SMOKE_CURVATURE_CONSTANT);
 	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_MATRIX4,1,&(camera->GetProjection()*camera->GetView())[0][0]);
 
-	for(int k=0;k!=Globals::RENDER_DEPTH_PEELING_LAYER;k++)//'Globals::RENDER_DEPTH_PEELING_LAYER' passes for the depth-peeling layers
+	int LAYERS=0;
+	if(!Globals::RENDER_DEPTH_PEELING)
+		LAYERS=1;
+	else
+		LAYERS=Globals::RENDER_DEPTH_PEELING_LAYER;
+
+	for(int k=0;k!=LAYERS;k++)//'Globals::RENDER_DEPTH_PEELING_LAYER' passes for the depth-peeling layers
 	{
 		glBindFramebuffer(GL_FRAMEBUFFER,smokeFBO[k]);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -459,7 +472,8 @@ void Program::Draw() {
 			float fColumnStride=1.0f/m_pSmokeSurface[i]->GetNumColumns();
 			float fRowStride=1.0f/m_pSmokeSurface[i]->GetNumRows();
 			float fMaxColumns = float(m_pSmokeSurface[i]->GetNumColumns());
-			glm::vec2 areaConstants=glm::vec2(Globals::SMOKE_AREA_CONSTANT_SMOOTH,Globals::SMOKE_AREA_CONSTANT_SHARP);
+			float fAreaNormalisation = Globals::SMOKE_AREA_CONSTANT_NORMALIZATION * (float(m_VectorField.GetSizeX()*m_VectorField.GetSizeX() + m_VectorField.GetSizeY()*m_VectorField.GetSizeY() + m_VectorField.GetSizeZ()*m_VectorField.GetSizeZ()));
+			glm::vec2 areaConstants=glm::vec2(fAreaNormalisation, Globals::SMOKE_AREA_CONSTANT_SHARP);
 			GLfloat renderPass=(GLfloat)k;
 
 			alphaShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 12, &renderPass);
@@ -482,6 +496,12 @@ void Program::Draw() {
 		}
 	}
 
+	if(!Globals::RENDER_DEPTH_PEELING)
+	{
+		glBlendFunc(GL_ONE,GL_ZERO);
+		glDepthMask(GL_TRUE);
+	}
+
 	glBindFramebuffer(GL_FRAMEBUFFER,0);
 	glBindTexture(GL_TEXTURE_2D,0);
 
@@ -500,8 +520,8 @@ void Program::Draw() {
 	//compose the peeled layer together through a render quad
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glDisable(GL_DEPTH_TEST);
-
-	for(int j=0;j!=Globals::RENDER_DEPTH_PEELING_LAYER;j++)
+	
+	for(int j=0;j!=LAYERS;j++)
 	{
 		glActiveTexture(GL_TEXTURE4+j);
 		glBindTexture(GL_TEXTURE_2D,colorTex[j]);
@@ -511,7 +531,7 @@ void Program::Draw() {
 	glBindTexture(GL_TEXTURE_2D,opaqueColor);
 
 	compositingShader->Use();
-	GLfloat renderPass=Globals::RENDER_DEPTH_PEELING_LAYER;
+	GLfloat renderPass=LAYERS;
 	compositingShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR,0,&renderPass);
 
 

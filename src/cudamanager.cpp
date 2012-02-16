@@ -32,7 +32,7 @@
 #include "smokesurface.hpp"
 
 extern "C" void integrateVectorFieldGPU(float* fVectorField, float3 *posptr, unsigned int uiElementSize, unsigned int uiGridSize, 
-										  unsigned int uiBlockSize, uint3 sizeField, uint3 rnd, float3 bbMin, float3 posgridOff, int resetcolumn, int rows, float stepsize, unsigned int bitmask);
+										  unsigned int uiBlockSize, uint3 sizeField, uint3 rnd, float3 bbMin, float3 posgridOff, int resetcolumn, int rows, float stepsize, unsigned int bitmask, float avgVecLength);
 
 extern "C" void resetOldColumn(float3* posptr, float3 bbMin, float3 bbMax, int columns, int rows, int resetColumn);
 
@@ -156,7 +156,7 @@ void CudaManager::Integrate(float stepsize, unsigned int bitmask)
 	vSizeField.x = m_pVectorField->GetSizeX();
 	vSizeField.y = m_pVectorField->GetSizeY();
 	vSizeField.z = m_pVectorField->GetSizeZ();
-	integrateVectorFieldGPU(m_fDeviceVectorField,(float3*)devPosptr,m_uiElementSize,m_uiGridSize,m_uiBlockSize,vSizeField,rnd,*(float3*)&m_pVectorField->GetBoundingBoxMin(),*(float3*)&m_pVectorField->GetPosToGridVector(),releasedColumns,rows,stepsize,bitmask);
+	integrateVectorFieldGPU(m_fDeviceVectorField,(float3*)devPosptr,m_uiElementSize,m_uiGridSize,m_uiBlockSize,vSizeField,rnd,*(float3*)&m_pVectorField->GetBoundingBoxMin(),*(float3*)&m_pVectorField->GetPosToGridVector(),releasedColumns,rows,stepsize,bitmask,m_pVectorField->GetAverageVectorLength()*50.0f);
 
 	HandleError(cudaGraphicsUnmapResources(1,&posRes));
 }
