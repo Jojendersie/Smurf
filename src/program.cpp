@@ -38,7 +38,17 @@
 
 
 ////////////////////////////////////////////////////////////////////////////////
-Program::Program() {
+Program::Program(unsigned int SMOKE_PARTICLE_NUMBER,
+				 float SMOKE_PRISM_THICKNESS,
+				 float SMOKE_DENSITY_CONSTANT,
+				 unsigned short RENDER_SMURF_ROWS,
+				 unsigned short RENDER_SMURF_COLUMS,
+				 float SMOKE_AREA_CONSTANT_NORMALIZATION,
+				 float SMOKE_AREA_CONSTANT_SHARP,
+				 float SMOKE_SHAPE_CONSTANT,
+				 float SMOKE_CURVATURE_CONSTANT,
+				 float SMOKE_COLOR[]) 
+{
 	m_bStopProgram = false;
 	m_bCloseRequest = false;
 	m_bNoisyIntegration = false;
@@ -50,6 +60,19 @@ Program::Program() {
 	m_normalizer=0;
 	m_uiEditSeedLine = 0;
 	m_timeIntegrate=m_timeRender=0;
+
+	this->RENDER_SMURF_COLUMS=RENDER_SMURF_COLUMS;
+	this->RENDER_SMURF_ROWS=RENDER_SMURF_ROWS;
+
+	this->SMOKE_AREA_CONSTANT_SHARP=SMOKE_AREA_CONSTANT_SHARP;
+	this->SMOKE_AREA_CONSTANT_NORMALIZATION=SMOKE_AREA_CONSTANT_NORMALIZATION;
+	this->SMOKE_CURVATURE_CONSTANT=SMOKE_CURVATURE_CONSTANT;
+	this->SMOKE_DENSITY_CONSTANT_K=SMOKE_PARTICLE_NUMBER*SMOKE_DENSITY_CONSTANT*SMOKE_PRISM_THICKNESS;
+	this->SMOKE_SHAPE_CONSTANT=SMOKE_SHAPE_CONSTANT;
+	this->SMOKE_COLOR[0]=SMOKE_COLOR[0];
+	this->SMOKE_COLOR[1]=SMOKE_COLOR[1];
+	this->SMOKE_COLOR[2]=SMOKE_COLOR[2];
+
 	// set a valid video mode
 	sf::VideoMode mode(Globals::RENDER_VIEWPORT_WIDTH, Globals::RENDER_VIEWPORT_HEIGHT, Globals::RENDER_COLOR_DEPTH);
 	if (!mode.IsValid())
@@ -162,11 +185,14 @@ void Program::Exit() {
 void Program::Initialize(const char* _pcFile) {
 	// all initial code goes here
 
+	// load vector field
+	m_VectorField.Load(_pcFile);
+
 	// initialize graphics and camera
 	graphics = new GLGraphics();
 	graphics->InitializeGraphics();
 
-	camera = new SFCamera();
+	camera = new SFCamera((m_VectorField.GetBoundingBoxMax()-m_VectorField.GetBoundingBoxMin()).length()*0.5f);
 	camera->SetZNear(0.01f);
 	
 	glGenTextures(1,&opaqueColor);
@@ -300,21 +326,20 @@ void Program::Initialize(const char* _pcFile) {
 		if(texLoc==-1)
 			std::cout << "Error: No such Texture Location" << std::endl;
 	
-
-	// load vector field
-	m_VectorField.Load(_pcFile);
 	m_pSolidSurface = new SolidSurface(&m_VectorField, 10000);
 
 	for(int i=0;i<Globals::PROGRAM_NUM_SEEDLINES;++i)
 	{
-		m_pSmokeSurface[i] = new SmokeSurface(Globals::RENDER_SMURF_COLUMS, Globals::RENDER_SMURF_ROWS, m_VectorField.GetBoundingBoxMax(), m_VectorField.GetBoundingBoxMin());
+		m_pSmokeSurface[i] = new SmokeSurface(RENDER_SMURF_COLUMS, RENDER_SMURF_ROWS, m_VectorField.GetBoundingBoxMax(), m_VectorField.GetBoundingBoxMin());
 
 		cudamanager[i] = new CudaManager(&m_VectorField);
 		cudamanager[i]->AllocateMemory(m_pSmokeSurface[i]->GetNumVertices());
 		cudamanager[i]->SetVectorField();
 		GLuint tmpPBO=m_pSmokeSurface[i]->GetPBO();
-		cudamanager[i]->RegisterVertices(&tmpPBO,Globals::RENDER_SMURF_COLUMS,Globals::RENDER_SMURF_ROWS);
+		cudamanager[i]->RegisterVertices(&tmpPBO,RENDER_SMURF_COLUMS,RENDER_SMURF_ROWS);
 	}
+
+	std::cout<<"GPU-Integration"<<std::endl;
 }
 
 
@@ -340,11 +365,6 @@ void Program::Update() {
 		if(sf::Keyboard::IsKeyPressed(sf::Keyboard::Key( sf::Keyboard::Num1+i)))
 			m_uiEditSeedLine = i;
 
-	if(m_bUseCPUIntegration)
-		std::cout<<"CPU-Integration"<<std::endl;
-	else
-		std::cout<<"GPU-Integration"<<std::endl;
-
 	m_normalizer++;
 	m_timeStart=clock();
 
@@ -367,11 +387,11 @@ void Program::Update() {
 		else
 			cudamanager[i]->Integrate(fNormalizedStepSize, uiRenderFlags);
 
-		if(!m_bStopProgram)
+		/*if(!m_bStopProgram)
 		{
 			m_timeIntegrate+=clock()-m_timeStart;
 			std::cout << "Time to integrate: " << double(m_timeIntegrate)/m_normalizer << "ms" <<std::endl;
-		}
+		}*/
 	}
 }
 
@@ -401,12 +421,12 @@ void Program::Draw() {
 
 	glm::vec2 viewPort = glm::vec2(Globals::RENDER_VIEWPORT_WIDTH,Globals::RENDER_VIEWPORT_HEIGHT);
 	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_VECTOR2,9,&viewPort[0]);
-	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_VECTOR3,10,Globals::SMOKE_COLOR);
-	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 6,&Globals::SMOKE_DENSITY_CONSTANT_K);
-	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 3,&Globals::SMOKE_SHAPE_CONSTANT);
+	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_VECTOR3,10,SMOKE_COLOR);
+	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 6,&SMOKE_DENSITY_CONSTANT_K);
+	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 3,&SMOKE_SHAPE_CONSTANT);
 	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_MATRIX4,4,&(camera->GetProjection()*camera->GetView())._inverse()[0][0]);
 	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_VECTOR3,5,&camera->GetPosition()[0]);
-	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 0,&Globals::SMOKE_CURVATURE_CONSTANT);
+	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 0,&SMOKE_CURVATURE_CONSTANT);
 	alphaShader->SetAdvancedUniform(GLShader::AUTYPE_MATRIX4,1,&(camera->GetProjection()*camera->GetView())[0][0]);
 
 	int LAYERS=0;
@@ -472,8 +492,8 @@ void Program::Draw() {
 			float fColumnStride=1.0f/m_pSmokeSurface[i]->GetNumColumns();
 			float fRowStride=1.0f/m_pSmokeSurface[i]->GetNumRows();
 			float fMaxColumns = float(m_pSmokeSurface[i]->GetNumColumns());
-			float fAreaNormalisation = Globals::SMOKE_AREA_CONSTANT_NORMALIZATION * (float(m_VectorField.GetSizeX()*m_VectorField.GetSizeX() + m_VectorField.GetSizeY()*m_VectorField.GetSizeY() + m_VectorField.GetSizeZ()*m_VectorField.GetSizeZ()));
-			glm::vec2 areaConstants=glm::vec2(fAreaNormalisation, Globals::SMOKE_AREA_CONSTANT_SHARP);
+			float fAreaNormalisation = SMOKE_AREA_CONSTANT_NORMALIZATION * (float(m_VectorField.GetSizeX()*m_VectorField.GetSizeX() + m_VectorField.GetSizeY()*m_VectorField.GetSizeY() + m_VectorField.GetSizeZ()*m_VectorField.GetSizeZ()));
+			glm::vec2 areaConstants=glm::vec2(fAreaNormalisation, SMOKE_AREA_CONSTANT_SHARP);
 			GLfloat renderPass=(GLfloat)k;
 
 			alphaShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 12, &renderPass);
@@ -505,11 +525,11 @@ void Program::Draw() {
 	glBindFramebuffer(GL_FRAMEBUFFER,0);
 	glBindTexture(GL_TEXTURE_2D,0);
 
-	if(!m_bStopProgram)
+	/*if(!m_bStopProgram)
 	{
 		m_timeRender+=clock()-m_timeStart;
 		std::cout << "Time to render: " << double(m_timeRender)/m_normalizer << "ms" << std::endl;
-	}
+	}*/
 
 	//const GLenum ErrorValue = glGetError();
 	//int tmpE=0;
@@ -574,7 +594,14 @@ void Program::HandleBasicEvents() {
 			m_bUseAdvancedEuler = !m_bUseAdvancedEuler;
 
 		if((event.Type == sf::Event::KeyPressed) && (event.Key.Code == sf::Keyboard::R))
+		{
 			m_bUseCPUIntegration = !m_bUseCPUIntegration;
+
+			if(m_bUseCPUIntegration)
+				std::cout<<"CPU-Integration"<<std::endl;
+			else
+				std::cout<<"GPU-Integration"<<std::endl;
+		}
 
 		// adjust OpenGL viewport after window resizing
 		if (event.Type == sf::Event::Resized)

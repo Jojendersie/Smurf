@@ -40,7 +40,7 @@ class SFCamera {
 public:
 	// Constructors and Destructor
 	////////////////////////////////////////////////////////////////////////////////
-	SFCamera(const float& posX = Globals::CAM_POSX, const float& posY = Globals::CAM_POSY, const float& posZ = Globals::CAM_POSZ,
+	SFCamera(float cam_velocity, const float& posX = Globals::CAM_POSX, const float& posY = Globals::CAM_POSY, const float& posZ = Globals::CAM_POSZ,
 		const float& heading = Globals::CAM_HEADING, const float& pitch = Globals::CAM_PITCH,
 		const float& fov = Globals::CAM_FOV, const float& zNear = Globals::CAM_ZNEAR, const float& zFar = Globals::CAM_ZFAR);
 	~SFCamera();
@@ -89,6 +89,7 @@ private:
 	bool mouseActive;
 	sf::Vector2i mouseActivePosition;
 	unsigned int elapsedTime;
+	float cam_velocity;
 };
 
 

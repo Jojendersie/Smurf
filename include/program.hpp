@@ -48,7 +48,16 @@ class Program {
 public:
 	// Constructors and Destructor
 	////////////////////////////////////////////////////////////////////////////////
-	Program();
+	Program(unsigned int SMOKE_PARTICLE_NUMBER,
+			float SMOKE_PRISM_THICKNESS,
+			float SMOKE_DENSITY_CONSTANT,
+			unsigned short RENDER_SMURF_ROWS,
+			unsigned short RENDER_SMURF_COLUMS,
+			float SMOKE_AREA_CONSTANT_NORMALIZATION,
+			float SMOKE_AREA_CONSTANT_SHARP,
+			float SMOKE_SHAPE_CONSTANT,
+			float SMOKE_CURVATURE_CONSTANT,
+			float SMOKE_COLOR[]);
 	~Program();
 
 	// Accessors
@@ -98,6 +107,16 @@ private:
 	bool m_bMouseActive;
 	clock_t m_timeStart,m_timeIntegrate,m_timeRender,m_normalizer;
 	bool m_bStopProgram;
+
+	unsigned short RENDER_SMURF_ROWS;
+	unsigned short RENDER_SMURF_COLUMS;
+
+	float SMOKE_AREA_CONSTANT_NORMALIZATION;
+	float SMOKE_AREA_CONSTANT_SHARP;
+	float SMOKE_DENSITY_CONSTANT_K;
+	float SMOKE_SHAPE_CONSTANT;
+	float SMOKE_CURVATURE_CONSTANT;
+	float SMOKE_COLOR[3];
 };
 
 

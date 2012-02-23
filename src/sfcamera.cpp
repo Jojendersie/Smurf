@@ -36,7 +36,7 @@
 
 
 ////////////////////////////////////////////////////////////////////////////////
-SFCamera::SFCamera(const float& posX, const float& posY, const float& posZ, const float& heading, const float& pitch,
+SFCamera::SFCamera(float cam_velocity, const float& posX, const float& posY, const float& posZ, const float& heading, const float& pitch,
 	const float& fov, const float& zNear, const float& zFar)
 	: position(posX, posY, posZ),
 	up(0.f, 1.f, 0.f),
@@ -44,6 +44,7 @@ SFCamera::SFCamera(const float& posX, const float& posY, const float& posZ, cons
 	view(glm::lookAt(this->position, center, up)),
 	projection(glm::perspectiveFov<float>(fov, Globals::RENDER_VIEWPORT_WIDTH, Globals::RENDER_VIEWPORT_HEIGHT, zNear, zFar))
 {
+	this->cam_velocity = cam_velocity;
 	this->heading = heading;
 	this->pitch = pitch;
 	this->fov = fov;
@@ -179,38 +180,41 @@ void SFCamera::Update() {
 	}
 	else if (sf::Mouse::IsButtonPressed(Globals::INPUT_CAM_ROTATION) && mouseActive) {
 		sf::Vector2i mouseDiff = sf::Mouse::GetPosition() - mouseActivePosition;
-		if (pitch - mouseDiff.y * Globals::CAM_SENSITIVITY * performance <= 80.f &&
-			pitch - mouseDiff.y * Globals::CAM_SENSITIVITY * performance >= -80.f)
+		if (abs(pitch - mouseDiff.y * Globals::CAM_SENSITIVITY * performance) <= 89.f)//to avoid gimbal lock
 			pitch -= mouseDiff.y * Globals::CAM_SENSITIVITY * performance;
-		heading -= mouseDiff.x * Globals::CAM_SENSITIVITY * performance;
+		heading += mouseDiff.x * Globals::CAM_SENSITIVITY * performance;
 		sf::Mouse::SetPosition(mouseActivePosition);
 	}
 	else if (mouseActive)
 		mouseActive = false;
 
 	// calculate rotation transformation
-	glm::mat4 rotationHeading = glm::rotate(glm::mat4(1.f), heading, glm::normalize(up));
-	glm::vec4 homoCenter = rotationHeading * glm::vec4(glm::normalize(center), 1.f);
-	glm::vec3 viewCenter(homoCenter.x, homoCenter.y, homoCenter.z);
-	glm::vec3 viewSide = glm::cross(glm::normalize(viewCenter), glm::normalize(up));
-	glm::mat4 rotationPitch = glm::rotate(glm::mat4(1.f), pitch, glm::normalize(viewSide));
-	glm::mat4 rotation = rotationPitch * rotationHeading;
-	homoCenter = rotation * glm::vec4(glm::normalize(center), 1.f);
-	viewCenter = glm::vec3(homoCenter.x, homoCenter.y, homoCenter.z);
-	viewSide = glm::cross(glm::normalize(viewCenter), glm::normalize(up));
+	glm::mat4 rotationHeading = glm::rotate(glm::mat4(1.f), heading, glm::vec3(0,1,0));
+	glm::vec3 sideVec = (glm::vec4(1,0,0,0)*rotationHeading).swizzle(glm::comp::X,glm::comp::Y,glm::comp::Z);
+	glm::mat4 camRotation = glm::rotate(rotationHeading,pitch,sideVec);
+	glm::vec3 forwardVec = (glm::vec4(0,0,1,0)*camRotation).swizzle(glm::comp::X,glm::comp::Y,glm::comp::Z);
+
 
 	// handle keyboard inputs
 	if (sf::Keyboard::IsKeyPressed(Globals::INPUT_CAM_FORE))
-		position += viewCenter * Globals::CAM_VELOCITY * performance;
+		position += forwardVec * cam_velocity * performance;
 	if (sf::Keyboard::IsKeyPressed(Globals::INPUT_CAM_LEFT))
-		position -= viewSide * Globals::CAM_VELOCITY * performance;
+		position += sideVec * cam_velocity * performance;
 	if (sf::Keyboard::IsKeyPressed(Globals::INPUT_CAM_BACK))
-		position -= viewCenter * Globals::CAM_VELOCITY * performance;
+		position -= forwardVec * cam_velocity * performance;
 	if (sf::Keyboard::IsKeyPressed(Globals::INPUT_CAM_RIGHT))
-		position += viewSide * Globals::CAM_VELOCITY * performance;
+		position -= sideVec * cam_velocity * performance;
+
+	//glm::mat4 translation = glm::mat4(1,0,0,0,
+	//								  0,1,0,0,
+	//								  0,0,1,0,
+	//								  position.x,position.y,position.z,1);
+
+	//
+	//view = camRotation*translation;
 
 	// calculate the view matrix
-	view = glm::lookAt(position, viewCenter, up);
+	view = glm::lookAt(position, position+forwardVec, up);
 }
 
 

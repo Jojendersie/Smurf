@@ -22,8 +22,11 @@ out vec4 fs_out_Color;
 
 void main()
 {
-	if((renderPass>0 && gl_FragCoord.z+0.0001>=texture(depthTexture,gl_FragCoord.xy/viewPort.xy).x) || gl_FragCoord.z-0.0001<=texture(opaqueTexture,gl_FragCoord.xy/viewPort.xy).x)
+	if((renderPass>0 && gl_FragCoord.z+0.0000001>=texture(depthTexture,gl_FragCoord.xy/viewPort.xy).x) || gl_FragCoord.z-0.0000001<=texture(opaqueTexture,gl_FragCoord.xy/viewPort.xy).x)
 		discard;
+
+	//if((renderPass>0 && gl_FragCoord.z+0.0001>=texture(depthTexture,gl_FragCoord.xy/viewPort.xy).x) || gl_FragCoord.z-0.0001<=texture(opaqueTexture,gl_FragCoord.xy/viewPort.xy).x)
+		//discard;
 
 	//vec2 ndc = (gl_FragCoord.xy/viewPort.xy-0.5)*2.0;
 	//vec4 worldPos=vec4(ndc,gl_FragCoord.z,1.0)/gl_FragCoord.w;
@@ -37,9 +40,10 @@ void main()
 
 	float gamma=dot(gs_out_normal,viewRay)/(length(gs_out_normal)*length(viewRay));///(sqrt(dot(gs_out_normal,gs_out_normal))*sqrt(dot(viewRay,viewRay)));
 
-	float alphaDensity=clamp(k * areaConstants.x/(pow(gs_out_area, areaConstants.y)*gamma),0.0,1.0);
-	float alphaFade=clamp(1.0-gs_out_alphaTime,0.0,1.0);//1.0-gs_out_alphaTime;//
-	float alphaArea=clamp(0.0000001/pow(gs_out_area, 2.0),0,1);
+	float alphaDensity=clamp(k/(gs_out_area*gamma),0.0,1.0);
+	float alphaFade=clamp(1.0-gs_out_alphaTime,0.0,1.0);//1.0-gs_out_alphaTime;
+	//float alphaArea=areaConstants.x/pow(gs_out_area, areaConstants.y);
+	float alphaArea=clamp(areaConstants.x/pow(gs_out_area, areaConstants.y),0.0,1.0);
 
-	fs_out_Color=vec4(fragColor,clamp(alphaDensity*alphaFade*gs_out_alphaShape*gs_out_alphaCurvature*alphaArea, 0, 0.1));//alphaDensity*alphaFade*gs_out_alphaShape*gs_out_alphaCurvature*alphaArea
+	fs_out_Color=vec4(fragColor,alphaDensity*alphaFade*gs_out_alphaShape*gs_out_alphaCurvature*alphaArea);//alphaDensity*alphaFade*gs_out_alphaShape*gs_out_alphaCurvature*alphaArea
 }

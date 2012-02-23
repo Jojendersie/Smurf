@@ -88,14 +88,12 @@ void CudaManager::AllocateMemory(unsigned int uiSizeVertices)
 	m_uiBlockSize=256;
 	m_uiGridSize=static_cast<unsigned int>(ceil(static_cast<float>(m_uiElementSize)/static_cast<float>(m_uiBlockSize)));
 
-	//size_t size = static_cast<size_t>(m_vSizeField.x * m_vSizeField.y * m_vSizeField.z * 3 * sizeof(float));
 	size_t size = static_cast<size_t>(m_pVectorField->GetSizeX() * m_pVectorField->GetSizeY() * m_pVectorField->GetSizeZ() * 3 * sizeof(float));
 	cudaMalloc(&m_fDeviceVectorField,size);
 }
 
 void CudaManager::SetVectorField()
 {
-	//size_t size = static_cast<size_t>(m_vSizeField.x * m_vSizeField.y * m_vSizeField.z * 3 * sizeof(float));
 	size_t size = static_cast<size_t>(m_pVectorField->GetSizeX() * m_pVectorField->GetSizeY() * m_pVectorField->GetSizeZ() * 3 * sizeof(float));
 	cudaMemcpy(m_fDeviceVectorField,m_pVectorField->GetData(),size,cudaMemcpyHostToDevice);
 }

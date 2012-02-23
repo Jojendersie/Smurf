@@ -5,7 +5,6 @@
 layout(triangles) in;
 layout(triangle_strip, max_vertices = maxv) out;
 
-#define ROOT3 1.7320508075689
 #define FOUR_DIV_ROOT3 2.309401077
 
 uniform mat4 ProjectionView;
@@ -27,31 +26,40 @@ out float gs_out_alphaShape;
 out float gs_out_area;
 
 void main()
-{	
+{
+	//////////////////////NORMAL/////////////////////////////////////////////
+	vec3 normal;
+	normal=cross(gl_in[1].gl_Position.xyz-gl_in[0].gl_Position.xyz,gl_in[2].gl_Position.xyz-gl_in[0].gl_Position.xyz);
+	if(dot(gl_in[0].gl_Position.xyz-eyePos,normal)<=0)
+		normal*=-1;
+
+	////////////////////////AREA////////////////////////////
+	float s;
+	vec3 d;
+	float area;
+	d.x=length(gl_in[2].gl_Position.xyz-gl_in[1].gl_Position.xyz);
+	d.y=length(gl_in[0].gl_Position.xyz-gl_in[2].gl_Position.xyz);
+	d.z=length(gl_in[1].gl_Position.xyz-gl_in[0].gl_Position.xyz);
+
+	s=(d.x+d.y+d.z)*0.5;
+
+	area=sqrt(s*(s-d.x)*(s-d.y)*(s-d.z));
+
+	///////////////ALPHASHAPE/////////////////////////////////
+	float alphaShape;
+	float dmax=max(d.x*d.y,max(d.y*d.z,d.z*d.x));
+	
+	alphaShape=clamp(pow((FOUR_DIV_ROOT3*area)/dmax,shapeStrength),0.0,1.0);
+
 	vec3 adj[6];
 	vec2 indices[3];
 	for(int l=0;l<maxv;l++)
 	{
-		//////////////////////NORMAL/////////////////////////////////////////////
-		gs_out_normal=cross(gl_in[1].gl_Position.xyz-gl_in[0].gl_Position.xyz,gl_in[2].gl_Position.xyz-gl_in[0].gl_Position.xyz);
-		if(dot(gl_in[0].gl_Position.xyz-eyePos,gs_out_normal)<=0)
-			gs_out_normal*=-1;
+		gs_out_normal=normal;
 
-		////////////////////////AREA////////////////////////////
-		float s;
-		vec3 d;
-		d.x=length(gl_in[2].gl_Position.xyz-gl_in[1].gl_Position.xyz);
-		d.y=length(gl_in[0].gl_Position.xyz-gl_in[2].gl_Position.xyz);
-		d.z=length(gl_in[1].gl_Position.xyz-gl_in[0].gl_Position.xyz);
+		gs_out_area=area;
 
-		s=(d.x+d.y+d.z)*0.5;
-
-		gs_out_area=sqrt(s*(s-d.x)*(s-d.y)*(s-d.z));
-
-		///////////////ALPHASHAPE/////////////////////////////////
-		float dmax=max(d.x*d.y,max(d.y*d.z,d.z*d.x));
-
-		gs_out_alphaShape=clamp(pow((FOUR_DIV_ROOT3*gs_out_area)/dmax,shapeStrength),0.0,1.0);
+		gs_out_alphaShape=alphaShape;
 
 		/////////////////////////////ALPHATIME////////////////////////////////////////
 		gs_out_alphaTime=vs_out_alphaTime[l];

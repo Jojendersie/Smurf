@@ -53,11 +53,9 @@ namespace Globals {
 	const unsigned short RENDER_BUFFER_DEPTH = 24;
 	const unsigned short RENDER_BUFFER_STENCIL = 8;
 	const unsigned short RENDER_ANTIALIASING_LEVEL = 4;
-	const bool			 RENDER_DEPTH_PEELING = false;
+	const bool			 RENDER_DEPTH_PEELING = true;
 	const unsigned short RENDER_DEPTH_PEELING_LAYER = 8;//Peeling layer from 1 up to 8
 	const unsigned short RENDER_FRAMERATE_MAX = 120;
-	const unsigned short RENDER_SMURF_COLUMS = 800;
-	const unsigned short RENDER_SMURF_ROWS = 100;
 	const float RENDER_SMURF_STEPSIZE = 0.075f;
 	const bool RENDER_FULLSCREEN = false;
 	const bool RENDER_VSYNC = true;
@@ -73,7 +71,6 @@ namespace Globals {
 	const float CAM_ZNEAR = 0.1f;
 	const float CAM_ZFAR = 1000.f;
 	const float CAM_SENSITIVITY = 50.f;
-	const float CAM_VELOCITY = 0.4f;
 
 	// Input Settings
 	////////////////////////////////////////////////////////////////////////////////
@@ -84,18 +81,6 @@ namespace Globals {
 	const sf::Keyboard::Key INPUT_CAM_RIGHT = sf::Keyboard::D;
 	const sf::Mouse::Button INPUT_CAM_ROTATION = sf::Mouse::Left;
 	const sf::Mouse::Button INPUT_CAM_RAY = sf::Mouse::Right;
-
-	// Smoke Properties
-	////////////////////////////////////////////////////////////////////////////////
-	const unsigned int SMOKE_PARTICLE_NUMBER=5000;
-	const float SMOKE_AREA_CONSTANT_NORMALIZATION = 1.0f;
-	const float SMOKE_AREA_CONSTANT_SHARP = 5.0f;
-	const float SMOKE_PRISM_THICKNESS=0.1f;
-	const float SMOKE_DENSITY_CONSTANT=0.8f;
-	const float SMOKE_SHAPE_CONSTANT=1.5f;
-	const float SMOKE_CURVATURE_CONSTANT=1.0f;
-	const float SMOKE_COLOR[]={0.5f,0.5f,0.5f};
-	const float SMOKE_DENSITY_CONSTANT_K=SMOKE_PARTICLE_NUMBER*SMOKE_DENSITY_CONSTANT*SMOKE_PRISM_THICKNESS;
 
 	// Types of integration methods and filters.
 	////////////////////////////////////////////////////////////////////////////////
