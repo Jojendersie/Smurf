@@ -48,7 +48,8 @@ class Program {
 public:
 	// Constructors and Destructor
 	////////////////////////////////////////////////////////////////////////////////
-	Program(unsigned int SMOKE_PARTICLE_NUMBER,
+	Program(bool SMOKE_TIME_DEPENDENT_INTEGRATION,
+			unsigned int SMOKE_PARTICLE_NUMBER,
 			float SMOKE_PRISM_THICKNESS,
 			float SMOKE_DENSITY_CONSTANT,
 			unsigned short RENDER_SMURF_ROWS,
@@ -104,6 +105,7 @@ private:
 	bool m_bUseLinearFilter;
 	bool m_bUseAdvancedEuler;
 	bool m_bUseCPUIntegration;
+	bool m_bUseTimeDependentIntegration;
 	bool m_bMouseActive;
 	clock_t m_timeStart,m_timeIntegrate,m_timeRender,m_normalizer;
 	bool m_bStopProgram;
@@ -116,6 +118,7 @@ private:
 	float SMOKE_DENSITY_CONSTANT_K;
 	float SMOKE_SHAPE_CONSTANT;
 	float SMOKE_CURVATURE_CONSTANT;
+	bool  SMOKE_TIME_DEPENDENT_INTEGRATION;
 	float SMOKE_COLOR[3];
 };
 

@@ -38,7 +38,8 @@
 
 
 ////////////////////////////////////////////////////////////////////////////////
-Program::Program(unsigned int SMOKE_PARTICLE_NUMBER,
+Program::Program(bool SMOKE_TIME_DEPENDENT_INTEGRATION,
+				 unsigned int SMOKE_PARTICLE_NUMBER,
 				 float SMOKE_PRISM_THICKNESS,
 				 float SMOKE_DENSITY_CONSTANT,
 				 unsigned short RENDER_SMURF_ROWS,
@@ -64,6 +65,7 @@ Program::Program(unsigned int SMOKE_PARTICLE_NUMBER,
 	this->RENDER_SMURF_COLUMS=RENDER_SMURF_COLUMS;
 	this->RENDER_SMURF_ROWS=RENDER_SMURF_ROWS;
 
+	this->SMOKE_TIME_DEPENDENT_INTEGRATION=SMOKE_TIME_DEPENDENT_INTEGRATION;
 	this->SMOKE_AREA_CONSTANT_SHARP=SMOKE_AREA_CONSTANT_SHARP;
 	this->SMOKE_AREA_CONSTANT_NORMALIZATION=SMOKE_AREA_CONSTANT_NORMALIZATION;
 	this->SMOKE_CURVATURE_CONSTANT=SMOKE_CURVATURE_CONSTANT;
@@ -379,13 +381,14 @@ void Program::Update() {
 		}
 		unsigned int uiRenderFlags = (m_bUseAdvancedEuler	?Globals::INTEGRATION_MODEULER		: Globals::INTEGRATION_EULER)
 								   | (m_bUseLinearFilter	?Globals::INTEGRATION_FILTER_LINEAR	: Globals::INTEGRATION_FILTER_POINT)
-								   | (m_bNoisyIntegration	?Globals::INTEGRATION_NOISE			: 0);
+								   | (m_bNoisyIntegration	?Globals::INTEGRATION_NOISE			: 0
+								   | (SMOKE_TIME_DEPENDENT_INTEGRATION ?Globals::INTEGRATION_TIME_DEPENDENT:0));
 
 		float fNormalizedStepSize = Globals::RENDER_SMURF_STEPSIZE/m_VectorField.GetAverageVectorLength();
 		if(m_bUseCPUIntegration)
 			m_pSmokeSurface[i]->IntegrateCPU(&m_VectorField, fNormalizedStepSize, uiRenderFlags);
 		else
-			cudamanager[i]->Integrate(fNormalizedStepSize, uiRenderFlags);
+			cudamanager[i]->Integrate(0,0,0,fNormalizedStepSize, uiRenderFlags);//IMPLEMENT HERE WHICH TIME SLICES AND THE INTERPOLATION PARAMETER [0,1]
 
 		/*if(!m_bStopProgram)
 		{

@@ -88,11 +88,13 @@ namespace Globals {
 	// INTEGRATION_FILTER_POINT | INTEGRATION_EULER is the fastest
 	// INTEGRATION_FILTER_LINEAR | INTEGRATION_MODEULER has the best results.
 
-	const static int	INTEGRATION_FILTER_POINT	= 0x0001;
-	const static int	INTEGRATION_FILTER_LINEAR	= 0x0010;
+	const static int	INTEGRATION_FILTER_POINT	= 0x00000001;
+	const static int	INTEGRATION_FILTER_LINEAR	= 0x00000010;
+	const static int	INTEGRATION_TIME_DEPENDENT	= 0x00000100;
+	const static int	INTEGRATION_NOISE			= 0x00001000;
 	const static int	INTEGRATION_EULER			= 0x00010000;
 	const static int	INTEGRATION_MODEULER		= 0x00100000;
-	const static int	INTEGRATION_NOISE			= 0x00001000;
+
 }
 
 

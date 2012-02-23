@@ -43,7 +43,7 @@ public:
 	void SetVectorField();
 	void RegisterVertices(GLuint *pbo, unsigned int columns, unsigned int rows);
 
-	void Integrate(float stepsize, unsigned int bitmask);
+	void Integrate(float tInterpolate, unsigned int t0, unsigned int t1, float stepsize, unsigned int bitmask);
 	void ReleaseNextColumn(SmokeSurface* _Surface);
 
 	void Reset(SmokeSurface* _Surface);
