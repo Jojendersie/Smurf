@@ -27,8 +27,8 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 int main(int argc, char* argv[]) {
-	//char* pcFile = "res\\data\\BubbleChamber_11x11x10_T0.am";
-	char* pcFile = "res\\data\\SquareCylinder_192x64x48_T3048.am";
+	char* pcFile = "res\\data\\BubbleChamber_11x11x10_T0.am";
+	//char* pcFile = "res\\data\\SquareCylinder_192x64x48_T3048.am";
 	//char* pcFile = "res\\data\\Wing_128x64x32_T0.am";
 	bool SMOKE_TIME_DEPENDENT_INTEGRATION=false;
 	unsigned int SMOKE_PARTICLE_NUMBER=500;

@@ -33,25 +33,98 @@ void ToggleEndian(unsigned char* _pcData)
 }
 
 // **************************************************************** //
+// Functions to find a set of time-slice files
+// Returns true if next file name exists and false if all numbers are '9'
+bool GoToNextFileName(const char* _pcFileNameMask, char* _pcCurrentName, int _iLen)
+{
+	bool bOK = false;
+	for(int i=_iLen-1; i>=0; --i)
+	{
+		// Search number mask symbol
+		if(_pcFileNameMask[i] == '#')
+		{
+			// increment the number in the name
+			if((_pcCurrentName[i] >= '0') && (_pcCurrentName[i]<'9')) {
+				++_pcCurrentName[i];
+				return true;
+			} else if(_pcCurrentName[i]=='9') {
+				// Complex case: carry - loop more, iff loop ends without catching the carry (more numbers in other places) it returns false
+				_pcCurrentName[i]='0';
+				//bOK = false;
+			} else if(_pcCurrentName[i]=='#') {
+				_pcCurrentName[i]='0';	// loop more to find other #
+				bOK = true;				// If that is the last or only one it is still an valid file name
+			}
+		}
+	}
+	return bOK;
+}
+
+// **************************************************************** //
+// inefficient: testing all filenames to given mask
+int CountTimeSlices(const char* _pcFileNameMask, char* _pcCurrentName, int _iLen)
+{
+	int iCount = 0;
+	while(GoToNextFileName(_pcFileNameMask, _pcCurrentName, _iLen))
+	{
+		FILE* pFile;
+		pFile = fopen(_pcCurrentName, "rb");
+		if(pFile) // if open succeded then existend
+		{
+			++iCount;
+			fclose(pFile);
+		}
+	}
+	return iCount;
+}
+
+// **************************************************************** //
 // Load the mesh from file
 // Most things copied from http://www.mpi-inf.mpg.de/~weinkauf/notes/amiramesh.html
 // Output: Success or not
 bool AmiraMesh::Load(const char* _pcFileName)
 {
-	FILE* pFile;
-	pFile = fopen(_pcFileName, "rb");
-	if(!pFile) return false;	// Cannot open file
+	// Create a working copy of the name, which can be changed.
+	int iFNLen = strlen(_pcFileName);
+	char acName[256];
+	sprintf(acName, "%s", _pcFileName);
+	
+	// If no time slice masking at least one file will be loaded -> one time slice
+	int iTimeSl = CountTimeSlices(_pcFileName, acName, iFNLen);
+	m_iSizeT = std::max(1,iTimeSl);
+	printf("AmLoader: found %d time slice(s) for %s\n", m_iSizeT, _pcFileName);
 
+	sprintf(acName, "%s", _pcFileName);
+	m_pvBuffer = 0;
+	for(int i=0; i<m_iSizeT;++i)
+	{
+		TestNextFile:
+		if(iTimeSl && !GoToNextFileName(_pcFileName, acName, iFNLen))
+			return false;	// Unexpected error. During counting there were more files
+		FILE* pFile;
+		pFile = fopen(acName, "rb");
+		if(pFile) // if open succeded then load
+		{
+			if(!_Load(pFile, i)) return false;
+			printf("Successfully loaded time slice %d\n", i);
+			fclose(pFile);
+		} else goto TestNextFile;
+	}
+	return true;
+}
+
+bool AmiraMesh::_Load(FILE* _pFile, int _iSlice)
+{
 	// We read the first 2k bytes into memory to parse the header.
     // The fixed buffer size looks a bit like a hack, and it is one, but it gets the job done.
     char acBuffer[2048];
-    fread(acBuffer, sizeof(char), 2047, pFile);
+    fread(acBuffer, sizeof(char), 2047, _pFile);
     acBuffer[2047] = '\0';		// The following string routines prefer null-terminated strings
 
 	if (!strstr(acBuffer, "# AmiraMesh"))
     {
         printf("Not a proper AmiraMesh file.\n");
-        fclose(pFile);
+        fclose(_pFile);
         return false;
     }
 
@@ -61,7 +134,7 @@ bool AmiraMesh::Load(const char* _pcFileName)
 	if(3!=sscanf(FindAndJump(acBuffer, "define Lattice"), "%d %d %d\n", &m_iSizeX, &m_iSizeY, &m_iSizeZ))
 	{
 		printf("'define Lattice' information corrupted.\n");
-        fclose(pFile);
+        fclose(_pFile);
 		return false;
 	}
 
@@ -72,7 +145,7 @@ bool AmiraMesh::Load(const char* _pcFileName)
     if(strstr(acBuffer, "CoordType \"uniform\"") == NULL)
 	{
 		printf("No uniform coords.\n");
-        fclose(pFile);
+        fclose(_pFile);
 		return false;
 	}
 
@@ -80,7 +153,7 @@ bool AmiraMesh::Load(const char* _pcFileName)
     if(!strstr(acBuffer, "Lattice { float[3] Data }"))
     {
         printf("This application uses only 3D-vector fields.\n");
-        fclose(pFile);
+        fclose(_pFile);
 		return false;
     }
 
@@ -91,28 +164,28 @@ bool AmiraMesh::Load(const char* _pcFileName)
     if (idxStartData > 0)
     {
         // Set the file pointer to the end of "# Data section follows\n@1\n"
-        fseek(pFile, idxStartData, SEEK_SET);
+        fseek(_pFile, idxStartData, SEEK_SET);
 
         // Read the data
         // - how much to read
 		const size_t NumToRead = m_iSizeX * m_iSizeY * m_iSizeZ;
         // - prepare memory; use malloc() if you're using pure C
-        m_pvBuffer = new glm::vec3[NumToRead];
+		if(!m_pvBuffer) m_pvBuffer = new glm::vec3[NumToRead * m_iSizeT];
         if(!m_pvBuffer)
 		{
 			printf("Out of memory.\n");
-			fclose(pFile);
+			fclose(_pFile);
 			return false;
 		}
         
 		// - do it
-        const size_t ActRead = fread((void*)m_pvBuffer, sizeof(glm::vec3), NumToRead, pFile);
+        const size_t ActRead = fread((void*)(m_pvBuffer+NumToRead*_iSlice), sizeof(glm::vec3), NumToRead, _pFile);
         // - ok?
         if (NumToRead != ActRead)
         {
             printf("Something went wrong while reading the binary data section.\nPremature end of file?\n");
             delete[] m_pvBuffer;
-            fclose(pFile);
+            fclose(_pFile);
             return false;
         }
 
@@ -120,7 +193,7 @@ bool AmiraMesh::Load(const char* _pcFileName)
 		// Our data have big endian representation!
 		if(!bLittleEndian)
 		{
-			unsigned char* pData = (unsigned char*)m_pvBuffer;
+			unsigned char* pData = (unsigned char*)(m_pvBuffer+NumToRead*_iSlice);
 			for(unsigned int i=0;i<NumToRead*3;++i)
 			{
 				ToggleEndian(pData);
@@ -131,17 +204,18 @@ bool AmiraMesh::Load(const char* _pcFileName)
 		// Calculate the length of all non solid vectors in respect to the cell size.
 		// This value is used to scale the integration step size.
 		{
-			m_fAverageVectorLength = 0.0f;
-			glm::vec3* pData = m_pvBuffer;
+			float fAvgVL = 0.0f;
+			glm::vec3* pData = m_pvBuffer+NumToRead*_iSlice;
 			int iNumCounted = 0;
 			for(unsigned int i=0;i<NumToRead;++i)
 			{
 				float fLength = glm::length(*pData);
-				m_fAverageVectorLength += fLength;
+				fAvgVL += fLength;
 				if(fLength>0.0f) ++iNumCounted;
 				++pData;
 			}
-			m_fAverageVectorLength /= iNumCounted;
+			fAvgVL /= iNumCounted;
+			m_fAverageVectorLength = (m_fAverageVectorLength*_iSlice + fAvgVL)/(_iSlice+1);
 			//float fCellSize = (m_vBBMax.x-m_vBBMin.x)/m_iSizeX;
 		}
 
@@ -178,7 +252,6 @@ bool AmiraMesh::Load(const char* _pcFileName)
 	m_vPosToGrid.y = m_iSizeY/(m_vBBMax.y-m_vBBMin.y);
 	m_vPosToGrid.z = m_iSizeZ/(m_vBBMax.z-m_vBBMin.z);
 
-	fclose(pFile);
 	return true;	// Yes loaded
 }
 

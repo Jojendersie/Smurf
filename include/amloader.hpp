@@ -13,9 +13,9 @@
  * Content:			  Loader for vector fields from amira mesh format.
  *					  The data is stored as uniform 3D field in one buffer.
  *					  x-fastest: To visit all grid points in the same order in which
- *					  they are in memory, one writes three nested loops over the z,y,x-axes,
+ *					  they are in memory, one writes four nested loops over the t,z,y,x-axes,
  *					  where the loop over the x-axis is the innermost, and the loop
- *					  over the z-axis the outermost.
+ *					  over the t-axis the outermost.
  * Source:			  http://www.mpi-inf.mpg.de/~weinkauf/notes/amiramesh.html
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -34,7 +34,7 @@
 class AmiraMesh
 {
 private:
-	int			m_iSizeX, m_iSizeY, m_iSizeZ;			// Resolution of the vector field in each direction
+	int			m_iSizeX, m_iSizeY, m_iSizeZ, m_iSizeT;	// Resolution of the vector field in each direction
 	float		m_fAverageVectorLength;
 //	int			m_iVectorComponents;					// Number of dimensions in one vector (have to be 3 in this application)
 	glm::vec3	m_vBBMin, m_vBBMax;						// Bounding box ("Real"-World-Size of the vector field
@@ -45,6 +45,8 @@ private:
 	glm::vec3	Sample(float x, float y, float z);		// Point sampling; Coords have to be in grid space
 	glm::vec3	SampleL(float x, float y, float z);		// Trilinear sampling; Coords have to be in grid space
 
+	// The real load method
+	bool _Load(FILE* _pFile, int _iSlice);
 public:
 	// Just if nothing is loaded
 	AmiraMesh(): m_pvBuffer(0)		{}
@@ -52,10 +54,15 @@ public:
 	~AmiraMesh();
 
 	// Load the mesh from file
+	// Input: _pcFileName - Path and name of the file.
+	//		The symbole '#' is interpreted as dynamic number.
+	//		the loader trys to load the name with all numbers 0-9 in place
+	//		of the '#' symbol. To load from an bigger range bla####.am is possible.
 	// Output: Success or not
 	bool Load(const char* _pcFileName);
 
 	// Integrate one step over the vector field to determine new position
+	// TODO: CPU integration does not support time slices until now!
 	// Input:	_vPosition - old position
 	//			_fStepSize - the size of the integration step; smaller then m_fBBX/m_iSizeX recomended
 	// Output: new position _fStepSize away from the old one.
@@ -63,6 +70,8 @@ public:
 
 	// Ray casting: if the ray hits the solid this point is returned. Othervise the
 	// middle point of the straight line through the vectorfield is returned.
+	// This is always done on time slice 0, scince the solid is assumed to not change its
+	// shape or position.
 	// Input:	_vPositions - start of can be inside or in front of the vector field
 	//			_vDirection - direction of ray, have to be normalized
 	// Output: first solid point in the volume starting at position and shooting into direction.
@@ -76,6 +85,7 @@ public:
 	int GetSizeX()					{return m_iSizeX;}
 	int GetSizeY()					{return m_iSizeY;}
 	int GetSizeZ()					{return m_iSizeZ;}
+	int GetSizeT()					{return m_iSizeT;}				// Number of time slices
 	float GetAverageVectorLength()	{return m_fAverageVectorLength;}
 
 	// Allow user acces to read the data (namly to store it on GPU)
