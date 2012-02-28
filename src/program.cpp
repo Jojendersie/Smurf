@@ -386,7 +386,9 @@ void Program::Update() {
 								   | (m_bNoisyIntegration	?Globals::INTEGRATION_NOISE			: 0
 								   | (SMOKE_TIME_DEPENDENT_INTEGRATION ?Globals::INTEGRATION_TIME_DEPENDENT:0));
 
-		glm::vec3 interInfo=m_VectorField.GetSliceInterpolation(timeTotal,SMOKE_TIME_STEPSIZE);
+		glm::vec3 interInfo=glm::vec3(0);
+		if(SMOKE_TIME_DEPENDENT_INTEGRATION)
+			glm::vec3 interInfo=m_VectorField.GetSliceInterpolation(timeTotal,SMOKE_TIME_STEPSIZE);
 
 
 		float fNormalizedStepSize = Globals::RENDER_SMURF_STEPSIZE/m_VectorField.GetAverageVectorLength();
@@ -548,15 +550,15 @@ void Program::Draw() {
 	//compose the peeled layer together through a render quad
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glDisable(GL_DEPTH_TEST);
-	
-	for(int j=0;j!=LAYERS;j++)
-	{
-		glActiveTexture(GL_TEXTURE4+j);
-		glBindTexture(GL_TEXTURE_2D,colorTex[j]);
-	}
+	//
+	//for(int j=0;j!=LAYERS;j++)
+	//{
+	//	glActiveTexture(GL_TEXTURE4+j);
+	//	glBindTexture(GL_TEXTURE_2D,colorTex[j]);
+	//}
 
 	glActiveTexture(GL_TEXTURE12);
-	glBindTexture(GL_TEXTURE_2D,opaqueColor);
+	glBindTexture(GL_TEXTURE_2D,colorTex[1]/*opaqueColor*/);
 
 	compositingShader->Use();
 	GLfloat renderPass=LAYERS;

@@ -28,16 +28,16 @@
 ////////////////////////////////////////////////////////////////////////////////
 int main(int argc, char* argv[]) {
 	//char* pcFile = "res\\data\\BubbleChamber_11x11x10_T0.am";
-	//char* pcFile = "res\\data\\SquareCylinder_192x64x48_T3048.am";
-	char* pcFile = "res\\data\\SquareCylinder\\flow_t####.am";
+	char* pcFile = "res\\data\\SquareCylinder_192x64x48_T3048.am";
+	//char* pcFile = "res\\data\\SquareCylinder\\flow_t####.am";
 	//char* pcFile = "res\\data\\Wing_128x64x32_T0.am";
 	bool SMOKE_TIME_DEPENDENT_INTEGRATION=false;
-	unsigned int SMOKE_TIME_STEPSIZE=2;//stepsize in ms, every SMOKE_TIME_STEPSIZE ms a new slice is being taken
+	unsigned int SMOKE_TIME_STEPSIZE=20;//stepsize in ms, every SMOKE_TIME_STEPSIZE ms a new slice is being taken
 	unsigned int SMOKE_PARTICLE_NUMBER=500;
 	float SMOKE_PRISM_THICKNESS=0.001f;
 	float SMOKE_DENSITY_CONSTANT=0.005f;
 	unsigned short RENDER_SMURF_ROWS=100;
-	unsigned short RENDER_SMURF_COLUMS=200;
+	unsigned short RENDER_SMURF_COLUMS=1500;
 	float SMOKE_AREA_CONSTANT_NORMALIZATION=1.f;
 	float SMOKE_AREA_CONSTANT_SHARP=80.f;
 	float SMOKE_SHAPE_CONSTANT=0.2f;

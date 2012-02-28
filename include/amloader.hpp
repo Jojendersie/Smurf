@@ -51,7 +51,7 @@ private:
 	bool _Load(FILE* _pFile, int _iSlice);
 public:
 	// Just if nothing is loaded
-	AmiraMesh(): m_pvBuffer(0)		{}
+	AmiraMesh(): m_pvBuffer(0),m_timeFields(0)		{}
 	// Release all buffers
 	~AmiraMesh();
 

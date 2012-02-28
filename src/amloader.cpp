@@ -138,15 +138,16 @@ bool AmiraMesh::Load(const char* _pcFileName)
 	m_iSizeT = std::max(1,iTimeSl);
 	printf("AmLoader: found %d time slice(s) for %s\n", m_iSizeT, _pcFileName);
 
-	m_timeFields = new int[m_timeSlicesMax];
+	if(m_timeSlicesMax>0)
+		m_timeFields = new int[m_timeSlicesMax];
 	int countRealData=0;
 
 	sprintf(acName, "%s", _pcFileName);
 	m_pvBuffer = 0;
 	for(int i=0; i<m_iSizeT;++i)
 	{
-	TestNextFile:
-		m_timeFields[m_iSlicesMax]=countRealData;
+		TestNextFile:
+		if(m_timeSlicesMax>0) m_timeFields[m_iSlicesMax]=countRealData;
 		m_iSlicesMax++;
 		if(iTimeSl && !GoToNextFileName(_pcFileName, acName, iFNLen))
 			return false;	// Unexpected error. During counting there were more files

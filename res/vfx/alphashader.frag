@@ -25,7 +25,7 @@ void main()
 	if((renderPass>0 && gl_FragCoord.z+0.0000001>=texture(depthTexture,gl_FragCoord.xy/viewPort.xy).x) || gl_FragCoord.z-0.0000001<=texture(opaqueTexture,gl_FragCoord.xy/viewPort.xy).x)
 		discard;
 
-	//if((renderPass>0 && gl_FragCoord.z+0.0001>=texture(depthTexture,gl_FragCoord.xy/viewPort.xy).x) || gl_FragCoord.z-0.0001<=texture(opaqueTexture,gl_FragCoord.xy/viewPort.xy).x)
+	//if((renderPass>0 && gl_FragCoord.z+0.0000001>=texture(depthTexture,gl_FragCoord.xy/viewPort.xy).x) || gl_FragCoord.z-0.0000001<=texture(opaqueTexture,gl_FragCoord.xy/viewPort.xy).x)
 		//discard;
 
 	//vec2 ndc = (gl_FragCoord.xy/viewPort.xy-0.5)*2.0;

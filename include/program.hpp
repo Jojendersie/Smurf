@@ -106,7 +106,6 @@ private:
 	bool m_bUseLinearFilter;
 	bool m_bUseAdvancedEuler;
 	bool m_bUseCPUIntegration;
-	bool m_bUseTimeDependentIntegration;
 	bool m_bMouseActive;
 	clock_t m_timeStart,m_timeIntegrate,m_timeRender,m_normalizer;
 	bool m_bStopProgram;
