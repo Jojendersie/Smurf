@@ -36,6 +36,7 @@ extern "C" void integrateVectorFieldGPU(float* fVectorField, float3 *posptr, uns
 										  int resetcolumn, int rows, float stepsize, unsigned int bitmask, float avgVecLength, float tInterpolate, uint2 t, float3 uniScale);
 
 extern "C" void resetOldColumn(float3* posptr, float3 bbMin, float3 bbMax, int columns, int rows, int resetColumn);
+extern "C" void InitCuda(const float *vectorField, cudaExtent size);
 
 int CudaManager::device=-1;
 
@@ -89,14 +90,19 @@ void CudaManager::AllocateMemory(unsigned int uiSizeVertices)
 	m_uiBlockSize=256;
 	m_uiGridSize=static_cast<unsigned int>(ceil(static_cast<float>(m_uiElementSize)/static_cast<float>(m_uiBlockSize)));
 
-	size_t size = static_cast<size_t>(m_pVectorField->GetSizeX() * m_pVectorField->GetSizeY() * m_pVectorField->GetSizeZ() * 3 * sizeof(float));//EDIT SIZE OF THE VECTOR FIELD HERE!!!
+	size_t size = static_cast<size_t>(m_pVectorField->GetSizeX() * m_pVectorField->GetSizeY() * m_pVectorField->GetSizeZ() * m_pVectorField->GetSizeT() * 3 * sizeof(float));
 	cudaMalloc(&m_fDeviceVectorField,size);
 }
 
 void CudaManager::SetVectorField()
 {
-	size_t size = static_cast<size_t>(m_pVectorField->GetSizeX() * m_pVectorField->GetSizeY() * m_pVectorField->GetSizeZ() * 3 * sizeof(float));//EDIT SIZE OF THE VECTOR FIELD HERE!!!
+	size_t size = static_cast<size_t>(m_pVectorField->GetSizeX() * m_pVectorField->GetSizeY() * m_pVectorField->GetSizeZ() * m_pVectorField->GetSizeT() * 3 * sizeof(float));
 	cudaMemcpy(m_fDeviceVectorField,m_pVectorField->GetData(),size,cudaMemcpyHostToDevice);
+	cudaExtent cSize;
+	cSize.width=m_pVectorField->GetSizeX();
+	cSize.height=m_pVectorField->GetSizeY();
+	cSize.depth=m_pVectorField->GetSizeZ();
+	//InitCuda(m_pVectorField->GetData(),cSize);
 }
 
 void CudaManager::RegisterVertices(GLuint *pbo, unsigned int columns, unsigned int rows)
@@ -155,9 +161,9 @@ void CudaManager::Integrate(float tInterpolate, unsigned int t0, unsigned int t1
 	vSizeField.x = m_pVectorField->GetSizeX();
 	vSizeField.y = m_pVectorField->GetSizeY();
 	vSizeField.z = m_pVectorField->GetSizeZ();
-	vSizeField.w=0;//NUMBER OF TIMESTEPS HERE!!!
+	vSizeField.w = m_pVectorField->GetSizeT();
 	integrateVectorFieldGPU(m_fDeviceVectorField,(float3*)devPosptr,m_uiElementSize,m_uiGridSize,m_uiBlockSize,vSizeField,rnd,*(float3*)&m_pVectorField->GetBoundingBoxMin(),
-							*(float3*)&m_pVectorField->GetPosToGridVector(),releasedColumns,rows,stepsize,bitmask,m_pVectorField->GetAverageVectorLength()*50.0f,tInterpolate,make_uint2(t0,t1),make_float3(1,1,1));//ADD INTERPOLATET TIME STEP AND INDEX OF THE TWO TIME SLICES!!!!
+							*(float3*)&m_pVectorField->GetPosToGridVector(),releasedColumns,rows,stepsize,bitmask,m_pVectorField->GetAverageVectorLength()*50.0f,tInterpolate,make_uint2(t0,t1),make_float3(1,1,1));//ADD INTERPOLATED TIME STEP AND INDEX OF THE TWO TIME SLICES!!!!
 
 	HandleError(cudaGraphicsUnmapResources(1,&posRes));
 }

@@ -11,6 +11,7 @@
 AmiraMesh::~AmiraMesh()
 {
 	if(m_pvBuffer) delete[] m_pvBuffer;
+	if(m_timeFields) delete[] m_timeFields;
 }
 
 // **************************************************************** //
@@ -62,11 +63,13 @@ bool GoToNextFileName(const char* _pcFileNameMask, char* _pcCurrentName, int _iL
 
 // **************************************************************** //
 // inefficient: testing all filenames to given mask
-int CountTimeSlices(const char* _pcFileNameMask, char* _pcCurrentName, int _iLen)
+int AmiraMesh::CountTimeSlices(const char* _pcFileNameMask, char* _pcCurrentName, int _iLen)
 {
+	m_timeSlicesMax=0;
 	int iCount = 0;
 	while(GoToNextFileName(_pcFileNameMask, _pcCurrentName, _iLen))
 	{
+		m_timeSlicesMax++;
 		FILE* pFile;
 		pFile = fopen(_pcCurrentName, "rb");
 		if(pFile) // if open succeded then existend
@@ -78,12 +81,53 @@ int CountTimeSlices(const char* _pcFileNameMask, char* _pcCurrentName, int _iLen
 	return iCount;
 }
 
+//calculates the indices of the vectorField for the right sampling,
+//e.g. slices=2500 so the lower bound could be 2488 and the upper bound 2528 and the interpolation value would be 0.5833333f
+glm::vec3 AmiraMesh::GetSliceInterpolation(unsigned long long totalTime, unsigned int smokeTimeStepSize)
+{
+	float tInter=static_cast<float>(totalTime%smokeTimeStepSize)/static_cast<float>(smokeTimeStepSize);
+	int slice=static_cast<int>(static_cast<float>(totalTime)/static_cast<float>(smokeTimeStepSize))%m_iSlicesMax;
+
+	glm::vec3 slices;
+	int upperBorder,lowerBorder;//used for Interpolation
+
+	if(slice>=m_iSlicesMax-1)
+	{
+		slices.x=m_timeFields[m_iSlicesMax];
+		slices.y=m_timeFields[m_iSlicesMax];
+		slices.z=0.f;
+		return slices;
+	}
+
+	slices.x=m_timeFields[slice];//Index of the lowerBorder
+
+	int j=1;
+	while(slice+j<m_iSlicesMax-1 && slices.x==m_timeFields[slice+j])
+		j++;
+
+	upperBorder=slice+j;
+	slices.y=m_timeFields[upperBorder];//Index of the upperBorder
+
+	j=-1;
+	while(slice+j>0 && slices.x==m_timeFields[slice+j])
+		j--;
+
+	lowerBorder=slice+j;
+	if(lowerBorder<0)
+		lowerBorder=0;
+
+	slices.z=(upperBorder-slice+tInter)/(upperBorder-lowerBorder);
+
+	return slices;
+}
+
 // **************************************************************** //
 // Load the mesh from file
 // Most things copied from http://www.mpi-inf.mpg.de/~weinkauf/notes/amiramesh.html
 // Output: Success or not
 bool AmiraMesh::Load(const char* _pcFileName)
 {
+	m_iSlicesMax=0;
 	// Create a working copy of the name, which can be changed.
 	int iFNLen = strlen(_pcFileName);
 	char acName[256];
@@ -94,11 +138,16 @@ bool AmiraMesh::Load(const char* _pcFileName)
 	m_iSizeT = std::max(1,iTimeSl);
 	printf("AmLoader: found %d time slice(s) for %s\n", m_iSizeT, _pcFileName);
 
+	m_timeFields = new int[m_timeSlicesMax];
+	int countRealData=0;
+
 	sprintf(acName, "%s", _pcFileName);
 	m_pvBuffer = 0;
 	for(int i=0; i<m_iSizeT;++i)
 	{
-		TestNextFile:
+	TestNextFile:
+		m_timeFields[m_iSlicesMax]=countRealData;
+		m_iSlicesMax++;
 		if(iTimeSl && !GoToNextFileName(_pcFileName, acName, iFNLen))
 			return false;	// Unexpected error. During counting there were more files
 		FILE* pFile;
@@ -106,10 +155,12 @@ bool AmiraMesh::Load(const char* _pcFileName)
 		if(pFile) // if open succeded then load
 		{
 			if(!_Load(pFile, i)) return false;
+			countRealData++;
 			printf("Successfully loaded time slice %d\n", i);
 			fclose(pFile);
 		} else goto TestNextFile;
 	}
+
 	return true;
 }
 

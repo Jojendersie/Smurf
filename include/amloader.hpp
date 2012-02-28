@@ -35,6 +35,7 @@ class AmiraMesh
 {
 private:
 	int			m_iSizeX, m_iSizeY, m_iSizeZ, m_iSizeT;	// Resolution of the vector field in each direction
+	int			m_iSlicesMax;
 	float		m_fAverageVectorLength;
 //	int			m_iVectorComponents;					// Number of dimensions in one vector (have to be 3 in this application)
 	glm::vec3	m_vBBMin, m_vBBMax;						// Bounding box ("Real"-World-Size of the vector field
@@ -46,6 +47,7 @@ private:
 	glm::vec3	SampleL(float x, float y, float z);		// Trilinear sampling; Coords have to be in grid space
 
 	// The real load method
+	int CountTimeSlices(const char* _pcFileNameMask, char* _pcCurrentName, int _iLen);
 	bool _Load(FILE* _pFile, int _iSlice);
 public:
 	// Just if nothing is loaded
@@ -86,10 +88,15 @@ public:
 	int GetSizeY()					{return m_iSizeY;}
 	int GetSizeZ()					{return m_iSizeZ;}
 	int GetSizeT()					{return m_iSizeT;}				// Number of time slices
+	int GetMaxSlices()				{return m_iSlicesMax;}
+	glm::vec3 GetSliceInterpolation(unsigned long long totalTime, unsigned int smokeTimeStepSize);
 	float GetAverageVectorLength()	{return m_fAverageVectorLength;}
 
 	// Allow user acces to read the data (namly to store it on GPU)
 	const float* GetData()			{return (float*)m_pvBuffer;}
+
+	int m_timeSlicesMax;
+	int *m_timeFields;
 };
 
 

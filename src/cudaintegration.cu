@@ -23,6 +23,11 @@
 
 #include <math.h>
 #include "cudamath.hpp"
+#include <cuda.h>
+#include <cuda_runtime_api.h>
+
+texture<float4,3,cudaReadModeElementType> tex;
+cudaArray *d_fieldArray;
 
 __device__ int3 convert_int3(float3 vec)
 {
@@ -54,6 +59,10 @@ __device__ float3 Sample(float3 Vector, const float *Vector_Field, uint3 Size, f
 	index=fi.x+fi.y*Size.x+fi.z*Size.y*Size.x;
 
 	return make_float3(Vector_Field[(index*3)+0],Vector_Field[(index*3)+1],Vector_Field[(index*3)+2]);
+
+	//float4 tmperg=tex3D(tex,fi.x,fi.y,fi.z);
+
+	//return make_float3(tmperg.x,tmperg.y,tmperg.z);
 }
 
 __device__ float3 SampleL(float3 Vector, const float *Vector_Field, uint3 Size, float3 uniScale)
@@ -76,6 +85,10 @@ __device__ float3 SampleL(float3 Vector, const float *Vector_Field, uint3 Size, 
 		s[i].x=Vector_Field[(index*3) + 0];
 		s[i].y=Vector_Field[(index*3) + 1];
 		s[i].z=Vector_Field[(index*3) + 2];
+
+		//float4 tmperg=tex3D(tex,fi.x+(i&1),fi.y+(i&2),fi.z+(i&4));
+
+		//s[i]= make_float3(tmperg.x,tmperg.y,tmperg.z);
 	}
 
 	return lerp(lerp(lerp(s[0],s[4],Vector.x),lerp(s[2],s[6],Vector.x),Vector.y),
@@ -134,6 +147,10 @@ __device__ float3 Sample4D(float tInterpolate, unsigned int t0, float3 Vector, c
 	index=fi.x+fi.y*Size.x+fi.z*Size.y*Size.x+t0*Size.x*Size.y*Size.z;
 
 	return make_float3(Vector_Field[(index*3)+0],Vector_Field[(index*3)+1],Vector_Field[(index*3)+2]);
+
+	//float4 tmperg=tex3D(tex,fi.x,fi.y,fi.z);
+
+	//return make_float3(tmperg.x,tmperg.y,tmperg.z);
 }
 
 __device__ float3 SampleL4D(float tInterpolate, unsigned int t[2], float3 Vector, const float *Vector_Field, uint4 Size, float3 uniScale)
@@ -160,6 +177,9 @@ __device__ float3 SampleL4D(float tInterpolate, unsigned int t[2], float3 Vector
 			s[j][i].x=Vector_Field[(index*3) + 0];
 			s[j][i].y=Vector_Field[(index*3) + 1];
 			s[j][i].z=Vector_Field[(index*3) + 2];
+			//float4 tmperg=tex3D(tex,fi.x+(i&1),fi.y+(i&2),fi.z+(i&4));
+
+			//s[j][i]= make_float3(tmperg.x,tmperg.y,tmperg.z);
 		}
 
 		erg[j] = lerp(lerp(lerp(s[j][0],s[j][4],Vector.x),lerp(s[j][2],s[j][6],Vector.x),Vector.y),
@@ -225,4 +245,24 @@ __global__ void ResetColumn(float3* posptr, float3 bbMin, float3 bbMax, int rows
 extern "C" void resetOldColumn(float3* posptr, float3 bbMin, float3 bbMax, int columns, int rows, int resetColumn)
 {
 	ResetColumn<<<1,rows>>>(posptr,bbMin,bbMax,rows,resetColumn);
+}
+
+extern "C" void InitCuda(float *vectorField, cudaExtent size)
+{
+	cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<float4>();
+	cudaMalloc3DArray(&d_fieldArray,&channelDesc,size);
+
+	cudaMemcpy3DParms param = {0};
+	param.srcPtr=make_cudaPitchedPtr((void*)vectorField,size.width*sizeof(float)*3,size.width,size.height);
+	param.dstArray=d_fieldArray;
+	param.extent=size;
+	param.kind=cudaMemcpyHostToDevice;
+	cudaMemcpy3D(&param);
+
+	tex.normalized=false;
+	tex.addressMode[0]=cudaAddressModeWrap;
+	tex.addressMode[1]=cudaAddressModeWrap;
+	tex.addressMode[2]=cudaAddressModeWrap;
+
+	cudaBindTextureToArray(&tex,d_fieldArray,&channelDesc);
 }

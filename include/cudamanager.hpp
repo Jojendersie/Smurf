@@ -29,6 +29,7 @@
 #include <glm/glm.hpp>
 #include <GL/glew.h>
 #include <cuda_gl_interop.h>
+
 class AmiraMesh;
 class SmokeSurface;
 
@@ -68,6 +69,7 @@ private:
 	unsigned int m_uiGridSize;
 	
 	cudaGraphicsResource *posRes;
+
 	float *m_fDeviceVectorField;
 
 	AmiraMesh* m_pVectorField;

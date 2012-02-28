@@ -2,6 +2,7 @@
 build/
 obj/
 bin/
+res/data/
 
 ### Eclipse Files and Directories ###
 Debug/

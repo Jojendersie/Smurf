@@ -39,6 +39,7 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 Program::Program(bool SMOKE_TIME_DEPENDENT_INTEGRATION,
+				 unsigned int SMOKE_TIME_STEPSIZE,
 				 unsigned int SMOKE_PARTICLE_NUMBER,
 				 float SMOKE_PRISM_THICKNESS,
 				 float SMOKE_DENSITY_CONSTANT,
@@ -66,6 +67,7 @@ Program::Program(bool SMOKE_TIME_DEPENDENT_INTEGRATION,
 	this->RENDER_SMURF_ROWS=RENDER_SMURF_ROWS;
 
 	this->SMOKE_TIME_DEPENDENT_INTEGRATION=SMOKE_TIME_DEPENDENT_INTEGRATION;
+	this->SMOKE_TIME_STEPSIZE=SMOKE_TIME_STEPSIZE;
 	this->SMOKE_AREA_CONSTANT_SHARP=SMOKE_AREA_CONSTANT_SHARP;
 	this->SMOKE_AREA_CONSTANT_NORMALIZATION=SMOKE_AREA_CONSTANT_NORMALIZATION;
 	this->SMOKE_CURVATURE_CONSTANT=SMOKE_CURVATURE_CONSTANT;
@@ -328,7 +330,7 @@ void Program::Initialize(const char* _pcFile) {
 		if(texLoc==-1)
 			std::cout << "Error: No such Texture Location" << std::endl;
 	
-	m_pSolidSurface = new SolidSurface(&m_VectorField, 10000);
+	m_pSolidSurface = new SolidSurface(&m_VectorField, 100000);
 
 	for(int i=0;i<Globals::PROGRAM_NUM_SEEDLINES;++i)
 	{
@@ -384,11 +386,14 @@ void Program::Update() {
 								   | (m_bNoisyIntegration	?Globals::INTEGRATION_NOISE			: 0
 								   | (SMOKE_TIME_DEPENDENT_INTEGRATION ?Globals::INTEGRATION_TIME_DEPENDENT:0));
 
+		glm::vec3 interInfo=m_VectorField.GetSliceInterpolation(timeTotal,SMOKE_TIME_STEPSIZE);
+
+
 		float fNormalizedStepSize = Globals::RENDER_SMURF_STEPSIZE/m_VectorField.GetAverageVectorLength();
 		if(m_bUseCPUIntegration)
 			m_pSmokeSurface[i]->IntegrateCPU(&m_VectorField, fNormalizedStepSize, uiRenderFlags);
 		else
-			cudamanager[i]->Integrate(0,0,0,fNormalizedStepSize, uiRenderFlags);//IMPLEMENT HERE WHICH TIME SLICES AND THE INTERPOLATION PARAMETER [0,1]
+			cudamanager[i]->Integrate(interInfo.z,interInfo.x,interInfo.y,fNormalizedStepSize, uiRenderFlags);//IMPLEMENT HERE WHICH TIME SLICES AND THE INTERPOLATION PARAMETER [0,1]
 
 		/*if(!m_bStopProgram)
 		{

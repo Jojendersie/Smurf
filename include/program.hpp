@@ -49,6 +49,7 @@ public:
 	// Constructors and Destructor
 	////////////////////////////////////////////////////////////////////////////////
 	Program(bool SMOKE_TIME_DEPENDENT_INTEGRATION,
+			unsigned int SMOKE_TIME_STEPSIZE,
 			unsigned int SMOKE_PARTICLE_NUMBER,
 			float SMOKE_PRISM_THICKNESS,
 			float SMOKE_DENSITY_CONSTANT,
@@ -119,6 +120,7 @@ private:
 	float SMOKE_SHAPE_CONSTANT;
 	float SMOKE_CURVATURE_CONSTANT;
 	bool  SMOKE_TIME_DEPENDENT_INTEGRATION;
+	unsigned int SMOKE_TIME_STEPSIZE;
 	float SMOKE_COLOR[3];
 };
 
