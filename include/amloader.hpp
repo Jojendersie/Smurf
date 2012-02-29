@@ -83,6 +83,7 @@ public:
 	glm::vec3 GetBoundingBoxMin()	{return m_vBBMin;}
 	glm::vec3 GetBoundingBoxMax()	{return m_vBBMax;}
 	glm::vec3 GetPosToGridVector()	{return m_vPosToGrid;}
+	glm::vec3 GetCellSize()			{return m_vBBMax-m_vBBMin;}
 	bool IsLoaded()					{return m_pvBuffer!=0;}
 	int GetSizeX()					{return m_iSizeX;}
 	int GetSizeY()					{return m_iSizeY;}
