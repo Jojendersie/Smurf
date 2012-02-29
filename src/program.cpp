@@ -550,15 +550,15 @@ void Program::Draw() {
 	//compose the peeled layer together through a render quad
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glDisable(GL_DEPTH_TEST);
-	//
-	//for(int j=0;j!=LAYERS;j++)
-	//{
-	//	glActiveTexture(GL_TEXTURE4+j);
-	//	glBindTexture(GL_TEXTURE_2D,colorTex[j]);
-	//}
+	
+	for(int j=0;j!=LAYERS;j++)
+	{
+		glActiveTexture(GL_TEXTURE4+j);
+		glBindTexture(GL_TEXTURE_2D,colorTex[j]);
+	}
 
 	glActiveTexture(GL_TEXTURE12);
-	glBindTexture(GL_TEXTURE_2D,colorTex[1]/*opaqueColor*/);
+	glBindTexture(GL_TEXTURE_2D,opaqueColor);
 
 	compositingShader->Use();
 	GLfloat renderPass=LAYERS;
