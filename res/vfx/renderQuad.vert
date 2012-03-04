@@ -6,7 +6,7 @@
 // Variables
 ////////////////////////////////////////////////////////////////////////////////
 
-in vec3 in_Pos;
+in vec2 in_Pos;
 in vec2 in_TexCoords;
 
 out vec2 out_vs_texCoords;
@@ -19,5 +19,5 @@ out vec2 out_vs_texCoords;
 ////////////////////////////////////////////////////////////////////////////////
 void main() {
 	out_vs_texCoords=in_TexCoords;
-	gl_Position = vec4(in_Pos,1);
+	gl_Position = vec4(in_Pos,0.0f,1);
 }

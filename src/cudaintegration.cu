@@ -47,12 +47,12 @@ __device__ float3 convert_float3(int3 vec)
 	return tmp;
 }
 
-__device__ float3 Sample(float3 Vector, const float *Vector_Field, uint3 Size, float3 uniScale)
+__device__ float3 Sample(float3 Vector, const float *Vector_Field, uint3 Size)
 {
 	int3 fi;
 	int index;
 
-	fi=convert_int3(Vector*uniScale);
+	fi=convert_int3(Vector);
 	if(fi.x > Size.x || fi.y > Size.y || fi.z > Size.z || fi.x<0 || fi.y<0 || fi.z<0)
 			return make_float3(0,0,0);
 
@@ -65,17 +65,17 @@ __device__ float3 Sample(float3 Vector, const float *Vector_Field, uint3 Size, f
 	//return make_float3(tmperg.x,tmperg.y,tmperg.z);
 }
 
-__device__ float3 SampleL(float3 Vector, const float *Vector_Field, uint3 Size, float3 uniScale)
+__device__ float3 SampleL(float3 Vector, const float *Vector_Field, uint3 Size)
 {
 	float3 s[8];
 
 	int3 fi;
-	fi=convert_int3(Vector*uniScale);
+	fi=convert_int3(Vector);
 
 	if(fi.x > Size.x || fi.y > Size.y || fi.z > Size.z || fi.x<0 || fi.y<0 || fi.z<0)
 			return make_float3(0,0,0);
 
-	Vector=Vector*uniScale-convert_float3(fi);
+	Vector=Vector-convert_float3(fi);
 
 	int index;
 	for(int i=0;i<8;i++)
@@ -99,7 +99,7 @@ __device__ float3 SampleL(float3 Vector, const float *Vector_Field, uint3 Size, 
 #define RNDMID 0.028f
 
 __global__ void IntegrateVectorField(float *Vector_Field, float3 *posptr, unsigned int ElementSize, uint3 Size, uint3 rand, float3 bbMin,
-									float3 posGridOffset, int resetcolumn, int rows, float stepsize, unsigned int bitmask, float avgVecLength, float3 uniScale)
+									float3 posGridOffset, int resetcolumn, int rows, float stepsize, unsigned int bitmask, float avgVecLength)
 {
 	const int index=blockDim.x*blockIdx.x+threadIdx.x;
 	if(index>ElementSize || rows*resetcolumn<index)
@@ -109,7 +109,7 @@ __global__ void IntegrateVectorField(float *Vector_Field, float3 *posptr, unsign
 
 	clVertex=(posptr[index]-bbMin)*posGridOffset;
 
-	clVs=(bitmask & 0x00000001) ? Sample(clVertex,Vector_Field,Size,uniScale) : SampleL(clVertex,Vector_Field,Size,uniScale);
+	clVs=(bitmask & 0x00000001) ? Sample(clVertex,Vector_Field,Size) : SampleL(clVertex,Vector_Field,Size);
 
 	if(bitmask & 0x00001000)
 	{
@@ -127,7 +127,7 @@ __global__ void IntegrateVectorField(float *Vector_Field, float3 *posptr, unsign
 	{
 		float3 clVertexTMP=clVertex+stepsize * clVs;
 		clVertex+=(0.5f*stepsize * clVs);
-		clVs=(bitmask & 0x00000001) ? Sample(clVertex,Vector_Field,Size,uniScale) : SampleL(clVertex,Vector_Field,Size,uniScale);
+		clVs=(bitmask & 0x00000001) ? Sample(clVertex,Vector_Field,Size) : SampleL(clVertex,Vector_Field,Size);
 		clVertex+=(0.5f*stepsize * clVs);
 		clVertex=2 * clVertex-clVertexTMP;
 	}
@@ -135,12 +135,12 @@ __global__ void IntegrateVectorField(float *Vector_Field, float3 *posptr, unsign
 	posptr[index]=clVertex/posGridOffset+bbMin;
 }
 
-__device__ float3 Sample4D(float tInterpolate, unsigned int t0, float3 Vector, const float *Vector_Field, uint4 Size, float3 uniScale)
+__device__ float3 Sample4D(float tInterpolate, unsigned int t0, float3 Vector, const float *Vector_Field, uint4 Size)
 {
 	int3 fi;
 	int index;
 
-	fi=convert_int3(Vector*uniScale);
+	fi=convert_int3(Vector);
 	if(fi.x > Size.x || fi.y > Size.y || fi.z > Size.z || fi.x<0 || fi.y<0 || fi.z<0)
 		return make_float3(0,0,0);
 
@@ -153,18 +153,18 @@ __device__ float3 Sample4D(float tInterpolate, unsigned int t0, float3 Vector, c
 	//return make_float3(tmperg.x,tmperg.y,tmperg.z);
 }
 
-__device__ float3 SampleL4D(float tInterpolate, unsigned int t[2], float3 Vector, const float *Vector_Field, uint4 Size, float3 uniScale)
+__device__ float3 SampleL4D(float tInterpolate, unsigned int t[2], float3 Vector, const float *Vector_Field, uint4 Size)
 {
 	float3 s[2][8];
 	float3 erg[2];
 
 	int3 fi;
-	fi=convert_int3(Vector*uniScale);
+	fi=convert_int3(Vector);
 
 	if(fi.x > Size.x || fi.y > Size.y || fi.z > Size.z || fi.x<0 || fi.y<0 || fi.z<0)
 		return make_float3(0,0,0);
 
-	Vector=Vector*uniScale-convert_float3(fi);
+	Vector=Vector-convert_float3(fi);
 
 	int index;
 
@@ -190,7 +190,7 @@ __device__ float3 SampleL4D(float tInterpolate, unsigned int t[2], float3 Vector
 }
 
 __global__ void IntegrateVectorField4D(float *Vector_Field, float3 *posptr, unsigned int ElementSize, uint4 Size, uint3 rand, float3 bbMin,
-									   float3 posGridOffset, int resetcolumn, int rows, float stepsize, unsigned int bitmask, float avgVecLength, uint2 t, float tInterpolate, float3 uniScale)
+									   float3 posGridOffset, int resetcolumn, int rows, float stepsize, unsigned int bitmask, float avgVecLength, uint2 t, float tInterpolate)
 {
 	const int index=blockDim.x*blockIdx.x+threadIdx.x;
 	if(index>ElementSize || rows*resetcolumn<index)
@@ -200,7 +200,7 @@ __global__ void IntegrateVectorField4D(float *Vector_Field, float3 *posptr, unsi
 
 	clVertex=(posptr[index]-bbMin)*posGridOffset;
 
-	clVs=(bitmask & 0x00000001) ? Sample4D(tInterpolate,t.x,clVertex,Vector_Field,Size,uniScale) : SampleL4D(tInterpolate,(unsigned int*)&t,clVertex,Vector_Field,Size,uniScale);
+	clVs=(bitmask & 0x00000001) ? Sample4D(tInterpolate,t.x,clVertex,Vector_Field,Size) : SampleL4D(tInterpolate,(unsigned int*)&t,clVertex,Vector_Field,Size);
 
 	if(bitmask & 0x00001000)
 	{
@@ -218,7 +218,7 @@ __global__ void IntegrateVectorField4D(float *Vector_Field, float3 *posptr, unsi
 	{
 		float3 clVertexTMP=clVertex+stepsize * clVs;
 		clVertex+=(0.5f*stepsize * clVs);
-		clVs=(bitmask & 0x00000001) ? Sample4D(tInterpolate,t.x,clVertex,Vector_Field,Size,uniScale) : SampleL4D(tInterpolate,(unsigned int*)&t,clVertex,Vector_Field,Size,uniScale);
+		clVs=(bitmask & 0x00000001) ? Sample4D(tInterpolate,t.x,clVertex,Vector_Field,Size) : SampleL4D(tInterpolate,(unsigned int*)&t,clVertex,Vector_Field,Size);
 		clVertex+=(0.5f*stepsize * clVs);
 		clVertex=2 * clVertex-clVertexTMP;
 	}
@@ -228,12 +228,12 @@ __global__ void IntegrateVectorField4D(float *Vector_Field, float3 *posptr, unsi
 
 extern "C" void integrateVectorFieldGPU(float* fVectorField, float3 *posptr, unsigned int uiElementSize, unsigned int uiGridSize, 
 										unsigned int uiBlockSize, uint4 sizeField, uint3 rnd, float3 bbMin, float3 posGridOff, 
-										int resetcolumn, int rows, float stepsize, unsigned int bitmask, float avgVecSize, float tInterpolate, uint2 t, float3 uniScale)
+										int resetcolumn, int rows, float stepsize, unsigned int bitmask, float avgVecSize, float tInterpolate, uint2 t)
 {
 	if(bitmask & 0x00000100)
-		IntegrateVectorField4D<<<uiGridSize,uiBlockSize>>>(fVectorField, posptr,uiElementSize,sizeField,rnd,bbMin,posGridOff,resetcolumn,rows,stepsize,bitmask, avgVecSize,t,tInterpolate,uniScale);
+		IntegrateVectorField4D<<<uiGridSize,uiBlockSize>>>(fVectorField, posptr,uiElementSize,sizeField,rnd,bbMin,posGridOff,resetcolumn,rows,stepsize,bitmask, avgVecSize,t,tInterpolate);
 	else
-		IntegrateVectorField<<<uiGridSize,uiBlockSize>>>(fVectorField, posptr,uiElementSize,make_uint3(sizeField.x,sizeField.y,sizeField.z),rnd,bbMin,posGridOff,resetcolumn,rows,stepsize,bitmask, avgVecSize,uniScale);
+		IntegrateVectorField<<<uiGridSize,uiBlockSize>>>(fVectorField, posptr,uiElementSize,make_uint3(sizeField.x,sizeField.y,sizeField.z),rnd,bbMin,posGridOff,resetcolumn,rows,stepsize,bitmask, avgVecSize);
 }
 
 __global__ void ResetColumn(float3* posptr, float3 bbMin, float3 bbMax, int rows, int resetColumn)

@@ -133,7 +133,7 @@ void SmokeSurface::Render()
 {
 	glBindVertexArray(m_uiVAO);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,m_uiIBO);
-//	glDrawArrays(GL_POINTS, 0, m_iNumVertices);
+	//glDrawArrays(GL_TRIANGLES, 0, m_iNumIndices);
 	glDrawElements(GL_TRIANGLES, m_iNumIndices, GL_UNSIGNED_INT, (GLvoid*)0);
 }
 

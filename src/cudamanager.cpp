@@ -33,7 +33,7 @@
 
 extern "C" void integrateVectorFieldGPU(float* fVectorField, float3 *posptr, unsigned int uiElementSize, unsigned int uiGridSize, 
 										  unsigned int uiBlockSize, uint4 sizeField, uint3 rnd, float3 bbMin, float3 posgridOff, 
-										  int resetcolumn, int rows, float stepsize, unsigned int bitmask, float avgVecLength, float tInterpolate, uint2 t, float3 uniScale);
+										  int resetcolumn, int rows, float stepsize, unsigned int bitmask, float avgVecLength, float tInterpolate, uint2 t);
 
 extern "C" void resetOldColumn(float3* posptr, float3 bbMin, float3 bbMax, int columns, int rows, int resetColumn);
 extern "C" void InitCuda(const float *vectorField, cudaExtent size);
@@ -163,7 +163,7 @@ void CudaManager::Integrate(float tInterpolate, unsigned int t0, unsigned int t1
 	vSizeField.z = m_pVectorField->GetSizeZ();
 	vSizeField.w = m_pVectorField->GetSizeT();
 	integrateVectorFieldGPU(m_fDeviceVectorField,(float3*)devPosptr,m_uiElementSize,m_uiGridSize,m_uiBlockSize,vSizeField,rnd,*(float3*)&m_pVectorField->GetBoundingBoxMin(),
-							*(float3*)&m_pVectorField->GetPosToGridVector(),releasedColumns,rows,stepsize,bitmask,m_pVectorField->GetAverageVectorLength()*50.0f,tInterpolate,make_uint2(t0,t1),make_float3(1,1,1));//ADD INTERPOLATED TIME STEP AND INDEX OF THE TWO TIME SLICES!!!!
+							*(float3*)&m_pVectorField->GetPosToGridVector(),releasedColumns,rows,stepsize,bitmask,m_pVectorField->GetAverageVectorLength()*50.0f,tInterpolate,make_uint2(t0,t1));
 
 	HandleError(cudaGraphicsUnmapResources(1,&posRes));
 }
