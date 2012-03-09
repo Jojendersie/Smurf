@@ -197,7 +197,10 @@ void Program::Initialize(const char* _pcFile) {
 	graphics->InitializeGraphics();
 
 	camera = new SFCamera((m_VectorField.GetBoundingBoxMax()-m_VectorField.GetBoundingBoxMin()).length()*0.5f);
-	camera->SetZNear(0.01f);
+	glm::vec3 ttmp=m_VectorField.GetBoundingBoxMax()-m_VectorField.GetBoundingBoxMin();
+	float tmp=sqrt(ttmp.x*ttmp.x+ttmp.y*ttmp.y+ttmp.z+ttmp.z);
+	float zNear=tmp*0.03333333333f;
+	camera->SetZNear(zNear);
 	
 	glGenTextures(1,&opaqueColor);
 	glBindTexture(GL_TEXTURE_2D,opaqueColor);
@@ -388,14 +391,13 @@ void Program::Update() {
 
 		glm::vec3 interInfo=glm::vec3(0);
 		if(SMOKE_TIME_DEPENDENT_INTEGRATION)
-			glm::vec3 interInfo=m_VectorField.GetSliceInterpolation(timeTotal,SMOKE_TIME_STEPSIZE);
-
+			interInfo=m_VectorField.GetSliceInterpolation(timeTotal,SMOKE_TIME_STEPSIZE);
 
 		float fNormalizedStepSize = Globals::RENDER_SMURF_STEPSIZE/m_VectorField.GetAverageVectorLength();
 		if(m_bUseCPUIntegration)
 			m_pSmokeSurface[i]->IntegrateCPU(&m_VectorField, fNormalizedStepSize, uiRenderFlags);
 		else
-			cudamanager[i]->Integrate(interInfo.z,interInfo.x,interInfo.y,fNormalizedStepSize, uiRenderFlags);//IMPLEMENT HERE WHICH TIME SLICES AND THE INTERPOLATION PARAMETER [0,1]
+			cudamanager[i]->Integrate(interInfo.z,interInfo.x,interInfo.y,fNormalizedStepSize, uiRenderFlags);
 
 		/*if(!m_bStopProgram)
 		{

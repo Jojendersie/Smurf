@@ -242,7 +242,7 @@ __global__ void ResetColumn(float3* posptr, float3 bbMin, float3 bbMax, int rows
 	posptr[resetColumn*rows+index]=lerp(bbMin,bbMax,index/float(rows-1));
 }
 
-extern "C" void resetOldColumn(float3* posptr, float3 bbMin, float3 bbMax, int columns, int rows, int resetColumn)
+extern "C" void resetOldColumn(float3* posptr, float3 bbMin, float3 bbMax, int rows, int resetColumn)
 {
 	ResetColumn<<<1,rows>>>(posptr,bbMin,bbMax,rows,resetColumn);
 }

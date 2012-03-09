@@ -58,7 +58,7 @@ int main(int argc, char* argv[]) {
 	if(argc>12) SMOKE_CURVATURE_CONSTANT=static_cast<float>(atof(argv[12]));
 	if(argc>13) {color[0]=static_cast<float>(atof(argv[13])); color[1]=static_cast<float>(atof(argv[14])); color[2]=static_cast<float>(atof(argv[15])); }
 
-	printf("Smurf.exe [-filename(c)] [-time dependent(ui)] [-particle_number(ui)] [-prism_thickness(f)] [-density_constant(f)] [-mesh_rows(us)] [-mesh_columns(us)] [-area_constant_normalization(f)] [-area_constant_sharp(f)] [-shape_constant(f)] [-curvature_constant(f)] [-color_r(f) -color_g(f) -color_b(f)]\n");
+	printf("Smurf.exe [-filename(c)] [-time dependent(ui)] [-time stepsize(ui)] [-particle_number(ui)] [-prism_thickness(f)] [-density_constant(f)] [-mesh_rows(us)] [-mesh_columns(us)] [-area_constant_normalization(f)] [-area_constant_sharp(f)] [-shape_constant(f)] [-curvature_constant(f)] [-color_r(f) -color_g(f) -color_b(f)]\n");
 
 	printf("\n");
 	printf("Smoke Surfaces (SMURF): An Interactive Flow Visualization Technique\nInspired by Real-World Flow Experiments\n\nFunctionality:\nHold the left mouse button to change the view\nWASD to move the camera\nPress the right mouse button to set one point of the seeding line\nR CPU/GPU integration\nF point/linear sampling\nN noisy/not noisy integration\nI euler/mod euler integration\n\n");

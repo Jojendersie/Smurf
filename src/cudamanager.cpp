@@ -35,7 +35,7 @@ extern "C" void integrateVectorFieldGPU(float* fVectorField, float3 *posptr, uns
 										  unsigned int uiBlockSize, uint4 sizeField, uint3 rnd, float3 bbMin, float3 posgridOff, 
 										  int resetcolumn, int rows, float stepsize, unsigned int bitmask, float avgVecLength, float tInterpolate, uint2 t);
 
-extern "C" void resetOldColumn(float3* posptr, float3 bbMin, float3 bbMax, int columns, int rows, int resetColumn);
+extern "C" void resetOldColumn(float3* posptr, float3 bbMin, float3 bbMax, int rows, int resetColumn);
 extern "C" void InitCuda(const float *vectorField, cudaExtent size);
 
 int CudaManager::device=-1;
@@ -136,7 +136,7 @@ void CudaManager::ReleaseNextColumn(SmokeSurface* _Surface)
 		HandleError(cudaGraphicsMapResources(1,&posRes));
 		HandleError(cudaGraphicsResourceGetMappedPointer((void**)&devPosptr,&posSize,posRes));
 
-		resetOldColumn((float3*)devPosptr,*(float3*)&_Surface->GetLineStart(),*(float3*)&_Surface->GetLineEnd(),columns,rows,resetColumn);
+		resetOldColumn((float3*)devPosptr,*(float3*)&_Surface->GetLineStart(),*(float3*)&_Surface->GetLineEnd(),rows,resetColumn);
 
 		HandleError(cudaGraphicsUnmapResources(1,&posRes));
 	}
