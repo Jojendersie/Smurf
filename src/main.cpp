@@ -84,81 +84,99 @@ void LoadParameters(const char *filename)
 	std::string line;
 	std::fstream file(filename,std::ios::in);
 
+	std::getline(file,line,' ');	
 	std::getline(file,line);
-	//line+='\n';
 
 	pcFile = new char[line.length()];
 	std::sprintf(pcFile,"%s",line.c_str());
 
+	std::getline(file,line,' ');
 	std::getline(file,line);
 	line+='\n';
 	SMOKE_TIME_DEPENDENT_INTEGRATION=atoi(line.c_str());
 
+	std::getline(file,line,' ');
 	std::getline(file,line);
 	line+='\n';
 	SMOKE_TIME_STEPSIZE=atoi(line.c_str());
 
+	std::getline(file,line,' ');
 	std::getline(file,line);
 	line+='\n';
 	SMOKE_PARTICLE_NUMBER=atoi(line.c_str());
 
+	std::getline(file,line,' ');
 	std::getline(file,line);
 	line+='\n';
 	SMOKE_PRISM_THICKNESS=atof(line.c_str());
 
+	std::getline(file,line,' ');
 	std::getline(file,line);
 	line+='\n';
 	SMOKE_DENSITY_CONSTANT=atof(line.c_str());
 	SMOKE_DENSITY_CONSTANT_K=SMOKE_PRISM_THICKNESS*SMOKE_PARTICLE_NUMBER*SMOKE_DENSITY_CONSTANT;
 
+	std::getline(file,line,' ');
 	std::getline(file,line);
 	line+='\n';
 	RENDER_SMURF_ROWS=atoi(line.c_str());
 
+	std::getline(file,line,' ');
 	std::getline(file,line);
 	line+='\n';
 	RENDER_SMURF_COLUMS=atoi(line.c_str());
 
+	std::getline(file,line,' ');
 	std::getline(file,line);
 	line+='\n';
 	SMOKE_AREA_CONSTANT_NORMALIZATION=atof(line.c_str());
 
+	std::getline(file,line,' ');
 	std::getline(file,line);
 	line+='\n';
 	SMOKE_SHAPE_CONSTANT=atof(line.c_str());
 
+	std::getline(file,line,' ');
 	std::getline(file,line);
 	line+='\n';
 	SMOKE_CURVATURE_CONSTANT=atof(line.c_str());
 
+	std::getline(file,line,' ');
 	std::getline(file,line);
 	line+='\n';
 	SMOKE_COLOR[0]=atof(line.c_str());
 
+	std::getline(file,line,' ');
 	std::getline(file,line);
 	line+='\n';
 	SMOKE_COLOR[1]=atof(line.c_str());
 
+	std::getline(file,line,' ');
 	std::getline(file,line);
 	line+='\n';
 	SMOKE_COLOR[2]=atof(line.c_str());
 
+	std::getline(file,line,' ');
 	std::getline(file,line);
 	line+='\n';
 	PROGRAM_FRAMES_PER_RELEASE=atoi(line.c_str());
 
+	std::getline(file,line,' ');
 	std::getline(file,line);
 	line+='\n';
 	PROGRAM_NUM_SEEDLINES=atoi(line.c_str());
 
+	std::getline(file,line,' ');
 	std::getline(file,line);
 	line+='\n';
 	RENDER_DEPTH_PEELING_LAYER=atoi(line.c_str());
 
+	std::getline(file,line,' ');
 	std::getline(file,line);
 	line+='\n';
 	RENDER_SMURF_STEPSIZE=atof(line.c_str());
 
+	std::getline(file,line,' ');
 	std::getline(file,line);
 	line+='\n';
 	RENDER_POLYGON_MAX=atoi(line.c_str());

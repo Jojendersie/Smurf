@@ -39,7 +39,6 @@ void main()
 
 	float alphaDensity=clamp(k/(gs_out_area*gamma),0.0,1.0);
 	float alphaFade=clamp(1.0-gs_out_alphaTime,0.0,1.0);//1.0-gs_out_alphaTime;
-	//float alphaArea=areaConstants.x/pow(gs_out_area, areaConstants.y);
 	float alphaArea=clamp(areaConstant/gs_out_area,0.0,1.0);
 
 	float alpha=alphaDensity*alphaFade*gs_out_alphaShape*gs_out_alphaCurvature*alphaArea;
