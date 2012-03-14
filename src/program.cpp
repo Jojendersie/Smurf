@@ -31,6 +31,10 @@
 #include "program.hpp"
 #include "cudamanager.hpp"
 
+float *CudaManager::m_fDeviceVectorField=NULL;
+AmiraMesh *CudaManager::m_pVectorField=NULL;
+cudaDeviceProp CudaManager::cudaProp;
+int CudaManager::device=-1;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Definition: Constructors and Destructor
@@ -38,19 +42,9 @@
 
 
 ////////////////////////////////////////////////////////////////////////////////
-Program::Program(bool SMOKE_TIME_DEPENDENT_INTEGRATION,
-				 unsigned int SMOKE_TIME_STEPSIZE,
-				 unsigned int SMOKE_PARTICLE_NUMBER,
-				 float SMOKE_PRISM_THICKNESS,
-				 float SMOKE_DENSITY_CONSTANT,
-				 unsigned short RENDER_SMURF_ROWS,
-				 unsigned short RENDER_SMURF_COLUMS,
-				 float SMOKE_AREA_CONSTANT_NORMALIZATION,
-				 float SMOKE_AREA_CONSTANT_SHARP,
-				 float SMOKE_SHAPE_CONSTANT,
-				 float SMOKE_CURVATURE_CONSTANT,
-				 float SMOKE_COLOR[]) 
+Program::Program() 
 {
+	m_bWireframe=false;
 	m_bStopProgram = false;
 	m_bCloseRequest = false;
 	m_bNoisyIntegration = false;
@@ -62,20 +56,6 @@ Program::Program(bool SMOKE_TIME_DEPENDENT_INTEGRATION,
 	m_normalizer=0;
 	m_uiEditSeedLine = 0;
 	m_timeIntegrate=m_timeRender=0;
-
-	this->RENDER_SMURF_COLUMS=RENDER_SMURF_COLUMS;
-	this->RENDER_SMURF_ROWS=RENDER_SMURF_ROWS;
-
-	this->SMOKE_TIME_DEPENDENT_INTEGRATION=SMOKE_TIME_DEPENDENT_INTEGRATION;
-	this->SMOKE_TIME_STEPSIZE=SMOKE_TIME_STEPSIZE;
-	this->SMOKE_AREA_CONSTANT_SHARP=SMOKE_AREA_CONSTANT_SHARP;
-	this->SMOKE_AREA_CONSTANT_NORMALIZATION=SMOKE_AREA_CONSTANT_NORMALIZATION;
-	this->SMOKE_CURVATURE_CONSTANT=SMOKE_CURVATURE_CONSTANT;
-	this->SMOKE_DENSITY_CONSTANT_K=SMOKE_PARTICLE_NUMBER*SMOKE_DENSITY_CONSTANT*SMOKE_PRISM_THICKNESS;
-	this->SMOKE_SHAPE_CONSTANT=SMOKE_SHAPE_CONSTANT;
-	this->SMOKE_COLOR[0]=SMOKE_COLOR[0];
-	this->SMOKE_COLOR[1]=SMOKE_COLOR[1];
-	this->SMOKE_COLOR[2]=SMOKE_COLOR[2];
 
 	// set a valid video mode
 	sf::VideoMode mode(Globals::RENDER_VIEWPORT_WIDTH, Globals::RENDER_VIEWPORT_HEIGHT, Globals::RENDER_COLOR_DEPTH);
@@ -96,6 +76,12 @@ Program::Program(bool SMOKE_TIME_DEPENDENT_INTEGRATION,
 	}
 	mainWindow.SetFramerateLimit(Globals::RENDER_FRAMERATE_MAX);
 	mainWindow.EnableVerticalSync(Globals::RENDER_VSYNC);
+
+	smokeFBO = new GLuint[RENDER_DEPTH_PEELING_LAYER];
+	colorTex = new GLuint[RENDER_DEPTH_PEELING_LAYER];
+	depthTex = new GLuint[RENDER_DEPTH_PEELING_LAYER];
+	cudamanager = new CudaManager*[PROGRAM_NUM_SEEDLINES];
+	m_pSmokeSurface = new SmokeSurface*[PROGRAM_NUM_SEEDLINES];
 }
 
 
@@ -106,19 +92,26 @@ Program::~Program() {
 	delete flatShader;
 	delete alphaShader;
 	delete renderQuadShader;
+	delete compositingShader;
 
-	glDeleteBuffers(Globals::RENDER_DEPTH_PEELING_LAYER,smokeFBO);
-	glDeleteTextures(Globals::RENDER_DEPTH_PEELING_LAYER,colorTex);
-	glDeleteTextures(Globals::RENDER_DEPTH_PEELING_LAYER,depthTex);
+	glDeleteBuffers(RENDER_DEPTH_PEELING_LAYER,smokeFBO);
+	glDeleteTextures(RENDER_DEPTH_PEELING_LAYER,colorTex);
+	glDeleteTextures(RENDER_DEPTH_PEELING_LAYER,depthTex);
+
+	delete smokeFBO;
+	delete colorTex;
+	delete depthTex;
 
 	delete camera;
 	delete m_pSolidSurface;
 
-	for(int i=0;i!=Globals::PROGRAM_NUM_SEEDLINES;i++)
+	for(int i=0;i!=PROGRAM_NUM_SEEDLINES;i++)
 	{
 		delete cudamanager[i];
 		delete m_pSmokeSurface[i];
 	}
+
+	delete[] cudamanager;
 }
 
 
@@ -222,11 +215,11 @@ void Program::Initialize(const char* _pcFile) {
 	glFramebufferTexture2D(GL_FRAMEBUFFER,GL_DEPTH_ATTACHMENT ,GL_TEXTURE_2D,opaqueDepth,0);
 
 
-	glGenTextures(Globals::RENDER_DEPTH_PEELING_LAYER,colorTex);
-	glGenTextures(Globals::RENDER_DEPTH_PEELING_LAYER,depthTex);
-	glGenFramebuffers(Globals::RENDER_DEPTH_PEELING_LAYER,smokeFBO);
+	glGenTextures(RENDER_DEPTH_PEELING_LAYER,colorTex);
+	glGenTextures(RENDER_DEPTH_PEELING_LAYER,depthTex);
+	glGenFramebuffers(RENDER_DEPTH_PEELING_LAYER,smokeFBO);
 
-	for(int i=0;i!=Globals::RENDER_DEPTH_PEELING_LAYER;i++)
+	for(int i=0;i!=RENDER_DEPTH_PEELING_LAYER;i++)
 	{
 		glBindTexture(GL_TEXTURE_2D,colorTex[i]);
 		glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA8,Globals::RENDER_VIEWPORT_WIDTH,Globals::RENDER_VIEWPORT_HEIGHT,0,GL_RGBA,GL_UNSIGNED_BYTE,NULL);
@@ -292,7 +285,7 @@ void Program::Initialize(const char* _pcFile) {
 
 	alphaShader = new GLShader(graphics);
 	alphaShader->CreateShaderProgram("res/vfx/alphashader.vert", "res/vfx/alphashader.frag", "res/vfx/alphashader.geom",1,GLGraphics::ASLOT_POSITION,"in_Indices");
-	alphaShader->CreateAdvancedUniforms(14,"b","ProjectionView","currentColumn","shapeStrength","invProjectionView","eyePos","k","columnStride","rowStride","viewPort","fragColor", "maxColumns","renderPass","areaConstants");
+	alphaShader->CreateAdvancedUniforms(14,"b","ProjectionView","currentColumn","shapeStrength","invProjectionView","eyePos","k","columnStride","rowStride","viewPort","fragColor", "maxColumns","renderPass","areaConstant");
 	alphaShader->Use();
 	texLoc = glGetUniformLocation(alphaShader->GetShaderProgramm(),"adjTex");
 	glUniform1i(texLoc, 0);
@@ -319,7 +312,7 @@ void Program::Initialize(const char* _pcFile) {
 	compositingShader->CreateShaderProgram("res/vfx/Compositing.vert", "res/vfx/Compositing.frag", 0,2,GLGraphics::ASLOT_POSITION,"in_Pos", GLGraphics::ASLOT_TEXCOORD0,"in_TexCoords");
 	compositingShader->CreateAdvancedUniforms(1,"renderLayer");
 	compositingShader->Use();
-	for(int j=0;j!=Globals::RENDER_DEPTH_PEELING_LAYER;j++)
+	for(int j=0;j!=RENDER_DEPTH_PEELING_LAYER;j++)
 	{
 		char shadeBuf[32];
 		sprintf(shadeBuf,"texSampler%d",j);
@@ -333,15 +326,18 @@ void Program::Initialize(const char* _pcFile) {
 		if(texLoc==-1)
 			std::cout << "Error: No such Texture Location" << std::endl;
 	
-	m_pSolidSurface = new SolidSurface(&m_VectorField, 100000);
+	m_pSolidSurface = new SolidSurface(&m_VectorField, RENDER_POLYGON_MAX);
 
-	for(int i=0;i<Globals::PROGRAM_NUM_SEEDLINES;++i)
+	CudaManager::SetDevice();
+	CudaManager::AllocateMemory(&m_VectorField);
+	CudaManager::SetVectorField();
+
+	for(int i=0;i<PROGRAM_NUM_SEEDLINES;++i)
 	{
 		m_pSmokeSurface[i] = new SmokeSurface(RENDER_SMURF_COLUMS, RENDER_SMURF_ROWS, m_VectorField.GetBoundingBoxMax(), m_VectorField.GetBoundingBoxMin());
 
-		cudamanager[i] = new CudaManager(&m_VectorField);
-		cudamanager[i]->AllocateMemory(m_pSmokeSurface[i]->GetNumVertices());
-		cudamanager[i]->SetVectorField();
+		cudamanager[i] = new CudaManager();
+		cudamanager[i]->SetSmokeSurfaceSize(m_pSmokeSurface[i]->GetNumVertices());
 		GLuint tmpPBO=m_pSmokeSurface[i]->GetPBO();
 		cudamanager[i]->RegisterVertices(&tmpPBO,RENDER_SMURF_COLUMS,RENDER_SMURF_ROWS);
 	}
@@ -368,16 +364,16 @@ void Program::Update() {
 		camera->Update();
 	}
 	// Switch between seed lines
-	for(unsigned int i=0;i<Globals::PROGRAM_NUM_SEEDLINES;++i)
+	for(unsigned int i=0;i<PROGRAM_NUM_SEEDLINES;++i)
 		if(sf::Keyboard::IsKeyPressed(sf::Keyboard::Key( sf::Keyboard::Num1+i)))
 			m_uiEditSeedLine = i;
 
 	m_normalizer++;
 	m_timeStart=clock();
 
-	for(int i=0; i<Globals::PROGRAM_NUM_SEEDLINES; ++i) if(!m_pSmokeSurface[i]->IsInvalide())
+	for(int i=0; i<PROGRAM_NUM_SEEDLINES; ++i) if(!m_pSmokeSurface[i]->IsInvalide())
 	{
-		if(m_uiFrameCount++ % Globals::PROGRAM_FRAMES_PER_RELEASE == 0)
+		if(m_uiFrameCount++ % PROGRAM_FRAMES_PER_RELEASE == 0)
 		{
 			if(m_bUseCPUIntegration) 
 				m_pSmokeSurface[i]->ReleaseNextColumn();
@@ -389,15 +385,16 @@ void Program::Update() {
 								   | (m_bNoisyIntegration	?Globals::INTEGRATION_NOISE			: 0
 								   | (SMOKE_TIME_DEPENDENT_INTEGRATION ?Globals::INTEGRATION_TIME_DEPENDENT:0));
 
-		glm::vec3 interInfo=glm::vec3(0);
+		glm::vec4 interInfo=glm::vec4(0);
+		float tInter=0;
 		if(SMOKE_TIME_DEPENDENT_INTEGRATION)
-			interInfo=m_VectorField.GetSliceInterpolation(timeTotal,SMOKE_TIME_STEPSIZE);
+			m_VectorField.GetSliceInterpolation(timeTotal,SMOKE_TIME_STEPSIZE,&interInfo,&tInter);
 
-		float fNormalizedStepSize = Globals::RENDER_SMURF_STEPSIZE/m_VectorField.GetAverageVectorLength();
+		float fNormalizedStepSize = RENDER_SMURF_STEPSIZE/m_VectorField.GetAverageVectorLength();
 		if(m_bUseCPUIntegration)
 			m_pSmokeSurface[i]->IntegrateCPU(&m_VectorField, fNormalizedStepSize, uiRenderFlags);
 		else
-			cudamanager[i]->Integrate(interInfo.z,interInfo.x,interInfo.y,fNormalizedStepSize, uiRenderFlags);
+			cudamanager[i]->Integrate(tInter,interInfo,fNormalizedStepSize, uiRenderFlags);
 
 		/*if(!m_bStopProgram)
 		{
@@ -445,7 +442,7 @@ void Program::Draw() {
 	if(!Globals::RENDER_DEPTH_PEELING)
 		LAYERS=1;
 	else
-		LAYERS=Globals::RENDER_DEPTH_PEELING_LAYER;
+		LAYERS=RENDER_DEPTH_PEELING_LAYER;
 
 	for(int k=0;k!=LAYERS;k++)//'Globals::RENDER_DEPTH_PEELING_LAYER' passes for the depth-peeling layers
 	{
@@ -453,7 +450,7 @@ void Program::Draw() {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		//Render the Seedlines (Transparent Objects)
-		for(int i=0;i<Globals::PROGRAM_NUM_SEEDLINES;++i) if(!m_pSmokeSurface[i]->IsInvalide())
+		for(int i=0;i<PROGRAM_NUM_SEEDLINES;++i) if(!m_pSmokeSurface[i]->IsInvalide())
 		{
 			if(m_bUseCPUIntegration)
 			{
@@ -489,14 +486,14 @@ void Program::Draw() {
 			float fCurrentColumn;
 			if(m_bUseCPUIntegration)
 			{
-				fCurrentColumn = float(m_uiFrameCount%Globals::PROGRAM_FRAMES_PER_RELEASE)/Globals::PROGRAM_FRAMES_PER_RELEASE;
+				fCurrentColumn = float(m_uiFrameCount%PROGRAM_FRAMES_PER_RELEASE)/PROGRAM_FRAMES_PER_RELEASE;
 				fCurrentColumn = float((m_pSmokeSurface[i]->GetLastReleasedColumn()%m_pSmokeSurface[i]->GetNumColumns())+fCurrentColumn);
 				fCurrentColumn /= m_pSmokeSurface[i]->GetNumColumns();
 				m_bStopProgram=m_pSmokeSurface[i]->GetNumColumns()<=m_pSmokeSurface[i]->GetLastReleasedColumn();
 			}
 			else
 			{
-				fCurrentColumn = float(m_uiFrameCount%Globals::PROGRAM_FRAMES_PER_RELEASE)/Globals::PROGRAM_FRAMES_PER_RELEASE;
+				fCurrentColumn = float(m_uiFrameCount%PROGRAM_FRAMES_PER_RELEASE)/PROGRAM_FRAMES_PER_RELEASE;
 				fCurrentColumn = float((cudamanager[i]->GetLastReleasedColumn()%cudamanager[i]->GetNumColumns())+fCurrentColumn);
 				fCurrentColumn /= cudamanager[i]->GetNumColumns();
 				m_bStopProgram=cudamanager[i]->GetNumColumns()<=cudamanager[i]->GetLastReleasedColumn();
@@ -504,12 +501,12 @@ void Program::Draw() {
 			float fColumnStride=1.0f/m_pSmokeSurface[i]->GetNumColumns();
 			float fRowStride=1.0f/m_pSmokeSurface[i]->GetNumRows();
 			float fMaxColumns = float(m_pSmokeSurface[i]->GetNumColumns());
-			float fAreaNormalisation = SMOKE_AREA_CONSTANT_NORMALIZATION * (float(m_VectorField.GetSizeX()*m_VectorField.GetSizeX() + m_VectorField.GetSizeY()*m_VectorField.GetSizeY() + m_VectorField.GetSizeZ()*m_VectorField.GetSizeZ()));
-			glm::vec2 areaConstants=glm::vec2(fAreaNormalisation, SMOKE_AREA_CONSTANT_SHARP);
+			//float fAreaNormalisation = SMOKE_AREA_CONSTANT_NORMALIZATION * (float(m_VectorField.GetSizeX()*m_VectorField.GetSizeX() + m_VectorField.GetSizeY()*m_VectorField.GetSizeY() + m_VectorField.GetSizeZ()*m_VectorField.GetSizeZ()));
+			float areaConstant=SMOKE_AREA_CONSTANT_NORMALIZATION;
 			GLfloat renderPass=(GLfloat)k;
 
 			alphaShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 12, &renderPass);
-			alphaShader->SetAdvancedUniform(GLShader::AUTYPE_VECTOR2, 13, &areaConstants[0]);
+			alphaShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 13, &areaConstant);
 			alphaShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 2,&fCurrentColumn);
 			alphaShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 7,&fColumnStride);
 			alphaShader->SetAdvancedUniform(GLShader::AUTYPE_SCALAR, 8,&fRowStride);
@@ -604,6 +601,17 @@ void Program::HandleBasicEvents() {
 		// Toggle integration method
 		if ((event.Type == sf::Event::KeyPressed) && (event.Key.Code == sf::Keyboard::I))
 			m_bUseAdvancedEuler = !m_bUseAdvancedEuler;
+
+		// Toggle Wireframe
+		if ((event.Type == sf::Event::KeyPressed) && (event.Key.Code == sf::Keyboard::E))
+		{
+			m_bWireframe = !m_bWireframe;
+			if(m_bWireframe)
+				glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
+			else
+				glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
+		}
+
 
 		if((event.Type == sf::Event::KeyPressed) && (event.Key.Code == sf::Keyboard::R))
 		{

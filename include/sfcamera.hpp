@@ -48,6 +48,7 @@ public:
 	// Accessors
 	////////////////////////////////////////////////////////////////////////////////
 	const glm::vec3& GetPosition() const;
+	const glm::vec3& GetForwardVector() const;
 	const glm::vec3& GetUp() const;
 	const glm::vec3& GetCenter() const;
 	const float& GetHeading() const;
@@ -78,6 +79,7 @@ private:
 	glm::vec3 position;
 	glm::vec3 up;
 	glm::vec3 center;
+	glm::vec3 forwardVec;
 	float heading;
 	float pitch;
 	float fov;

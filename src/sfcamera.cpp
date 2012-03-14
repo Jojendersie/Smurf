@@ -71,6 +71,12 @@ const glm::vec3& SFCamera::GetPosition() const {
 
 
 ////////////////////////////////////////////////////////////////////////////////
+const glm::vec3& SFCamera::GetForwardVector() const {
+	return forwardVec;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
 const glm::vec3& SFCamera::GetUp() const {
 	return up;
 }
@@ -192,7 +198,7 @@ void SFCamera::Update() {
 	glm::mat4 rotationHeading = glm::rotate(glm::mat4(1.f), heading, glm::vec3(0,1,0));
 	glm::vec3 sideVec = (glm::vec4(1,0,0,0)*rotationHeading).swizzle(glm::comp::X,glm::comp::Y,glm::comp::Z);
 	glm::mat4 camRotation = glm::rotate(rotationHeading,pitch,sideVec);
-	glm::vec3 forwardVec = (glm::vec4(0,0,1,0)*camRotation).swizzle(glm::comp::X,glm::comp::Y,glm::comp::Z);
+	forwardVec = (glm::vec4(0,0,1,0)*camRotation).swizzle(glm::comp::X,glm::comp::Y,glm::comp::Z);
 
 
 	// handle keyboard inputs

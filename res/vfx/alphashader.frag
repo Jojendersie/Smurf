@@ -9,7 +9,7 @@ uniform float k;//constant: height_of_the_prism*number_of_particles*constant
 uniform vec3 fragColor;
 uniform vec2 viewPort;
 uniform float renderPass;
-uniform vec2 areaConstants;
+uniform float areaConstant;
 
 in vec4 gs_out_worldPos;
 flat in vec3 gs_out_normal;
@@ -40,7 +40,12 @@ void main()
 	float alphaDensity=clamp(k/(gs_out_area*gamma),0.0,1.0);
 	float alphaFade=clamp(1.0-gs_out_alphaTime,0.0,1.0);//1.0-gs_out_alphaTime;
 	//float alphaArea=areaConstants.x/pow(gs_out_area, areaConstants.y);
-	float alphaArea=clamp(areaConstants.x/pow(gs_out_area, areaConstants.y),0.0,1.0);
+	float alphaArea=clamp(areaConstant/gs_out_area,0.0,1.0);
 
-	fs_out_Color=vec4(fragColor,alphaDensity*alphaFade*gs_out_alphaShape*gs_out_alphaCurvature*alphaArea);//alphaDensity*alphaFade*gs_out_alphaShape*gs_out_alphaCurvature*alphaArea
+	float alpha=alphaDensity*alphaFade*gs_out_alphaShape*gs_out_alphaCurvature*alphaArea;
+
+	if(alpha<=0.1 )
+		discard;
+
+	fs_out_Color=vec4(fragColor,alpha);//alphaDensity*alphaFade*gs_out_alphaShape*gs_out_alphaCurvature*alphaArea
 }

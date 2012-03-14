@@ -27,7 +27,6 @@
 
 #include <SFML/Window.hpp>
 
-
 ////////////////////////////////////////////////////////////////////////////////
 // Namespace Declaration and Definiton
 ////////////////////////////////////////////////////////////////////////////////
@@ -37,13 +36,11 @@ namespace Globals {
 	// Program Settings
 	////////////////////////////////////////////////////////////////////////////////
 	const char PROGRAM_TITLE[] = "Smurf: Smoke Surfaces Visualization";
-	const short PROGRAM_VERSION_MAJOR = 0;
-	const short PROGRAM_VERSION_MINOR = 1;
-	const short PROGRAM_VERSION_REVISION = 0;
+	const short PROGRAM_VERSION_MAJOR = 1;
+	const short PROGRAM_VERSION_MINOR = 0;
+	const short PROGRAM_VERSION_REVISION = 1;
 	const short PROGRAM_VERSION_BUILD = 0;
 	const bool PROGRAM_OPEN_CENTERED = true;
-	const unsigned short PROGRAM_FRAMES_PER_RELEASE = 1;
-	const unsigned short PROGRAM_NUM_SEEDLINES = 1;//Number of Seedlines in [1,9]
 
 	// Render Globals
 	////////////////////////////////////////////////////////////////////////////////
@@ -54,9 +51,7 @@ namespace Globals {
 	const unsigned short RENDER_BUFFER_STENCIL = 8;
 	const unsigned short RENDER_ANTIALIASING_LEVEL = 4;
 	const bool			 RENDER_DEPTH_PEELING = true;
-	const unsigned short RENDER_DEPTH_PEELING_LAYER = 8;//Peeling layer from 1 up to 8
 	const unsigned short RENDER_FRAMERATE_MAX = 120;
-	const float RENDER_SMURF_STEPSIZE = 0.075f;
 	const bool RENDER_FULLSCREEN = false;
 	const bool RENDER_VSYNC = true;
 

@@ -89,7 +89,7 @@ public:
 	int GetSizeZ()					{return m_iSizeZ;}
 	int GetSizeT()					{return m_iSizeT;}				// Number of time slices
 	int GetMaxSlices()				{return m_iSlicesMax;}
-	glm::vec3 GetSliceInterpolation(unsigned long long totalTime, unsigned int smokeTimeStepSize);
+	void GetSliceInterpolation(unsigned long long totalTime, unsigned int smokeTimeStepSize, glm::vec4 *borders, float *interpolation);
 	float GetAverageVectorLength()	{return m_fAverageVectorLength;}
 
 	// Allow user acces to read the data (namly to store it on GPU)

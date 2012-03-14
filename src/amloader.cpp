@@ -6,6 +6,7 @@
 #include "globals.hpp"
 //#include <gl>
 
+
 // **************************************************************** //
 // Release all buffers
 AmiraMesh::~AmiraMesh()
@@ -83,42 +84,49 @@ int AmiraMesh::CountTimeSlices(const char* _pcFileNameMask, char* _pcCurrentName
 
 //calculates the indices of the vectorField for the right sampling,
 //e.g. slices=2500 so the lower bound could be 2488 and the upper bound 2528 and the interpolation value would be 0.5833333f
-glm::vec3 AmiraMesh::GetSliceInterpolation(unsigned long long totalTime, unsigned int smokeTimeStepSize)
+void AmiraMesh::GetSliceInterpolation(unsigned long long totalTime, unsigned int smokeTimeStepSize, glm::vec4 *borders, float *interpolation)
 {
 	float tInter=static_cast<float>(totalTime%smokeTimeStepSize)/static_cast<float>(smokeTimeStepSize);
 	int slice=static_cast<int>(static_cast<float>(totalTime)/static_cast<float>(smokeTimeStepSize))%m_iSlicesMax;
 
-	glm::vec3 slices;
 	int upperBorder,lowerBorder;//used for Interpolation
 
 	if(slice>=m_iSlicesMax-1)
 	{
-		slices.x=m_timeFields[m_iSlicesMax];
-		slices.y=m_timeFields[m_iSlicesMax];
-		slices.z=0.f;
-		return slices;
+		borders->x=m_timeFields[m_iSlicesMax];
+		borders->y=m_timeFields[m_iSlicesMax];
+		borders->z=m_timeFields[m_iSlicesMax];
+		borders->w=m_timeFields[m_iSlicesMax];
+		*interpolation=0.0f;
 	}
 
-	slices.x=m_timeFields[slice];//Index of the lowerBorder
+	borders->y=m_timeFields[slice];//Index of the lowerBorder
 
-	int j=1;
-	while(slice+j<m_iSlicesMax-1 && slices.x==m_timeFields[slice+j])
-		j++;
-
-	upperBorder=slice+j;
-	slices.y=m_timeFields[upperBorder];//Index of the upperBorder
-
-	j=-1;
-	while(slice+j>0 && slices.x==m_timeFields[slice+j])
+	int j=-1;
+	while(slice+j>0 && borders->y==m_timeFields[slice+j])
 		j--;
 
 	lowerBorder=slice+j;
-	if(lowerBorder<0)
-		lowerBorder=0;
+	if(lowerBorder<0)lowerBorder=0;
+	borders->x=m_timeFields[lowerBorder];
 
-	slices.z=(upperBorder-slice+tInter)/(upperBorder-lowerBorder);
 
-	return slices;
+	j=1;
+	while(slice+j<m_iSlicesMax-1 && borders->y==m_timeFields[slice+j])
+		j++;
+
+	upperBorder=slice+j;
+	if(upperBorder>=m_iSlicesMax)upperBorder=m_iSlicesMax-1;
+	borders->z=m_timeFields[upperBorder];//Index of the upperBorder
+
+
+	j=1;
+	while(upperBorder+j<m_iSlicesMax-1 && borders->z==m_timeFields[upperBorder+j])
+		j++;
+
+	borders->w=m_timeFields[upperBorder+j];
+
+	*interpolation=(upperBorder-slice+tInter)/(upperBorder-lowerBorder);
 }
 
 // **************************************************************** //

@@ -79,8 +79,8 @@ void main()
 	
 
 	//DEPTH-PEELING-TEST
-	
-	/*vec4 Color=texture(texSampler0,out_vs_texCoords).rgba;
+	/*
+	vec4 Color=texture(texSampler0,out_vs_texCoords).rgba;
 	out_Color=vec4((1-Color.a)*out_Color.rgb + Color.a*vec3(1,0,0),clamp(out_Color.a+(Color.a*0.5),0,1));
 
 	if(renderLayer==1)
@@ -123,6 +123,6 @@ void main()
 		return;
 
 	Color=texture(texSampler7,out_vs_texCoords).rgba;
-	out_Color=vec4((1-Color.a)*out_Color.rgb + Color.a*vec3(0,0,0),clamp(out_Color.a+(Color.a*0.11111111111),0,1));*/
-
+	out_Color=vec4((1-Color.a)*out_Color.rgb + Color.a*vec3(0,0,0),clamp(out_Color.a+(Color.a*0.11111111111),0,1));
+	*/
 }

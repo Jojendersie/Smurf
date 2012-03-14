@@ -135,7 +135,7 @@ __global__ void IntegrateVectorField(float *Vector_Field, float3 *posptr, unsign
 	posptr[index]=clVertex/posGridOffset+bbMin;
 }
 
-__device__ float3 Sample4D(float tInterpolate, unsigned int t0, float3 Vector, const float *Vector_Field, uint4 Size)
+__device__ float3 Sample4D(float tInterpolate, unsigned int t[4], float3 Vector, const float *Vector_Field, uint4 Size)
 {
 	int3 fi;
 	int index;
@@ -144,19 +144,50 @@ __device__ float3 Sample4D(float tInterpolate, unsigned int t0, float3 Vector, c
 	if(fi.x > Size.x || fi.y > Size.y || fi.z > Size.z || fi.x<0 || fi.y<0 || fi.z<0)
 		return make_float3(0,0,0);
 
-	index=fi.x+fi.y*Size.x+fi.z*Size.y*Size.x+t0*Size.x*Size.y*Size.z;
+	float3 erg[4];
 
-	return make_float3(Vector_Field[(index*3)+0],Vector_Field[(index*3)+1],Vector_Field[(index*3)+2]);
+	for(int j=0;j<4;j++)
+	{
+		if(t[j]>=Size.w)t[j]=Size.w-1;
+		index=fi.x + fi.y*Size.x + fi.z*Size.y*Size.x + t[j]*Size.x*Size.y*Size.z;
+
+		erg[j].x=Vector_Field[(index*3) + 0];
+		erg[j].y=Vector_Field[(index*3) + 1];
+		erg[j].z=Vector_Field[(index*3) + 2];
+		//float4 tmperg=tex3D(tex,fi.x+(i&1),fi.y+(i&2),fi.z+(i&4));
+
+		//erg[j]= make_float3(tmperg.x,tmperg.y,tmperg.z);	
+	}
+
+	//float3 tmp[6];
+	//tmp[0]=erg[1]-erg[0];
+	//tmp[1]=erg[2]-erg[1];
+	//tmp[2]=erg[3]-erg[2];
+
+	//tmp[3]=erg[0]+tmp[0]*tInterpolate;
+	//tmp[4]=erg[1]+tmp[1]*tInterpolate;
+	//tmp[5]=erg[2]+tmp[2]*tInterpolate;
+
+	//tmp[0]=tmp[4]-tmp[3];
+	//tmp[1]=tmp[5]-tmp[4];
+	//tmp[2]=tmp[3]+tmp[0]*tInterpolate;
+	//tmp[5]=tmp[4]+tmp[1]*tInterpolate;
+
+	//return tmp[2]+(tmp[5]-tmp[2])*tInterpolate;
+	
+	//return lerp(erg[1],erg[2],tInterpolate);
+
+	return erg[1];
 
 	//float4 tmperg=tex3D(tex,fi.x,fi.y,fi.z);
 
 	//return make_float3(tmperg.x,tmperg.y,tmperg.z);
 }
 
-__device__ float3 SampleL4D(float tInterpolate, unsigned int t[2], float3 Vector, const float *Vector_Field, uint4 Size)
+__device__ float3 SampleL4D(float tInterpolate, unsigned int t[4], float3 Vector, const float *Vector_Field, uint4 Size)
 {
-	float3 s[2][8];
-	float3 erg[2];
+	float3 s[4][8];
+	float3 erg[4];
 
 	int3 fi;
 	fi=convert_int3(Vector);
@@ -168,11 +199,12 @@ __device__ float3 SampleL4D(float tInterpolate, unsigned int t[2], float3 Vector
 
 	int index;
 
-	for(int j=0;j<2;j++)
+	for(int j=0;j<4;j++)
 	{
+		if(t[j]>=Size.w)t[j]=Size.w-1;
 		for(int i=0;i<8;i++)
 		{
-			index=fi.x+(i&1) + (fi.y+(i&2))*Size.x + (fi.z+(i&4))*Size.y*Size.x+t[j]*Size.x*Size.y*Size.z;
+			index=fi.x+(i&1) + (fi.y+(i&2))*Size.x + (fi.z+(i&4))*Size.y*Size.x + t[j]*Size.x*Size.y*Size.z;
 
 			s[j][i].x=Vector_Field[(index*3) + 0];
 			s[j][i].y=Vector_Field[(index*3) + 1];
@@ -186,21 +218,38 @@ __device__ float3 SampleL4D(float tInterpolate, unsigned int t[2], float3 Vector
 					  lerp(lerp(s[j][1],s[j][5],Vector.x),lerp(s[j][3],s[j][7],Vector.x),Vector.y),Vector.z);	
 	}
 
-	return lerp(erg[0],erg[1],tInterpolate);
+	float3 tmp[6];
+	tmp[0]=erg[1]-erg[0];
+	tmp[1]=erg[2]-erg[1];
+	tmp[2]=erg[3]-erg[2];
+
+	tmp[3]=erg[0]+tmp[0]*tInterpolate;
+	tmp[4]=erg[1]+tmp[1]*tInterpolate;
+	tmp[5]=erg[2]+tmp[2]*tInterpolate;
+
+	tmp[0]=tmp[4]-tmp[3];
+	tmp[1]=tmp[5]-tmp[4];
+	tmp[2]=tmp[3]+tmp[0]*tInterpolate;
+	tmp[5]=tmp[4]+tmp[1]*tInterpolate;
+
+	return tmp[2]+(tmp[5]-tmp[2])*tInterpolate;//lerp(erg[1],erg[2],tInterpolate);
 }
 
 __global__ void IntegrateVectorField4D(float *Vector_Field, float3 *posptr, unsigned int ElementSize, uint4 Size, uint3 rand, float3 bbMin,
-									   float3 posGridOffset, int resetcolumn, int rows, float stepsize, unsigned int bitmask, float avgVecLength, uint2 t, float tInterpolate)
+									   float3 posGridOffset, int resetcolumn, int rows, float stepsize, unsigned int bitmask, float avgVecLength, uint4 t, float tInterpolate)
 {
 	const int index=blockDim.x*blockIdx.x+threadIdx.x;
-	if(index>ElementSize || rows*resetcolumn<index)
+	if(index>ElementSize || rows*rand.y<index)
 		return;
-	
+
+	//if(index>=resetcolumn*rows || index<=(resetcolumn+1)*rows)
+	//	posptr[index]=make_float3(100.0f,100.0f,100.0f);
+
 	float3 clVs,clVertex;
 
 	clVertex=(posptr[index]-bbMin)*posGridOffset;
 
-	clVs=(bitmask & 0x00000001) ? Sample4D(tInterpolate,t.x,clVertex,Vector_Field,Size) : SampleL4D(tInterpolate,(unsigned int*)&t,clVertex,Vector_Field,Size);
+	clVs=(bitmask & 0x00000001) ? Sample4D(tInterpolate,(unsigned int*)&t,clVertex,Vector_Field,Size) : SampleL4D(tInterpolate,(unsigned int*)&t,clVertex,Vector_Field,Size);
 
 	if(bitmask & 0x00001000)
 	{
@@ -218,7 +267,7 @@ __global__ void IntegrateVectorField4D(float *Vector_Field, float3 *posptr, unsi
 	{
 		float3 clVertexTMP=clVertex+stepsize * clVs;
 		clVertex+=(0.5f*stepsize * clVs);
-		clVs=(bitmask & 0x00000001) ? Sample4D(tInterpolate,t.x,clVertex,Vector_Field,Size) : SampleL4D(tInterpolate,(unsigned int*)&t,clVertex,Vector_Field,Size);
+		clVs=(bitmask & 0x00000001) ? Sample4D(tInterpolate,(unsigned int*)&t,clVertex,Vector_Field,Size) : SampleL4D(tInterpolate,(unsigned int*)&t,clVertex,Vector_Field,Size);
 		clVertex+=(0.5f*stepsize * clVs);
 		clVertex=2 * clVertex-clVertexTMP;
 	}
@@ -228,7 +277,7 @@ __global__ void IntegrateVectorField4D(float *Vector_Field, float3 *posptr, unsi
 
 extern "C" void integrateVectorFieldGPU(float* fVectorField, float3 *posptr, unsigned int uiElementSize, unsigned int uiGridSize, 
 										unsigned int uiBlockSize, uint4 sizeField, uint3 rnd, float3 bbMin, float3 posGridOff, 
-										int resetcolumn, int rows, float stepsize, unsigned int bitmask, float avgVecSize, float tInterpolate, uint2 t)
+										int resetcolumn, int rows, float stepsize, unsigned int bitmask, float avgVecSize, float tInterpolate, uint4 t)
 {
 	if(bitmask & 0x00000100)
 		IntegrateVectorField4D<<<uiGridSize,uiBlockSize>>>(fVectorField, posptr,uiElementSize,sizeField,rnd,bbMin,posGridOff,resetcolumn,rows,stepsize,bitmask, avgVecSize,t,tInterpolate);
