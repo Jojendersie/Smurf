@@ -38,7 +38,6 @@
 #include "solidgeometry.hpp"
 #include "cudamanager.hpp"
 
-extern bool SMOKE_TIME_DEPENDENT_INTEGRATION;
 extern unsigned int SMOKE_TIME_STEPSIZE;
 extern unsigned int SMOKE_PARTICLE_NUMBER;
 extern float SMOKE_PRISM_THICKNESS;
@@ -72,9 +71,9 @@ public:
 	// Accessors
 	////////////////////////////////////////////////////////////////////////////////
 	bool IsRunning() const;
-	static const unsigned int& GetElapsedTime();
-	static const unsigned long long& GetTotalTime();
-	static float GetFramerate();
+	const unsigned int& GetElapsedTime();
+	const unsigned long long& GetTotalTime();
+	float GetFramerate();
 
 	// Public Methods
 	////////////////////////////////////////////////////////////////////////////////
@@ -93,9 +92,10 @@ private:
 	// Variables
 	////////////////////////////////////////////////////////////////////////////////
 	sf::Window mainWindow;
-	static unsigned int timeCurrent;
-	static unsigned int timeLast;
-	static unsigned long long timeTotal;
+	sf::Clock m_clock;
+	unsigned int timeCurrent;
+	unsigned int timeLast;
+	unsigned long long timeTotal;
 	GLGraphics* graphics;
 	GLint texLoc;
 	GLuint renderQuadVAO;

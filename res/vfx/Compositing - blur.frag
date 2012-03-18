@@ -1,6 +1,6 @@
 #version 330
 
-#define FILTERSIZE 10
+#define FILTERSIZE 15
 
 ////////////////////////////////////////////////////////////////////////////////
 // Variables
@@ -29,21 +29,13 @@ in vec2 out_vs_texCoords;
 
 vec4 Blur(vec4 color, vec2 texCoords, vec2 size, int filterSize, sampler2D sampler)
 {
-	float tmpa,alpha=0;
-	int c=1;
+	float alpha=0;
 	if(color!=vec4(0,0,0,0))
 		for(int x=0;x!=filterSize;x++)
 			for(int y=0;y!=filterSize;y++)
-			{
-				tmpa=texture(sampler,vec2(texCoords.x+x*size.x,texCoords.y+y*size.y)).a;
-				if(tmpa!=0)
-				{
-					alpha+=tmpa;
-					c++;
-				}
-			}
+				alpha+=texture(sampler,vec2(texCoords.x+x*size.x,texCoords.y+y*size.y)).a;
 
-	return vec4(color.rgb,alpha*1.0/c);
+	return vec4(color.rgb,alpha*1.0/(filterSize*filterSize));
 }
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -1,6 +1,6 @@
 #version 330
 
-#define FILTERSIZE 10
+#define FILTERSIZE 15
 
 ////////////////////////////////////////////////////////////////////////////////
 // Variables
@@ -27,82 +27,56 @@ in vec2 out_vs_texCoords;
 // Functions
 ////////////////////////////////////////////////////////////////////////////////
 
-vec4 Blur(vec4 color, vec2 texCoords, vec2 size, int filterSize, sampler2D sampler)
-{
-	float tmpa,alpha=0;
-	int c=1;
-	if(color!=vec4(0,0,0,0))
-		for(int x=0;x!=filterSize;x++)
-			for(int y=0;y!=filterSize;y++)
-			{
-				tmpa=texture(sampler,vec2(texCoords.x+x*size.x,texCoords.y+y*size.y)).a;
-				if(tmpa!=0)
-				{
-					alpha+=tmpa;
-					c++;
-				}
-			}
 
-	return vec4(color.rgb,alpha*1.0/c);
-}
 
 ////////////////////////////////////////////////////////////////////////////////
 void main()
 {	
-	vec2 size=1.0/textureSize(opaqueSampler,0);
 	vec4 opaqueColor=out_Color=texture(opaqueSampler,out_vs_texCoords).rgba;
 	
 	vec4 Color=texture(texSampler0,out_vs_texCoords).rgba;
-	Color=Blur(Color,out_vs_texCoords,size,FILTERSIZE,texSampler0);
 	out_Color=vec4((1-Color.a)*out_Color.rgb + Color.a*Color.rgb,clamp(out_Color.a+(Color.a*0.5),0,1));
 
 	if(renderLayer==1)
 		return;
 
 	Color=texture(texSampler1,out_vs_texCoords).rgba;
-	Color=Blur(Color,out_vs_texCoords,size,FILTERSIZE,texSampler1);
 	out_Color=vec4((1-Color.a)*out_Color.rgb + Color.a*Color.rgb,clamp(out_Color.a+(Color.a*0.33333333),0,1));
 
 	if(renderLayer==2)
 		return;
 
 	Color=texture(texSampler2,out_vs_texCoords).rgba;
-	Color=Blur(Color,out_vs_texCoords,size,FILTERSIZE,texSampler2);
 	out_Color=vec4((1-Color.a)*out_Color.rgb + Color.a*Color.rgb,clamp(out_Color.a+(Color.a*0.25),0,1));
 
 	if(renderLayer==3)
 		return;
 
 	Color=texture(texSampler3,out_vs_texCoords).rgba;
-	Color=Blur(Color,out_vs_texCoords,size,FILTERSIZE,texSampler3);
 	out_Color=vec4((1-Color.a)*out_Color.rgb + Color.a*Color.rgb,clamp(out_Color.a+(Color.a*0.2),0,1));
 
 	if(renderLayer==4)
 		return;
 
 	Color=texture(texSampler4,out_vs_texCoords).rgba;
-	Color=Blur(Color,out_vs_texCoords,size,FILTERSIZE,texSampler4);
 	out_Color=vec4((1-Color.a)*out_Color.rgb + Color.a*Color.rgb,clamp(out_Color.a+(Color.a*0.166666666),0,1));
 
 	if(renderLayer==5)
 		return;
 
 	Color=texture(texSampler5,out_vs_texCoords).rgba;
-	Color=Blur(Color,out_vs_texCoords,size,FILTERSIZE,texSampler5);
 	out_Color=vec4((1-Color.a)*out_Color.rgb + Color.a*Color.rgb,clamp(out_Color.a+(Color.a*0.142857142),0,1));
 
 	if(renderLayer==6)
 		return;
 
 	Color=texture(texSampler6,out_vs_texCoords).rgba;
-	Color=Blur(Color,out_vs_texCoords,size,FILTERSIZE,texSampler6);
 	out_Color=vec4((1-Color.a)*out_Color.rgb + Color.a*Color.rgb,clamp(out_Color.a+(Color.a*0.125),0,1));
 
 	if(renderLayer==7)
 		return;
 
 	Color=texture(texSampler7,out_vs_texCoords).rgba;
-	Color=Blur(Color,out_vs_texCoords,size,FILTERSIZE,texSampler7);
 	out_Color=vec4((1-Color.a)*out_Color.rgb + Color.a*Color.rgb,clamp(out_Color.a+(Color.a*0.11111111111),0,1));
 	
 

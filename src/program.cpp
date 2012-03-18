@@ -44,6 +44,9 @@ int CudaManager::device=-1;
 ////////////////////////////////////////////////////////////////////////////////
 Program::Program() 
 {
+	timeCurrent=timeLast=1000;
+	timeTotal=0;
+
 	m_bWireframe=false;
 	m_bStopProgram = false;
 	m_bCloseRequest = false;
@@ -59,8 +62,8 @@ Program::Program()
 
 	// set a valid video mode
 	sf::VideoMode mode(Globals::RENDER_VIEWPORT_WIDTH, Globals::RENDER_VIEWPORT_HEIGHT, Globals::RENDER_COLOR_DEPTH);
-	if (!mode.IsValid())
-		mode = sf::VideoMode::GetDesktopMode();
+	if (!mode.isValid())
+		mode = sf::VideoMode::getDesktopMode();
 	// set window style
 	sf::Uint32 style = sf::Style::Close;
 	if (Globals::RENDER_FULLSCREEN)
@@ -68,14 +71,14 @@ Program::Program()
 	// set render context settings
 	sf::ContextSettings settings(Globals::RENDER_BUFFER_DEPTH, Globals::RENDER_BUFFER_STENCIL, Globals::RENDER_ANTIALIASING_LEVEL);
 	// create window with above-defined settings
-	mainWindow.Create(mode, Globals::PROGRAM_TITLE, style, settings);
+	mainWindow.create(mode, Globals::PROGRAM_TITLE, style, settings);
 	// define additional window settings
 	if (Globals::PROGRAM_OPEN_CENTERED) {
-		sf::VideoMode desktop = sf::VideoMode::GetDesktopMode();
-		mainWindow.SetPosition(desktop.Width / 2 - Globals::RENDER_VIEWPORT_WIDTH / 2, desktop.Height / 2 - Globals::RENDER_VIEWPORT_HEIGHT / 2);
+		sf::VideoMode desktop = sf::VideoMode::getDesktopMode();
+		mainWindow.setPosition(sf::Vector2i(desktop.width / 2 - Globals::RENDER_VIEWPORT_WIDTH / 2, desktop.height / 2 - Globals::RENDER_VIEWPORT_HEIGHT / 2));
 	}
-	mainWindow.SetFramerateLimit(Globals::RENDER_FRAMERATE_MAX);
-	mainWindow.EnableVerticalSync(Globals::RENDER_VSYNC);
+	mainWindow.setFramerateLimit(Globals::RENDER_FRAMERATE_MAX);
+	mainWindow.setVerticalSyncEnabled(Globals::RENDER_VSYNC);
 
 	smokeFBO = new GLuint[RENDER_DEPTH_PEELING_LAYER];
 	colorTex = new GLuint[RENDER_DEPTH_PEELING_LAYER];
@@ -122,7 +125,7 @@ Program::~Program() {
 
 ////////////////////////////////////////////////////////////////////////////////
 bool Program::IsRunning() const {
-	return mainWindow.IsOpened();
+	return mainWindow.isOpen();
 }
 
 
@@ -140,7 +143,7 @@ const unsigned long long& Program::GetTotalTime() {
 
 ////////////////////////////////////////////////////////////////////////////////
 float Program::GetFramerate() {
-	float weightRatio = .3f;
+	float weightRatio = .3f; 
 	float time = (1.f - weightRatio) * timeCurrent + weightRatio * timeLast;
 	float fps = 1000.f / time;
 	return (fps < Globals::RENDER_FRAMERATE_MAX - 1) ? fps : Globals::RENDER_FRAMERATE_MAX;
@@ -156,12 +159,12 @@ float Program::GetFramerate() {
 void Program::Run(const char* _pcFile) {
 	// application main loop
 
-	mainWindow.SetActive();
+	mainWindow.setActive();
 	Initialize(_pcFile);
 	while (!m_bCloseRequest) {
 		Update();
 		Draw();
-		mainWindow.Display();
+		mainWindow.display();
 	}
 	Exit();
 }
@@ -169,7 +172,7 @@ void Program::Run(const char* _pcFile) {
 
 ////////////////////////////////////////////////////////////////////////////////
 void Program::Exit() {
-	mainWindow.Close();
+	mainWindow.close();
 }
 
 
@@ -350,22 +353,23 @@ void Program::Initialize(const char* _pcFile) {
 void Program::Update() {
 	// handle some basic events and save times
 	HandleBasicEvents();
-	timeLast = timeCurrent;
-	timeCurrent = mainWindow.GetFrameTime();
-	timeTotal += timeCurrent;
+	timeLast = timeTotal;
+	timeTotal = m_clock.getElapsedTime().asMilliseconds();
+	timeCurrent = timeTotal-timeLast;
+	
 
 	// all update code goes here
-	// Update camera unless the user will set need seed points
-	if (sf::Mouse::IsButtonPressed(Globals::INPUT_CAM_RAY) && !m_bMouseActive) {
+	// Update camera unless the user will set seed points
+	if (sf::Mouse::isButtonPressed(Globals::INPUT_CAM_RAY) && !m_bMouseActive) {
 		m_bMouseActive = true;
 		RayCast();
 	} else {
-		if(!sf::Mouse::IsButtonPressed(Globals::INPUT_CAM_RAY)) m_bMouseActive = false;
-		camera->Update();
+		if(!sf::Mouse::isButtonPressed(Globals::INPUT_CAM_RAY)) m_bMouseActive = false;
+		camera->Update(GetElapsedTime());
 	}
 	// Switch between seed lines
 	for(unsigned int i=0;i<PROGRAM_NUM_SEEDLINES;++i)
-		if(sf::Keyboard::IsKeyPressed(sf::Keyboard::Key( sf::Keyboard::Num1+i)))
+		if(sf::Keyboard::isKeyPressed(sf::Keyboard::Key( sf::Keyboard::Num1+i)))
 			m_uiEditSeedLine = i;
 
 	m_normalizer++;
@@ -382,13 +386,12 @@ void Program::Update() {
 		}
 		unsigned int uiRenderFlags = (m_bUseAdvancedEuler	?Globals::INTEGRATION_MODEULER		: Globals::INTEGRATION_EULER)
 								   | (m_bUseLinearFilter	?Globals::INTEGRATION_FILTER_LINEAR	: Globals::INTEGRATION_FILTER_POINT)
-								   | (m_bNoisyIntegration	?Globals::INTEGRATION_NOISE			: 0
-								   | (SMOKE_TIME_DEPENDENT_INTEGRATION ?Globals::INTEGRATION_TIME_DEPENDENT:0));
+								   | (m_bNoisyIntegration	?Globals::INTEGRATION_NOISE			: 0);
 
 		glm::vec4 interInfo=glm::vec4(0);
 		float tInter=0;
-		if(SMOKE_TIME_DEPENDENT_INTEGRATION)
-			m_VectorField.GetSliceInterpolation(timeTotal,SMOKE_TIME_STEPSIZE,&interInfo,&tInter);
+
+		m_VectorField.GetSliceInterpolation(timeTotal,SMOKE_TIME_STEPSIZE,&interInfo,&tInter);
 
 		float fNormalizedStepSize = RENDER_SMURF_STEPSIZE/m_VectorField.GetAverageVectorLength();
 		if(m_bUseCPUIntegration)
@@ -581,29 +584,29 @@ void Program::Draw() {
 void Program::HandleBasicEvents() {
 	// receive and handle the basic input events
 	sf::Event event;
-	while (mainWindow.PollEvent(event)) {
+	while (mainWindow.pollEvent(event)) {
 		// close main window after clicking the window's close button
-		if (event.Type == sf::Event::Closed)
+		if (event.type == sf::Event::Closed)
 			m_bCloseRequest = true; //mainWindow.Close();
 
 		// close main window after pressing Esc
-		if ((event.Type == sf::Event::KeyPressed) && (event.Key.Code == Globals::INPUT_PROGRAM_EXIT))
+		if ((event.type == sf::Event::KeyPressed) && (event.key.code == Globals::INPUT_PROGRAM_EXIT))
 			m_bCloseRequest = true;
 
 		// Toggle noisy integration
-		if ((event.Type == sf::Event::KeyPressed) && (event.Key.Code == sf::Keyboard::N))
+		if ((event.type == sf::Event::KeyPressed) && (event.key.code == sf::Keyboard::N))
 			m_bNoisyIntegration = !m_bNoisyIntegration;
 
 		// Toggle filter
-		if ((event.Type == sf::Event::KeyPressed) && (event.Key.Code == sf::Keyboard::F))
+		if ((event.type == sf::Event::KeyPressed) && (event.key.code == sf::Keyboard::F))
 			m_bUseLinearFilter = !m_bUseLinearFilter;
 
 		// Toggle integration method
-		if ((event.Type == sf::Event::KeyPressed) && (event.Key.Code == sf::Keyboard::I))
+		if ((event.type == sf::Event::KeyPressed) && (event.key.code == sf::Keyboard::I))
 			m_bUseAdvancedEuler = !m_bUseAdvancedEuler;
 
 		// Toggle Wireframe
-		if ((event.Type == sf::Event::KeyPressed) && (event.Key.Code == sf::Keyboard::E))
+		if ((event.type == sf::Event::KeyPressed) && (event.key.code == sf::Keyboard::E))
 		{
 			m_bWireframe = !m_bWireframe;
 			if(m_bWireframe)
@@ -613,7 +616,7 @@ void Program::HandleBasicEvents() {
 		}
 
 
-		if((event.Type == sf::Event::KeyPressed) && (event.Key.Code == sf::Keyboard::R))
+		if((event.type == sf::Event::KeyPressed) && (event.key.code == sf::Keyboard::R))
 		{
 			m_bUseCPUIntegration = !m_bUseCPUIntegration;
 
@@ -624,17 +627,17 @@ void Program::HandleBasicEvents() {
 		}
 
 		// adjust OpenGL viewport after window resizing
-		if (event.Type == sf::Event::Resized)
-			graphics->AdjustViewport(event.Size.Width, event.Size.Height);
+		if (event.type == sf::Event::Resized)
+			graphics->AdjustViewport(event.size.width, event.size.height);
 	}
 }
 
 void Program::RayCast()
 {
 	// Determine the ray
-	sf::Vector2i MousePos = sf::Mouse::GetPosition(mainWindow);
-	glm::vec3 vNear = glm::vec3(MousePos.x*2.0f/(float)mainWindow.GetWidth()-1.0f,
-		-MousePos.y*2.0f/(float)mainWindow.GetHeight()+1.0f,
+	sf::Vector2i MousePos = sf::Mouse::getPosition(mainWindow);
+	glm::vec3 vNear = glm::vec3(MousePos.x*2.0f/(float)mainWindow.getSize().x-1.0f,
+		-MousePos.y*2.0f/(float)mainWindow.getSize().y+1.0f,
 		camera->GetZNear());
 
 	//glm::vec4 vN = (glm::inverse( camera->GetView()*camera->GetProjection() ) * glm::vec4(vNear, 1.0f));
@@ -659,8 +662,3 @@ void Program::RayCast()
 ////////////////////////////////////////////////////////////////////////////////
 // Definition: Variables
 ////////////////////////////////////////////////////////////////////////////////
-
-
-unsigned int Program::timeCurrent = 1000;
-unsigned int Program::timeLast = 1000;
-unsigned long long Program::timeTotal = 0;

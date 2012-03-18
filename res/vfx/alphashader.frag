@@ -25,13 +25,13 @@ void main()
 	if((renderPass>0 && gl_FragCoord.z+0.0000001>=texture(depthTexture,gl_FragCoord.xy/viewPort.xy).x) || gl_FragCoord.z-0.0000001<=texture(opaqueTexture,gl_FragCoord.xy/viewPort.xy).x)
 		discard;
 
-	//vec2 ndc = (gl_FragCoord.xy/viewPort.xy-0.5)*2.0;
-	//vec4 worldPos=vec4(ndc,gl_FragCoord.z,1.0)/gl_FragCoord.w;
-	//worldPos=invProjectionView*worldPos;
+	vec2 ndc = (gl_FragCoord.xy/viewPort.xy-0.5)*2.0;
+	vec4 worldPos=vec4(ndc,gl_FragCoord.z,1.0)/gl_FragCoord.w;
+	worldPos=invProjectionView*worldPos;
 
-	vec4 worldPos;
-	worldPos=invProjectionView*gs_out_worldPos;
-	worldPos.xyz/worldPos.w;
+	//vec4 worldPos;
+	//worldPos=invProjectionView*gs_out_worldPos;
+	//worldPos.xyz/worldPos.w;
 
 	vec3 viewRay=gs_out_worldPos.xyz-eyePos;
 
@@ -43,7 +43,7 @@ void main()
 
 	float alpha=alphaDensity*alphaFade*gs_out_alphaShape*gs_out_alphaCurvature*alphaArea;
 
-	if(alpha<=0.1 )
+	if(alpha<=0.01 )
 		discard;
 
 	fs_out_Color=vec4(fragColor,alpha);//alphaDensity*alphaFade*gs_out_alphaShape*gs_out_alphaCurvature*alphaArea

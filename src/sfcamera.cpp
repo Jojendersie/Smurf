@@ -175,21 +175,21 @@ void SFCamera::SetZFar(const float& zFar) {
 
 
 ////////////////////////////////////////////////////////////////////////////////
-void SFCamera::Update() {
+void SFCamera::Update(unsigned int elapsedTime) {
 	// calculate the current program performance
-	float performance = Program::GetElapsedTime() / 1000.f;
+	float performance = elapsedTime / 1000.f;
 
 	// handle mouse inputs
-	if (sf::Mouse::IsButtonPressed(Globals::INPUT_CAM_ROTATION) && !mouseActive) {
+	if (sf::Mouse::isButtonPressed(Globals::INPUT_CAM_ROTATION) && !mouseActive) {
 		mouseActive = true;
-		mouseActivePosition = sf::Mouse::GetPosition();
+		mouseActivePosition = sf::Mouse::getPosition();
 	}
-	else if (sf::Mouse::IsButtonPressed(Globals::INPUT_CAM_ROTATION) && mouseActive) {
-		sf::Vector2i mouseDiff = sf::Mouse::GetPosition() - mouseActivePosition;
+	else if (sf::Mouse::isButtonPressed(Globals::INPUT_CAM_ROTATION) && mouseActive) {
+		sf::Vector2i mouseDiff = sf::Mouse::getPosition() - mouseActivePosition;
 		if (abs(pitch - mouseDiff.y * Globals::CAM_SENSITIVITY * performance) <= 89.f)//to avoid gimbal lock
 			pitch -= mouseDiff.y * Globals::CAM_SENSITIVITY * performance;
 		heading += mouseDiff.x * Globals::CAM_SENSITIVITY * performance;
-		sf::Mouse::SetPosition(mouseActivePosition);
+		sf::Mouse::setPosition(mouseActivePosition);
 	}
 	else if (mouseActive)
 		mouseActive = false;
@@ -202,13 +202,13 @@ void SFCamera::Update() {
 
 
 	// handle keyboard inputs
-	if (sf::Keyboard::IsKeyPressed(Globals::INPUT_CAM_FORE))
+	if (sf::Keyboard::isKeyPressed(Globals::INPUT_CAM_FORE))
 		position += forwardVec * cam_velocity * performance;
-	if (sf::Keyboard::IsKeyPressed(Globals::INPUT_CAM_LEFT))
+	if (sf::Keyboard::isKeyPressed(Globals::INPUT_CAM_LEFT))
 		position += sideVec * cam_velocity * performance;
-	if (sf::Keyboard::IsKeyPressed(Globals::INPUT_CAM_BACK))
+	if (sf::Keyboard::isKeyPressed(Globals::INPUT_CAM_BACK))
 		position -= forwardVec * cam_velocity * performance;
-	if (sf::Keyboard::IsKeyPressed(Globals::INPUT_CAM_RIGHT))
+	if (sf::Keyboard::isKeyPressed(Globals::INPUT_CAM_RIGHT))
 		position -= sideVec * cam_velocity * performance;
 
 	//glm::mat4 translation = glm::mat4(1,0,0,0,

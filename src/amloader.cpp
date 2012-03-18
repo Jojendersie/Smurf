@@ -93,11 +93,12 @@ void AmiraMesh::GetSliceInterpolation(unsigned long long totalTime, unsigned int
 
 	if(slice>=m_iSlicesMax-1)
 	{
-		borders->x=m_timeFields[m_iSlicesMax];
-		borders->y=m_timeFields[m_iSlicesMax];
-		borders->z=m_timeFields[m_iSlicesMax];
-		borders->w=m_timeFields[m_iSlicesMax];
+		borders->x=m_timeFields[m_iSlicesMax-1];
+		borders->y=m_timeFields[m_iSlicesMax-1];
+		borders->z=m_timeFields[m_iSlicesMax-1];
+		borders->w=m_timeFields[m_iSlicesMax-1];
 		*interpolation=0.0f;
+		return;
 	}
 
 	borders->y=m_timeFields[slice];//Index of the lowerBorder
@@ -146,8 +147,11 @@ bool AmiraMesh::Load(const char* _pcFileName)
 	m_iSizeT = std::max(1,iTimeSl);
 	printf("AmLoader: found %d time slice(s) for %s\n", m_iSizeT, _pcFileName);
 
-	if(m_timeSlicesMax>0)
+	if(m_timeSlicesMax!=0)
 		m_timeFields = new int[m_timeSlicesMax];
+	else
+		m_timeFields = new int[1];
+
 	int countRealData=0;
 
 	sprintf(acName, "%s", _pcFileName);
@@ -155,7 +159,7 @@ bool AmiraMesh::Load(const char* _pcFileName)
 	for(int i=0; i<m_iSizeT;++i)
 	{
 		TestNextFile:
-		if(m_timeSlicesMax>0) m_timeFields[m_iSlicesMax]=countRealData;
+		m_timeFields[m_iSlicesMax]=countRealData;
 		m_iSlicesMax++;
 		if(iTimeSl && !GoToNextFileName(_pcFileName, acName, iFNLen))
 			return false;	// Unexpected error. During counting there were more files

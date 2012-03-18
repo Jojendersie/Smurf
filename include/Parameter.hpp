@@ -7,7 +7,6 @@
 //char* pcFile = "res\\data\\SquareCylinder_192x64x48_T3048.am";
 //char* pcFile = "res\\data\\SquareCylinder\\flow_t####.am";
 char* pcFile = "res\\data\\Wing_128x64x32_T0.am";
-bool SMOKE_TIME_DEPENDENT_INTEGRATION=false;
 unsigned int SMOKE_TIME_STEPSIZE=40;//stepsize in ms, every SMOKE_TIME_STEPSIZE ms a new slice is being taken
 unsigned int SMOKE_PARTICLE_NUMBER=5000;
 float SMOKE_PRISM_THICKNESS=0.1f;

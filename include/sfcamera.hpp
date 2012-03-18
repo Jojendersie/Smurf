@@ -67,7 +67,7 @@ public:
 
 	// Public Methods
 	////////////////////////////////////////////////////////////////////////////////
-	void Update();
+	void Update(unsigned int elapsedTime);
 
 private:
 	// Private Methods
